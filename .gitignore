@@ -1,0 +1,42 @@
+# Build and IDE output
+**/bin/
+**/obj/
+.vs/
+.idea/
+*.user
+*.suo
+*.pdb
+TestResults/
+*.trx
+*.dmp
+
+# Generated validation and portable releases
+/artifacts/
+/dist/
+*.zip
+*.rar
+*.7z
+
+# Local databases, settings, credentials and session data
+*.db
+*.db-*
+*.db.*
+*.sqlite
+*.sqlite-*
+*.sqlite3
+*.sqlite3-*
+settings.json
+data_location.txt
+**/backups/
+**/logs/
+**/temp/
+*.log
+*.rdp
+*.ctienc
+.env
+.env.*
+!.env.example
+*.pfx
+*.p12
+*.pem
+*.key
