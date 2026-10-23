@@ -6,8 +6,6 @@ Aplicativo desktop para **Windows 11** desenvolvido em **C# (.NET 10 LTS)** com 
 
 Leia [CONTEXTO.md](CONTEXTO.md) para entender como o app funciona, os fluxos de edição e senhas, a arquitetura e os dados portáteis. O [guia de desenvolvimento](DESENVOLVIMENTO.md) reúne as convenções de manutenção do projeto.
 
-As pastas `dist/` e `artifacts/` são locais e não fazem parte do Git. Gere a publicação pelos comandos abaixo; os caminhos de executável e ZIP nesta documentação referem-se à cópia local.
-
 ---
 
 ## 1. Pacote Executável Portátil (Pronto para Uso)
