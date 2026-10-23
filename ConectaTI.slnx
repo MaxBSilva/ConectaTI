@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/ConectaTI.App/ConectaTI.App.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/ConectaTI.Tests/ConectaTI.Tests.csproj" />
+  </Folder>
+</Solution>

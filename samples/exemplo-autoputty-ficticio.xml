@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AutoPuTTY>
+  <Server Name="SRV-ERP-DB01" Client="Comercial Estrela (Fictício)" Group="Banco de Dados" Protocol="SSH" Host="10.45.1.10" Port="22" Username="oracle" />
+  <Server Name="SRV-TS-VENDAS" Client="Comercial Estrela (Fictício)" Group="Terminal Server" Protocol="RDP" Host="ts01.estrela.exemplo.local" Port="3389" Username="ESTRELA\suporte" />
+</AutoPuTTY>

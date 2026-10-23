@@ -1,0 +1,6 @@
+Nome;Cliente;Grupo;Ambiente;Protocolo;Host;Porta;Usuario;Dominio;ChavePrivada;Tags;Observacoes;Favorito
+SRV-AD-PRIMARIO;Indústria Horizonte (Fictício);Active Directory;Produção;RDP;ad01.horizonte.exemplo.local;3389;suporte.ti;HORIZONTE;;ad, dns, windows;Controlador de domínio principal;Sim
+SRV-LINUX-PROXY;Indústria Horizonte (Fictício);Borda & Firewall;Produção;SSH;10.120.0.1;2222;netadmin;;;firewall, squid, ssh;Proxy corporativo na porta 2222;Não
+SRV-SFTP-BACKUP;Transportadora Veloz (Fictício);Repositórios;Homologação;SFTP;172.18.5.40;22;operador.bkp;;;sftp, winscp, backup;Transferência de arquivos via WinSCP;Sim
+TERM-VNC-EXPEDICAO;Transportadora Veloz (Fictício);Logística;Produção;VNC;192.168.80.115;5900;suporte;;;vnc, expedicao;Terminal de impressão de etiquetas;Não
+LAB-IPV6-K8S;Laboratório Interno TI (Fictício);Containers;Teste;SSH;2001:db8:100::25;22;devops;;;ipv6, k8s, lab;Nó de teste IPv6;Não
