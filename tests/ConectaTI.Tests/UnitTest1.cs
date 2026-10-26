@@ -1376,6 +1376,7 @@ public class ConectaTITests : IDisposable
 
                 await ResponsiveUiScenarios.VerifyAsync(mainWin, vm);
                 await ImprovementsUiScenarios.VerifyAsync(mainWin, vm);
+                await KeyboardNavigationUiScenarios.VerifyAsync(mainWin, vm);
                 vm.NewConnection();
                 var editorDlg = new ConectaTI.App.Views.ConnectionEditorDialog(vm);
                 var execDlg = new ConectaTI.App.Views.ExecutablesSettingsDialog(_settingsService, _vaultService, vm);

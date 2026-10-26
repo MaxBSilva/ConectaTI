@@ -714,4 +714,11 @@ Se desactivó la contraseña maestra.</value></data>
   <data name="CopyCompleteAccess" xml:space="preserve"><value>Copiar acceso completo</value></data>
   <data name="Text90F12F03968A" xml:space="preserve"><value>Datos del acceso copiados</value></data>
   <data name="TextD778EC87C370" xml:space="preserve"><value>No se pudo copiar al portapapeles.</value></data>
+  <data name="DensityCompact" xml:space="preserve"><value>Compacta</value></data>
+  <data name="PreferenceStandard" xml:space="preserve"><value>Estándar</value></data>
+  <data name="DensityComfortable" xml:space="preserve"><value>Cómoda</value></data>
+  <data name="TextSizeLabel" xml:space="preserve"><value>Tamaño de las letras</value></data>
+  <data name="TextSizeSmaller" xml:space="preserve"><value>Menor</value></data>
+  <data name="TextSizeLarger" xml:space="preserve"><value>Mayor</value></data>
+  <data name="ViewModesLabel" xml:space="preserve"><value>Vistas de la lista</value></data>
 </root>

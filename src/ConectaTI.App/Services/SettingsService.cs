@@ -33,6 +33,14 @@ public class SettingsService
                 var loaded = JsonSerializer.Deserialize<AppSettings>(json, JsonOptions);
                 if (loaded != null)
                 {
+                    using var document = JsonDocument.Parse(json);
+                    var properties = document.RootElement.EnumerateObject().ToArray();
+                    if (!properties.Any(p => p.Name.Equals(nameof(AppSettings.Density), StringComparison.OrdinalIgnoreCase)))
+                    {
+                        var legacy = properties.FirstOrDefault(p => p.Name.Equals(nameof(AppSettings.ComfortableMode), StringComparison.OrdinalIgnoreCase));
+                        if (legacy.Value.ValueKind is JsonValueKind.True or JsonValueKind.False)
+                            loaded.ComfortableMode = legacy.Value.GetBoolean();
+                    }
                     if (loaded.ClipboardClearSeconds == 20 || loaded.ClipboardClearSeconds <= 0)
                     {
                         loaded.ClipboardClearSeconds = 30;

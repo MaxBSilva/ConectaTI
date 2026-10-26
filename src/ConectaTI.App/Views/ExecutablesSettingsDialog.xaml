@@ -40,9 +40,13 @@
                             <ComboBoxItem Content="Português (Brasil)"/><ComboBoxItem Content="English"/><ComboBoxItem Content="Español"/>
                         </ComboBox>
                         <TextBlock TextWrapping="Wrap" Text="{loc:Loc TextA691DB0557A4}" FontWeight="SemiBold" Margin="0,0,0,6"/>
-                        <ComboBox x:Name="DensityCombo" SelectionChanged="ViewPreference_Changed" Width="250" HorizontalAlignment="Left" Margin="0,0,0,8"><ComboBoxItem Content="{loc:Loc TextA192EB9E9C8A}"/><ComboBoxItem Content="{loc:Loc TextD42A6DC78356}"/></ComboBox>
-                        <TextBlock TextWrapping="Wrap" Text="{loc:Loc Text5C4B4BD1A56D}"/>
-                        <Slider x:Name="FontSizeSlider" Minimum="11" Maximum="18" TickFrequency="0.5" IsSnapToTickEnabled="True" ValueChanged="FontSizeSlider_ValueChanged" MaxWidth="380" HorizontalAlignment="Stretch" Margin="0,4,0,16"/>
+                        <ComboBox x:Name="DensityCombo" SelectionChanged="DensityCombo_SelectionChanged" MaxWidth="380" HorizontalAlignment="Stretch" Margin="0,0,0,16">
+                            <ComboBoxItem Content="{loc:Loc DensityCompact}"/><ComboBoxItem Content="{loc:Loc PreferenceStandard}"/><ComboBoxItem Content="{loc:Loc DensityComfortable}"/>
+                        </ComboBox>
+                        <TextBlock TextWrapping="Wrap" Text="{loc:Loc TextSizeLabel}" FontWeight="SemiBold" Margin="0,0,0,6"/>
+                        <ComboBox x:Name="FontSizeCombo" SelectionChanged="FontSizeCombo_SelectionChanged" MaxWidth="380" HorizontalAlignment="Stretch" Margin="0,0,0,16">
+                            <ComboBoxItem Content="{loc:Loc TextSizeSmaller}"/><ComboBoxItem Content="{loc:Loc PreferenceStandard}"/><ComboBoxItem Content="{loc:Loc TextSizeLarger}"/>
+                        </ComboBox>
                         <TextBlock TextWrapping="Wrap" Text="{loc:Loc Text04F9F0A78DBE}" FontSize="{DynamicResource Font14}" FontWeight="SemiBold" Margin="0,0,0,8"/>
                         <Grid Margin="0,0,0,18">
                             <Grid.ColumnDefinitions>

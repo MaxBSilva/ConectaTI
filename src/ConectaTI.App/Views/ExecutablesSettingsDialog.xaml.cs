@@ -47,8 +47,8 @@ public partial class ExecutablesSettingsDialog : Window
         var s = _settingsService.Current;
 
         LanguageCombo.SelectedIndex = (int)s.Language;
-        DensityCombo.SelectedIndex = s.ComfortableMode ? 1 : 0;
-        FontSizeSlider.Value = s.FontSize;
+        DensityCombo.SelectedIndex = (int)s.Density;
+        FontSizeCombo.SelectedIndex = ViewPreferencesService.FontSizePresetIndex(s.FontSize);
         _suppressThemeEvent = true;
         try
         {
@@ -167,13 +167,20 @@ public partial class ExecutablesSettingsDialog : Window
         ValidateAllExecutableBoxes();
         _ = LoadDiagnosticValuesAsync();
     }
-    private void FontSizeSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e) => ApplyViewPreferences();
-    private void ViewPreference_Changed(object sender, SelectionChangedEventArgs e) => ApplyViewPreferences();
+    private void FontSizeCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_loadingPreferences || FontSizeCombo.SelectedIndex < 0) return;
+        _settingsService.Current.FontSize = ViewPreferencesService.FontSizePresets[FontSizeCombo.SelectedIndex];
+        ApplyViewPreferences();
+    }
+    private void DensityCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_loadingPreferences || DensityCombo.SelectedIndex < 0) return;
+        _settingsService.Current.Density = (InterfaceDensity)DensityCombo.SelectedIndex;
+        ApplyViewPreferences();
+    }
     private void ApplyViewPreferences()
     {
-        if (_loadingPreferences) return;
-        _settingsService.Current.ComfortableMode = DensityCombo.SelectedIndex == 1;
-        _settingsService.Current.FontSize = FontSizeSlider.Value;
         ViewPreferencesService.Apply(_settingsService.Current);
         _settingsService.Save();
     }

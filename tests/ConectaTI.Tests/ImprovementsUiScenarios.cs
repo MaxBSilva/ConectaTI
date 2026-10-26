@@ -42,10 +42,23 @@ internal static class ImprovementsUiScenarios
             Assert.Equal(settings.Language, new SettingsService(vm.Paths, new AppLogger(vm.Paths)).Load().Language);
         }
         settings.Language = AppLanguage.Portuguese; LocalizationService.Current.SetLanguage(settings.Language);
-        var font = (Slider)dialog.FindName("FontSizeSlider"); font.Value = 18;
+        var font = (ComboBox)dialog.FindName("FontSizeCombo"); font.SelectedIndex = 2;
         Assert.Equal(18, settings.FontSize);
-        var density = (ComboBox)dialog.FindName("DensityCombo"); density.SelectedIndex = 1;
+        var density = (ComboBox)dialog.FindName("DensityCombo"); density.SelectedIndex = 2;
         Assert.True(settings.ComfortableMode);
+        for (var textSize = 0; textSize < 3; textSize++)
+        {
+            font.SelectedIndex = textSize;
+            foreach (var layoutDensity in Enum.GetValues<InterfaceDensity>())
+            {
+                density.SelectedIndex = (int)layoutDensity;
+                Assert.Equal(ViewPreferencesService.FontSizePresets[textSize], settings.FontSize);
+                Assert.Equal(layoutDensity, settings.Density);
+                var reopened = new SettingsService(vm.Paths, new AppLogger(vm.Paths)).Load();
+                Assert.Equal(settings.FontSize, reopened.FontSize); Assert.Equal(layoutDensity, reopened.Density);
+                Assert.Equal(selectedId, vm.SelectedConnection!.Id); Assert.Equal(pendingNote, vm.EditingEntry.Notes);
+            }
+        }
         dialog.Close();
 
         // Daily controls stay usable without any master-password session.

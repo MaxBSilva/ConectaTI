@@ -6,7 +6,11 @@ namespace ConectaTI.App.ViewModels;
 public partial class MainViewModel
 {
     public void RecordOperationFailure(string stage, Exception exception) => _logger.RecordFailure(stage, exception);
-    partial void OnCurrentViewModeChanged(ConnectionViewMode value) => OnPropertyChanged(nameof(CanBatchEdit));
+    partial void OnCurrentViewModeChanged(ConnectionViewMode value)
+    {
+        OnPropertyChanged(nameof(CanBatchEdit));
+        OnPropertyChanged(nameof(CurrentViewModeLabel));
+    }
     public int SelectedAccessCount { get; private set; }
     public bool CanBatchEdit => SelectedAccessCount > 0 && !IsSaving && !IsTrashMode;
     public string SelectedAccessCountText => SelectedAccessCount == 1 ? L.Text("1 acesso selecionado") : L.Format("{0} acessos selecionados", (SelectedAccessCount));

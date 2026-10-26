@@ -714,4 +714,11 @@ Save anyway?</value></data>
   <data name="CopyCompleteAccess" xml:space="preserve"><value>Copy complete access</value></data>
   <data name="Text90F12F03968A" xml:space="preserve"><value>Access details copied</value></data>
   <data name="TextD778EC87C370" xml:space="preserve"><value>Could not copy to the clipboard.</value></data>
+  <data name="DensityCompact" xml:space="preserve"><value>Compact</value></data>
+  <data name="PreferenceStandard" xml:space="preserve"><value>Standard</value></data>
+  <data name="DensityComfortable" xml:space="preserve"><value>Comfortable</value></data>
+  <data name="TextSizeLabel" xml:space="preserve"><value>Text size</value></data>
+  <data name="TextSizeSmaller" xml:space="preserve"><value>Smaller</value></data>
+  <data name="TextSizeLarger" xml:space="preserve"><value>Larger</value></data>
+  <data name="ViewModesLabel" xml:space="preserve"><value>List views</value></data>
 </root>

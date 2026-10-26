@@ -319,6 +319,13 @@ public partial class MainViewModel : ObservableObject
 
     public string FavoritesButtonLabel => L.Format("★ Favoritos ({0})", FavoritesCount);
     public string TrashButtonLabel => L.Format("🗑️ Lixeira ({0})", TrashCount);
+    public string CurrentViewModeLabel => CurrentViewMode switch
+    {
+        ConnectionViewMode.Favorites => FavoritesButtonLabel,
+        ConnectionViewMode.Recent => L.Text("🕒 Recentes"),
+        ConnectionViewMode.Trash => TrashButtonLabel,
+        _ => L.Text("Todos")
+    };
 
     public AppPaths Paths => _paths;
     public SettingsService SettingsService => _settingsService;
@@ -501,6 +508,7 @@ public partial class MainViewModel : ObservableObject
         FavoritesCount = _allConnections.Count(c => c.IsFavorite);
         OnPropertyChanged(nameof(FavoritesButtonLabel));
         OnPropertyChanged(nameof(TrashButtonLabel));
+        OnPropertyChanged(nameof(CurrentViewModeLabel));
         RebuildNavigationAndClientFilters();
     }
 

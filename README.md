@@ -30,7 +30,11 @@ Navegar entre acessos e conectar não salva alterações do formulário. Os rasc
 
 O endereço copiado acompanha o campo exibido: mantém hostname/IP e porta explícita, sem duplicá-la; ao carregar o cadastro, a porta padrão continua omitida e a personalizada é exibida. Sem um acesso selecionado, a cópia completa fica desabilitada. Mudar de acesso ou editar os dados durante uma leitura/tentativa de cópia cancela o resultado antigo. O conteúdo completo segue a limpeza automática da cópia de senha, conforme o intervalo configurado (30 segundos por padrão), sem apagar uma cópia posterior do usuário.
 
-O cabeçalho interno utiliza o espaço para os comandos, mantendo nome e ícone na barra de título. Os comandos quebram linha conforme a largura. Abaixo de 680 unidades lógicas WPF, a lista fica acima dos detalhes, com divisória horizontal; em janelas maiores, os painéis ficam lado a lado. Os detalhes mantêm rolagem vertical, e a largura anterior da lista é preservada ao alternar a disposição.
+O cabeçalho interno utiliza o espaço para os comandos, mantendo nome e ícone na barra de título. Os comandos quebram linha conforme a largura. A lista permanece sempre à esquerda dos detalhes, com divisor vertical arrastável e rolagens independentes. A proporção escolhida acompanha o redimensionamento e é preservada ao fechar e reabrir. Quando falta espaço na lista, as visões Todos/Favoritos/Recentes/Lixeira se agrupam em um menu com as mesmas funções.
+
+Em **Configurações → Geral**, escolha **Tamanho das letras: Menor, Padrão ou Maior** e **Densidade: Compacta, Padrão ou Confortável**. As opções são independentes: é possível combinar letras maiores com uma interface compacta. A densidade muda espaçamentos, margens e altura das linhas; reduzir a janela não diminui a fonte. As escolhas são salvas nas configurações locais, com leitura compatível das preferências anteriores.
+
+Com o foco na lista, a digitação faz uma busca incremental que aceita nomes com acentos: `avicola` também localiza `Avícola`. O resultado recebe seleção e foco de teclado. As setas movem exatamente para o vizinho na ordem exibida e encerram a pesquisa incremental anterior. Shift/Ctrl e seleção múltipla mantêm a navegação nativa. Digitar na pesquisa ou no cadastro continua editando o campo correspondente.
 
 ## Dados e credenciais
 

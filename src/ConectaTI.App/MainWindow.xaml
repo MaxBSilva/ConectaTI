@@ -47,12 +47,12 @@
                 Background="{DynamicResource HeaderBackgroundBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,0,0,1"
-                Padding="12,6">
+                Padding="{DynamicResource HeaderPadding}">
                 <!-- Toda a largura fica disponível para comandos, com quebra natural. -->
                 <WrapPanel x:Name="HeaderActions" Orientation="Horizontal" VerticalAlignment="Center">
                     <Button Click="NewConnectionButton_Click"
                             Style="{DynamicResource PrimaryButtonStyle}"
-                            Padding="10,4"
+                            Padding="{DynamicResource ButtonPadding}"
                             Margin="0,2,6,2"
                             ToolTip="{loc:Loc Text9BB1328098A8}"
                             AutomationProperties.Name="{loc:Loc TextC9DC78D19188}">
@@ -60,7 +60,7 @@
                     </Button>
 
                     <Button Command="{Binding ToggleThemeCommand}"
-                            Padding="7,4"
+                            Padding="{DynamicResource HeaderButtonPadding}"
                             Margin="0,2,6,2"
                             Background="#1E293B"
                             Foreground="#F8FAFC"
@@ -70,14 +70,14 @@
                         <TextBlock Text="{Binding ThemeToggleIcon}" FontSize="{DynamicResource Font12_5}"/>
                     </Button>
 
-                    <Button Click="BatchEdit_Click" IsEnabled="{Binding CanBatchEdit}" Margin="0,2,6,2" Padding="8,4">
+                    <Button Click="BatchEdit_Click" IsEnabled="{Binding CanBatchEdit}" Margin="0,2,6,2" Padding="{DynamicResource ButtonPadding}">
                         <TextBlock Text="{loc:Loc Text3B11819721B7}" TextWrapping="Wrap"/>
                     </Button>
                     <TextBlock Text="{Binding SelectedAccessCountText}" VerticalAlignment="Center" Foreground="#F8FAFC" Margin="0,2,8,2" TextWrapping="Wrap"/>
                     <Button x:Name="SettingsGearButton"
                             Click="OpenSettingsButton_Click"
                             Margin="0,2,0,2"
-                            Padding="8,4"
+                            Padding="{DynamicResource ButtonPadding}"
                             Background="#1E293B"
                             Foreground="#F8FAFC"
                             BorderBrush="#334155"
@@ -92,21 +92,16 @@
         <!-- ÁREA CENTRAL COM 2 PAINÉIS (LISTA À ESQUERDA / FORMULÁRIO À DIREITA)       -->
         <!-- ========================================================================= -->
         <Grid x:Name="MainWorkspace" Grid.Row="1" SizeChanged="MainWorkspace_SizeChanged">
-            <Grid.RowDefinitions>
-                <RowDefinition x:Name="AccessListRowDef" Height="*"/>
-                <RowDefinition x:Name="PaneSplitterRowDef" Height="0"/>
-                <RowDefinition x:Name="DetailsRowDef" Height="0"/>
-            </Grid.RowDefinitions>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition x:Name="LeftColumnDef" Width="220" MinWidth="130"/>
                 <ColumnDefinition x:Name="PaneSplitterColumnDef" Width="4"/>
-                <ColumnDefinition x:Name="RightColumnDef" Width="*" MinWidth="260"/>
+                <ColumnDefinition x:Name="RightColumnDef" Width="*" MinWidth="300"/>
             </Grid.ColumnDefinitions>
 
             <!-- ===================================================================== -->
             <!-- PAINEL ESQUERDO: Campo "Buscar..." + Lista Compacta de Conexões        -->
             <!-- ===================================================================== -->
-            <Grid x:Name="AccessListPane" Grid.Column="0" Background="{DynamicResource SurfaceBrush}">
+            <Grid x:Name="AccessListPane" Grid.Column="0" Background="{DynamicResource SurfaceBrush}" SizeChanged="AccessListPane_SizeChanged">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
@@ -135,7 +130,7 @@
                                      Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
                                      Background="Transparent"
                                      BorderThickness="0"
-                                     Padding="7,4"
+                                     Padding="{DynamicResource HeaderButtonPadding}"
                                      FontSize="{DynamicResource Font12_5}"
                                      ToolTip="{loc:Loc Text013F5E45ED6C}"
                                      AutomationProperties.Name="{loc:Loc Text5F55EDF90089}"/>
@@ -168,6 +163,23 @@
                         BorderBrush="{DynamicResource BorderBrush}"
                         BorderThickness="0,0,0,1"
                         Padding="4,3">
+                    <Grid>
+                    <Button x:Name="ViewModeMenuButton" Visibility="Collapsed" Click="ViewModeMenuButton_Click"
+                            Padding="{DynamicResource CopyButtonPadding}" HorizontalContentAlignment="Stretch"
+                            ToolTip="{Binding CurrentViewModeLabel}" AutomationProperties.Name="{loc:Loc ViewModesLabel}">
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Right" Text=" ▾"/>
+                            <TextBlock Text="{Binding CurrentViewModeLabel}" TextTrimming="CharacterEllipsis"/>
+                        </DockPanel>
+                        <Button.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="{loc:Loc TextBD02B9A7D71D}" Command="{Binding SetViewModeCommand}" CommandParameter="{x:Static models:ConnectionViewMode.All}"/>
+                                <MenuItem Header="{Binding FavoritesButtonLabel}" Command="{Binding SetViewModeCommand}" CommandParameter="{x:Static models:ConnectionViewMode.Favorites}"/>
+                                <MenuItem Header="{loc:Loc Text4E6C1551840F}" Command="{Binding SetViewModeCommand}" CommandParameter="{x:Static models:ConnectionViewMode.Recent}"/>
+                                <MenuItem Header="{Binding TrashButtonLabel}" Command="{Binding SetViewModeCommand}" CommandParameter="{x:Static models:ConnectionViewMode.Trash}"/>
+                            </ContextMenu>
+                        </Button.ContextMenu>
+                    </Button>
                     <UniformGrid x:Name="ViewModeButtons" Columns="2">
                         <UniformGrid.Resources>
                             <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
@@ -178,35 +190,37 @@
                                 Command="{Binding SetViewModeCommand}"
                                 CommandParameter="{x:Static models:ConnectionViewMode.All}"
                                 FontSize="{DynamicResource Font10_5}"
-                                Padding="0,3"
+                                Padding="{DynamicResource FilterButtonPadding}"
                                 Margin="1,0"
                                 ToolTip="{loc:Loc TextB3977B864159}"/>
                         <Button Content="{Binding FavoritesButtonLabel}"
                                 Command="{Binding SetViewModeCommand}"
                                 CommandParameter="{x:Static models:ConnectionViewMode.Favorites}"
                                 FontSize="{DynamicResource Font10_5}"
-                                Padding="0,3"
+                                Padding="{DynamicResource FilterButtonPadding}"
                                 Margin="1,0"
                                 ToolTip="{loc:Loc TextFEA0D3D1588C}"/>
                         <Button Content="{loc:Loc Text4E6C1551840F}"
                                 Command="{Binding SetViewModeCommand}"
                                 CommandParameter="{x:Static models:ConnectionViewMode.Recent}"
                                 FontSize="{DynamicResource Font10_5}"
-                                Padding="0,3"
+                                Padding="{DynamicResource FilterButtonPadding}"
                                 Margin="1,0"
                                 ToolTip="{loc:Loc TextC62B898F85F9}"/>
                         <Button Content="{Binding TrashButtonLabel}"
                                 Command="{Binding SetViewModeCommand}"
                                 CommandParameter="{x:Static models:ConnectionViewMode.Trash}"
                                 FontSize="{DynamicResource Font10_5}"
-                                Padding="0,3"
+                                Padding="{DynamicResource FilterButtonPadding}"
                                 Margin="1,0"
                                 ToolTip="{loc:Loc TextF4A70EAE5B48}"/>
                     </UniformGrid>
+                    </Grid>
                 </Border>
 
                 <!-- Lista Compacta: Apenas nomes de identificação das conexões e badges de ambiente -->
                 <ListBox x:Name="ConnectionsListBox" SelectionMode="Extended" SelectionChanged="ConnectionsListBox_SelectionChanged"
+                         IsTextSearchEnabled="False"
                          Grid.Row="2"
                          ItemsSource="{Binding FilteredConnections}"
                          SelectedItem="{Binding SelectedConnection, Mode=TwoWay}"
@@ -218,6 +232,9 @@
                          BorderThickness="0"
                          PreviewMouseRightButtonDown="ConnectionsListBox_RightClick"
                          MouseDoubleClick="ConnectionsListBox_MouseDoubleClick"
+                         PreviewMouseDown="ConnectionsListBox_PreviewMouseDown"
+                         LostKeyboardFocus="ConnectionsListBox_LostKeyboardFocus"
+                         PreviewTextInput="ConnectionsListBox_PreviewTextInput"
                          PreviewKeyDown="ConnectionsListBox_PreviewKeyDown">
                     <ListBox.ContextMenu>
                         <ContextMenu>
@@ -234,7 +251,7 @@
                             <MenuItem Header="{loc:Loc Text298A26FABB25}" Click="MenuCopyPassword_Click"/>
                         </ContextMenu>
                     </ListBox.ContextMenu>
-                    <ListBox.ItemContainerStyle><Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}"><Setter Property="Padding" Value="{DynamicResource ConnectionItemPadding}"/></Style></ListBox.ItemContainerStyle>
+                    <ListBox.ItemContainerStyle><Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}"><Setter Property="Padding" Value="{DynamicResource ConnectionItemPadding}"/><Setter Property="MinHeight" Value="{DynamicResource ConnectionItemMinHeight}"/></Style></ListBox.ItemContainerStyle>
                     <ListBox.ItemTemplate>
                         <DataTemplate>
                             <DockPanel LastChildFill="True" Margin="2,1">
@@ -265,7 +282,7 @@
                 <Border Grid.Row="3"
                         Visibility="{Binding IncrementalSearchStatus, Converter={StaticResource StringNotEmptyToVis}}"
                         Background="{DynamicResource AccentBrush}"
-                        Padding="6,3">
+                        Padding="{DynamicResource CopyButtonPadding}">
                     <TextBlock Text="{Binding IncrementalSearchStatus}"
                                Foreground="{DynamicResource AccentTextBrush}"
                                FontSize="{DynamicResource Font11}"
@@ -282,6 +299,7 @@
                           Background="{DynamicResource BorderBrush}"
                           ShowsPreview="True"
                           ResizeBehavior="PreviousAndNext"
+                          ResizeDirection="Columns"
                           DragCompleted="PaneSplitter_DragCompleted"
                           Cursor="SizeWE"
                           ToolTip="{loc:Loc TextFA6E89A3EFC8}"/>
@@ -295,7 +313,7 @@
                     BorderThickness="1,0,0,0">
                 <ScrollViewer x:Name="DetailsScrollViewer" VerticalScrollBarVisibility="Auto"
                               HorizontalScrollBarVisibility="Disabled"
-                              Padding="14,12"
+                              Padding="{DynamicResource DetailPanePadding}"
                               Focusable="False">
                     <StackPanel>
                         <ComboBox ItemsSource="{Binding NewDrafts}" SelectedItem="{Binding SelectedNewDraft, Mode=TwoWay}"
@@ -333,7 +351,7 @@
                                 BorderBrush="#D97706"
                                 BorderThickness="1"
                                 CornerRadius="4"
-                                Padding="10,8"
+                                Padding="{DynamicResource SectionPadding}"
                                 Margin="0,0,0,12">
                             <StackPanel>
                                 <StackPanel VerticalAlignment="Center">
@@ -343,18 +361,18 @@
                                 <WrapPanel VerticalAlignment="Center" Margin="0,6,0,0">
                                     <Button Content="{loc:Loc Text010AD8D3A1F4}"
                                             Command="{Binding RestoreSelectedConnectionCommand}"
-                                            Padding="10,4" Margin="0,0,6,4" FontSize="{DynamicResource Font11_5}"/>
+                                            Padding="{DynamicResource ButtonPadding}" Margin="0,0,6,4" FontSize="{DynamicResource Font11_5}"/>
                                     <Button Content="{loc:Loc Text37045D507711}"
                                             Command="{Binding DeleteConnectionCommand}"
                                             Background="#7F1D1D" Foreground="#FEE2E2" BorderBrush="#EF4444"
-                                            Padding="10,4" Margin="0,0,0,4" FontSize="{DynamicResource Font11_5}"/>
+                                            Padding="{DynamicResource ButtonPadding}" Margin="0,0,0,4" FontSize="{DynamicResource Font11_5}"/>
                                 </WrapPanel>
                             </StackPanel>
                         </Border>
 
                         <!-- 1. Nome da Conexão + Copiar -->
-                        <TextBlock TextWrapping="Wrap" Text="{loc:Loc TextBF09C0A4277F}" FontSize="{DynamicResource Font11_5}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,3"/>
-                        <Grid Margin="0,0,0,10">
+                        <TextBlock TextWrapping="Wrap" Text="{loc:Loc TextBF09C0A4277F}" FontSize="{DynamicResource Font11_5}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="{DynamicResource FieldLabelMargin}"/>
+                        <Grid Margin="{DynamicResource FieldGroupMargin}">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
@@ -363,7 +381,7 @@
                                      Grid.Column="0"
                                      Text="{Binding EditingEntry.Name, UpdateSourceTrigger=PropertyChanged}"
                                      FontSize="{DynamicResource Font12_5}"
-                                     Padding="7,5"/>
+                                     Padding="{DynamicResource FieldPadding}"/>
                             <Button Grid.Column="1"
                                     Command="{Binding CopyConnectionNameCommand}"
                                     Style="{DynamicResource IconCopyButtonStyle}"
@@ -376,8 +394,8 @@
                         </Grid>
 
                         <!-- 2. Endereço / Hostname[:porta] + Copiar -->
-                        <TextBlock TextWrapping="Wrap" Text="{loc:Loc Text134E55471D20}" FontSize="{DynamicResource Font11_5}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,3"/>
-                        <Grid Margin="0,0,0,10">
+                        <TextBlock TextWrapping="Wrap" Text="{loc:Loc Text134E55471D20}" FontSize="{DynamicResource Font11_5}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="{DynamicResource FieldLabelMargin}"/>
+                        <Grid Margin="{DynamicResource FieldGroupMargin}">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
@@ -386,7 +404,7 @@
                                      Text="{Binding InlineHostAndPort, UpdateSourceTrigger=PropertyChanged}"
                                      FontFamily="Consolas"
                                      FontSize="{DynamicResource Font12_5}"
-                                     Padding="7,5"/>
+                                     Padding="{DynamicResource FieldPadding}"/>
                             <Button Grid.Column="1"
                                     Command="{Binding CopyHostCommand}"
                                     Style="{DynamicResource IconCopyButtonStyle}"
@@ -399,8 +417,8 @@
                         </Grid>
 
                         <!-- 3. Usuário [DOMÍNIO\usuário] + Copiar -->
-                        <TextBlock TextWrapping="Wrap" Text="{loc:Loc TextB8EFA018467E}" FontSize="{DynamicResource Font11_5}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,3"/>
-                        <Grid Margin="0,0,0,10">
+                        <TextBlock TextWrapping="Wrap" Text="{loc:Loc TextB8EFA018467E}" FontSize="{DynamicResource Font11_5}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="{DynamicResource FieldLabelMargin}"/>
+                        <Grid Margin="{DynamicResource FieldGroupMargin}">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
@@ -408,7 +426,7 @@
                             <TextBox Grid.Column="0"
                                      Text="{Binding InlineUserWithDomain, UpdateSourceTrigger=PropertyChanged}"
                                      FontSize="{DynamicResource Font12_5}"
-                                     Padding="7,5"/>
+                                     Padding="{DynamicResource FieldPadding}"/>
                             <Button Grid.Column="1"
                                     Command="{Binding CopyUsernameCommand}"
                                     Style="{DynamicResource IconCopyButtonStyle}"
@@ -421,7 +439,7 @@
                         </Grid>
 
                         <!-- 4. Senha (Mascarada, Mostrar/Ocultar, Copiar, Indicação, Remover) -->
-                        <WrapPanel Margin="0,0,0,3">
+                        <WrapPanel Margin="{DynamicResource FieldLabelMargin}">
                             <TextBlock TextWrapping="Wrap" Text="{loc:Loc TextD482C10B3D4D}" FontSize="{DynamicResource Font11_5}" Foreground="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center"/>
                             <!-- Indicação discreta de senha salva / marcada para remoção -->
                             <TextBlock Text="{Binding SavedPasswordBadgeText}" TextWrapping="Wrap"
@@ -441,7 +459,7 @@
                                     ToolTip="{loc:Loc Text86509F57E908}"/>
                         </WrapPanel>
 
-                        <Grid Margin="0,0,0,10">
+                        <Grid Margin="{DynamicResource FieldGroupMargin}">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
@@ -453,7 +471,7 @@
                                 <PasswordBox x:Name="InlinePasswordBox"
                                              PasswordChanged="InlinePasswordBox_PasswordChanged"
                                              FontSize="{DynamicResource Font12_5}"
-                                             Padding="7,5"/>
+                                             Padding="{DynamicResource FieldPadding}"/>
                                 <TextBlock x:Name="PasswordBulletsPlaceholder"
                                            Text="••••••••••••"
                                            IsHitTestVisible="False"
@@ -469,7 +487,7 @@
                                      TextChanged="RevealedPasswordTextBox_TextChanged"
                                      Visibility="{Binding IsPasswordRevealed, Converter={StaticResource BoolToVis}}"
                                      FontSize="{DynamicResource Font12_5}"
-                                     Padding="7,5"/>
+                                     Padding="{DynamicResource FieldPadding}"/>
 
                             <!-- Botão Mostrar / Ocultar Senha -->
                             <Button Grid.Column="1"
@@ -494,8 +512,8 @@
                         </Grid>
 
                         <!-- 5. Chave Privada (visível para SSH e WinSCP; oculta para MSTSC e VNC) -->
-                        <StackPanel Visibility="{Binding SupportsPrivateKey, Converter={StaticResource BoolToVis}}" Margin="0,0,0,10">
-                            <TextBlock TextWrapping="Wrap" Text="{loc:Loc TextE6E1B71770FE}" FontSize="{DynamicResource Font11_5}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,3"/>
+                        <StackPanel Visibility="{Binding SupportsPrivateKey, Converter={StaticResource BoolToVis}}" Margin="{DynamicResource FieldGroupMargin}">
+                            <TextBlock TextWrapping="Wrap" Text="{loc:Loc TextE6E1B71770FE}" FontSize="{DynamicResource Font11_5}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="{DynamicResource FieldLabelMargin}"/>
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
@@ -504,18 +522,18 @@
                                 <TextBox Grid.Column="0"
                                          Text="{Binding EditingEntry.PrivateKeyPath, UpdateSourceTrigger=PropertyChanged}"
                                          FontSize="{DynamicResource Font12}"
-                                         Padding="7,5"/>
+                                         Padding="{DynamicResource FieldPadding}"/>
                                 <Button Grid.Column="1"
                                         Content="..."
                                         Click="BrowsePrivateKey_Click"
-                                        Padding="8,4"
+                                        Padding="{DynamicResource ButtonPadding}"
                                         Margin="4,0,0,0"
                                         ToolTip="{loc:Loc TextCBC206F5964B}"/>
                             </Grid>
                         </StackPanel>
 
                         <!-- 6. Tipo de Conexão -->
-                        <TextBlock TextWrapping="Wrap" Text="{loc:Loc Text2FC429DB7583}" FontSize="{DynamicResource Font11_5}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,3"/>
+                        <TextBlock TextWrapping="Wrap" Text="{loc:Loc Text2FC429DB7583}" FontSize="{DynamicResource Font11_5}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="{DynamicResource FieldLabelMargin}"/>
                         <ComboBox ItemsSource="{Binding ConnectionTypeOptions}"
                                   DisplayMemberPath="DisplayName"
                                   SelectedValuePath="Value"
@@ -528,7 +546,7 @@
                             <Button DockPanel.Dock="Left"
                                     Command="{Binding ConnectCommand}"
                                     Style="{DynamicResource PrimaryButtonStyle}"
-                                    Padding="18,6"
+                                    Padding="{DynamicResource ActionButtonPadding}"
                                     Margin="0,0,8,6"
                                     ToolTip="{loc:Loc Text76D0D8DA1D7C}"
                                     AutomationProperties.Name="{loc:Loc Text3B0B0FDFE2E3}">
@@ -539,7 +557,7 @@
                             <Button x:Name="SaveConnectionButton" DockPanel.Dock="Left"
                                     Click="SaveButton_Click"
                                     IsEnabled="{Binding CanSave}"
-                                    Padding="14,6"
+                                    Padding="{DynamicResource ActionButtonPadding}"
                                     Margin="0,0,8,6"
                                     ToolTip="{loc:Loc TextCFB546213C60}"
                                     AutomationProperties.Name="{loc:Loc TextAEF7CD5B2081}">
@@ -561,7 +579,7 @@
                             <Button x:Name="MoreActionsButton"
                                     DockPanel.Dock="Left"
                                     Click="MoreActionsButton_Click"
-                                    Padding="10,6"
+                                    Padding="{DynamicResource ActionButtonPadding}"
                                     Margin="0,0,0,6"
                                     ToolTip="{loc:Loc Text289CA5B692D9}">
                                 <TextBlock Text="•••" FontSize="{DynamicResource Font12}" FontWeight="Bold"/>
@@ -578,7 +596,7 @@
                         </WrapPanel>
 
                         <Button x:Name="CopyCompleteAccessButton" Command="{Binding CopyCompleteAccessCommand}"
-                                Padding="10,6" Margin="0,0,0,12" HorizontalContentAlignment="Center"
+                                Padding="{DynamicResource ActionButtonPadding}" Margin="0,0,0,12" HorizontalContentAlignment="Center"
                                 AutomationProperties.Name="{loc:Loc CopyCompleteAccess}">
                             <TextBlock Text="{loc:Loc CopyCompleteAccess}" TextWrapping="Wrap" TextAlignment="Center"/>
                         </Button>
@@ -588,19 +606,19 @@
                         <Button Content="{loc:Loc Text534C4DA81431}" Command="{Binding CancelEditCommand}"
                                 IsEnabled="{Binding CanDiscardChanges}"
                                 Visibility="{Binding CanDiscardChanges, Converter={StaticResource BoolToVis}}"
-                                HorizontalAlignment="Left" Margin="0,0,0,10" Padding="10,4"/>
+                                HorizontalAlignment="Left" Margin="{DynamicResource FieldGroupMargin}" Padding="{DynamicResource ButtonPadding}"/>
 
                         <!-- 8. "Mais opções" (Expander recolhido por padrão) -->
                         <Expander Header="{loc:Loc Text5D951376C42F}"
                                   IsExpanded="False"
                                   Foreground="{DynamicResource PrimaryTextBrush}"
                                   FontSize="{DynamicResource Font12}"
-                                  Margin="0,0,0,10">
+                                  Margin="{DynamicResource FieldGroupMargin}">
                             <Border Background="{DynamicResource SurfaceAltBrush}"
                                     BorderBrush="{DynamicResource BorderBrush}"
                                     BorderThickness="1"
                                     CornerRadius="5"
-                                    Padding="10,8"
+                                    Padding="{DynamicResource SectionPadding}"
                                     Margin="0,4,0,0">
                                 <StackPanel>
                                     <!-- Cliente e Grupo -->
@@ -611,11 +629,11 @@
                                         </Grid.ColumnDefinitions>
                                         <StackPanel Grid.Column="0" Margin="0,0,4,0">
                                             <TextBlock TextWrapping="Wrap" Text="{loc:Loc TextF851D9A83AB0}" FontSize="{DynamicResource Font11}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,2"/>
-                                            <TextBox Text="{Binding EditingEntry.ClientName, UpdateSourceTrigger=PropertyChanged}" FontSize="{DynamicResource Font12}" Padding="5,3"/>
+                                            <TextBox Text="{Binding EditingEntry.ClientName, UpdateSourceTrigger=PropertyChanged}" FontSize="{DynamicResource Font12}" Padding="{DynamicResource FieldPadding}"/>
                                         </StackPanel>
                                         <StackPanel Grid.Column="1" Margin="4,0,0,0">
                                             <TextBlock TextWrapping="Wrap" Text="{loc:Loc Text399B037DAB0F}" FontSize="{DynamicResource Font11}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,2"/>
-                                            <TextBox Text="{Binding EditingEntry.GroupName, UpdateSourceTrigger=PropertyChanged}" FontSize="{DynamicResource Font12}" Padding="5,3"/>
+                                            <TextBox Text="{Binding EditingEntry.GroupName, UpdateSourceTrigger=PropertyChanged}" FontSize="{DynamicResource Font12}" Padding="{DynamicResource FieldPadding}"/>
                                         </StackPanel>
                                     </Grid>
 
@@ -684,7 +702,7 @@
                                     <!-- Opções Específicas de VNC -->
                                     <StackPanel Visibility="{Binding IsVncSelected, Converter={StaticResource BoolToVis}}">
                                         <TextBlock TextWrapping="Wrap" Text="{loc:Loc Text7B3218B5EEBD}" FontSize="{DynamicResource Font11}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,2"/>
-                                        <TextBox Text="{Binding EditingEntry.VncParameters, UpdateSourceTrigger=PropertyChanged}" FontSize="{DynamicResource Font12}" Padding="5,3"/>
+                                        <TextBox Text="{Binding EditingEntry.VncParameters, UpdateSourceTrigger=PropertyChanged}" FontSize="{DynamicResource Font12}" Padding="{DynamicResource FieldPadding}"/>
                                     </StackPanel>
                                 </StackPanel>
                             </Border>
@@ -694,7 +712,7 @@
                         <Expander IsExpanded="False"
                                   Foreground="{DynamicResource PrimaryTextBrush}"
                                   FontSize="{DynamicResource Font12}"
-                                  Margin="0,0,0,10">
+                                  Margin="{DynamicResource FieldGroupMargin}">
                             <Expander.Header>
                                 <DockPanel HorizontalAlignment="Stretch">
                                     <TextBlock TextWrapping="Wrap" Text="{loc:Loc Text0120E59D18C6}" FontWeight="SemiBold" VerticalAlignment="Center"/>
@@ -710,7 +728,7 @@
                                     BorderBrush="{DynamicResource BorderBrush}"
                                     BorderThickness="1"
                                     CornerRadius="5"
-                                    Padding="10,8"
+                                    Padding="{DynamicResource SectionPadding}"
                                     Margin="0,4,0,0">
                                 <StackPanel>
                                     <!-- Nome da VPN -->
@@ -723,12 +741,12 @@
                                         <TextBox Grid.Column="0"
                                                  Text="{Binding EditingEntry.VpnName, UpdateSourceTrigger=PropertyChanged}"
                                                  FontSize="{DynamicResource Font12}"
-                                                 Padding="5,3"/>
+                                                 Padding="{DynamicResource FieldPadding}"/>
                                         <Button Grid.Column="1"
                                                 Content="📋"
                                                 ToolTip="{loc:Loc TextFDADA95F7ABC}"
                                                 Command="{Binding CopyVpnNameCommand}"
-                                                Padding="6,3"
+                                                Padding="{DynamicResource CopyButtonPadding}"
                                                 Margin="4,0,0,0"
                                                 Cursor="Hand"/>
                                     </Grid>
@@ -737,7 +755,7 @@
                                     <TextBlock TextWrapping="Wrap" Text="{loc:Loc Text23ECCE63EAEA}" FontSize="{DynamicResource Font11}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,2"/>
                                     <TextBox Text="{Binding EditingEntry.VpnApp, UpdateSourceTrigger=PropertyChanged}"
                                              FontSize="{DynamicResource Font12}"
-                                             Padding="5,3"
+                                             Padding="{DynamicResource FieldPadding}"
                                              Margin="0,0,0,8"/>
 
                                     <!-- Servidor / IP[:porta] -->
@@ -751,12 +769,12 @@
                                                  Text="{Binding EditingEntry.VpnServer, UpdateSourceTrigger=PropertyChanged}"
                                                  FontFamily="Consolas"
                                                  FontSize="{DynamicResource Font12}"
-                                                 Padding="5,3"/>
+                                                 Padding="{DynamicResource FieldPadding}"/>
                                         <Button Grid.Column="1"
                                                 Content="📋"
                                                 ToolTip="{loc:Loc TextD23258F58F26}"
                                                 Command="{Binding CopyVpnServerCommand}"
-                                                Padding="6,3"
+                                                Padding="{DynamicResource CopyButtonPadding}"
                                                 Margin="4,0,0,0"
                                                 Cursor="Hand"/>
                                     </Grid>
@@ -799,7 +817,7 @@
                 Background="{DynamicResource SurfaceAltBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,1,0,0"
-                Padding="10,4">
+                Padding="{DynamicResource ButtonPadding}">
             <TextBlock Text="{Binding StatusMessage}"
                        Foreground="{DynamicResource SecondaryTextBrush}"
                        FontSize="{DynamicResource Font11_5}"

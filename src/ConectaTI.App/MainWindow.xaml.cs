@@ -19,14 +19,14 @@ public partial class MainWindow : Window
     private readonly DispatcherTimer _incrementalSearchTimer;
     private string _incrementalSearchBuffer = string.Empty;
     private bool _isUpdatingPasswordInternally;
-    private bool? _isStackedLayout;
-    private double _preferredLeftPaneWidth = 220;
+    private double _preferredLeftPaneRatio = double.NaN;
 
     public MainWindow(MainViewModel viewModel)
     {
+        _vm = viewModel;
+        ViewPreferencesService.Apply(_vm.SettingsService.Current);
         InitializeComponent();
         LocalizedWindow.Attach(this);
-        _vm = viewModel;
         DataContext = _vm;
 
         _incrementalSearchTimer = new DispatcherTimer
@@ -35,9 +35,7 @@ public partial class MainWindow : Window
         };
         _incrementalSearchTimer.Tick += (_, _) =>
         {
-            _incrementalSearchTimer.Stop();
-            _incrementalSearchBuffer = string.Empty;
-            _vm.IncrementalSearchStatus = string.Empty;
+            ResetIncrementalSearch();
         };
 
         _vm.ConfirmDeleteCallback = (title, message) =>
@@ -138,7 +136,7 @@ public partial class MainWindow : Window
         }
 
         var savedLeftWidth = s.LeftPaneWidth >= 130 ? s.LeftPaneWidth : 220;
-        _preferredLeftPaneWidth = savedLeftWidth;
+        _preferredLeftPaneRatio = s.LeftPaneRatio;
         LeftColumnDef.Width = new GridLength(Math.Min(savedLeftWidth, Math.Max(130, Width - 280)), GridUnitType.Pixel);
     }
 
@@ -161,52 +159,49 @@ public partial class MainWindow : Window
             s.WindowHeight = RestoreBounds.Height;
         }
 
-        if (_isStackedLayout != true && LeftColumnDef.ActualWidth >= 130)
+        if (LeftColumnDef.ActualWidth >= 130)
         {
             s.LeftPaneWidth = LeftColumnDef.ActualWidth;
         }
-        else s.LeftPaneWidth = _preferredLeftPaneWidth;
+        s.RightPaneWidth = RightColumnDef.ActualWidth;
+        s.LeftPaneRatio = _preferredLeftPaneRatio;
 
         _vm.SettingsService.Save();
     }
 
     private void MainWorkspace_SizeChanged(object sender, SizeChangedEventArgs e) => UpdateResponsiveLayout();
 
+    private void AccessListPane_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        var condensed = AccessListPane.ActualWidth < Math.Max(200, FontSize * 14) || AccessListPane.ActualHeight < 320;
+        ViewModeButtons.Visibility = condensed ? Visibility.Collapsed : Visibility.Visible;
+        ViewModeMenuButton.Visibility = condensed ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private void ViewModeMenuButton_Click(object sender, RoutedEventArgs e)
+    {
+        var menu = ViewModeMenuButton.ContextMenu;
+        if (menu is null) return;
+        menu.DataContext = DataContext;
+        menu.PlacementTarget = ViewModeMenuButton;
+        menu.Placement = PlacementMode.Bottom;
+        menu.IsOpen = true;
+    }
+
     private void PaneSplitter_DragCompleted(object sender, DragCompletedEventArgs e)
     {
-        if (_isStackedLayout != true) _preferredLeftPaneWidth = LeftColumnDef.ActualWidth;
+        var available = MainWorkspace.ActualWidth - PaneSplitterColumnDef.ActualWidth;
+        if (available > 0) _preferredLeftPaneRatio = LeftColumnDef.ActualWidth / available;
     }
 
     private void UpdateResponsiveLayout()
     {
-        var width = MainWorkspace.ActualWidth;
-        if (width <= 0) return;
-        var stacked = width < 680;
-        if (_isStackedLayout != stacked)
-        {
-            if (_isStackedLayout == false) _preferredLeftPaneWidth = LeftColumnDef.ActualWidth;
-            _isStackedLayout = stacked;
-            Grid.SetColumn(AccessDetailsPane, stacked ? 0 : 2);
-            Grid.SetRow(AccessDetailsPane, stacked ? 2 : 0);
-            Grid.SetColumn(PaneSplitter, stacked ? 0 : 1);
-            Grid.SetRow(PaneSplitter, stacked ? 1 : 0);
-            PaneSplitterRowDef.Height = new GridLength(stacked ? 4 : 0);
-            DetailsRowDef.Height = stacked ? new GridLength(1.5, GridUnitType.Star) : new GridLength(0);
-            LeftColumnDef.MinWidth = stacked ? 0 : 130;
-            RightColumnDef.MinWidth = stacked ? 0 : 300;
-            PaneSplitterColumnDef.Width = new GridLength(stacked ? 0 : 4);
-            RightColumnDef.Width = stacked ? new GridLength(0) : new GridLength(1, GridUnitType.Star);
-            PaneSplitter.ResizeDirection = stacked ? GridResizeDirection.Rows : GridResizeDirection.Columns;
-            PaneSplitter.Width = stacked ? double.NaN : 4;
-            PaneSplitter.Height = stacked ? 4 : double.NaN;
-            PaneSplitter.Cursor = stacked ? Cursors.SizeNS : Cursors.SizeWE;
-            ViewModeButtons.Columns = stacked ? 4 : 2;
-        }
-        LeftColumnDef.Width = stacked ? new GridLength(1, GridUnitType.Star)
-            : new GridLength(Math.Clamp(_preferredLeftPaneWidth, 130, Math.Max(130, width - 304)));
-        AccessListRowDef.Height = new GridLength(stacked && FontSize >= 16 ? 1.5 : 1, GridUnitType.Star);
-        AccessListRowDef.MinHeight = stacked ? Math.Min(110, MainWorkspace.ActualHeight * .4) : 0;
-        DetailsRowDef.MinHeight = stacked ? Math.Min(140, MainWorkspace.ActualHeight * .45) : 0;
+        var available = MainWorkspace.ActualWidth - 4;
+        if (available <= 0 || _vm is null) return;
+        if (!double.IsFinite(_preferredLeftPaneRatio))
+            _preferredLeftPaneRatio = Math.Clamp(_vm.SettingsService.Current.LeftPaneWidth / available, .05, .95);
+        LeftColumnDef.Width = new GridLength(Math.Clamp(available * _preferredLeftPaneRatio, 130, Math.Max(130, available - 300)));
+        RightColumnDef.Width = new GridLength(1, GridUnitType.Star);
     }
 
     // =========================================================================
@@ -258,8 +253,15 @@ public partial class MainWindow : Window
     private async void ConnectionsListBox_PreviewKeyDown(object sender, KeyEventArgs e)
     {
         // Não intercepta se o foco de digitação estiver em caixas de texto
-        if (e.OriginalSource is TextBox || e.OriginalSource is PasswordBox)
+        if (Keyboard.FocusedElement is TextBox or PasswordBox || e.OriginalSource is TextBox or PasswordBox)
             return;
+
+        if (e.Key is Key.Up or Key.Down or Key.Home or Key.End or Key.PageUp or Key.PageDown or Key.Left or Key.Right)
+        {
+            // O WPF mantém a navegação nativa, incluindo Ctrl/Shift e seleção múltipla.
+            ResetIncrementalSearch();
+            return;
+        }
 
         if (e.Key == Key.Enter && Keyboard.Modifiers == ModifierKeys.None && _vm.SelectedConnection != null)
         {
@@ -271,9 +273,7 @@ public partial class MainWindow : Window
         if (e.Key == Key.Escape && Keyboard.Modifiers == ModifierKeys.None)
         {
             e.Handled = true;
-            _incrementalSearchTimer.Stop();
-            _incrementalSearchBuffer = string.Empty;
-            _vm.IncrementalSearchStatus = string.Empty;
+            ResetIncrementalSearch();
             return;
         }
 
@@ -299,16 +299,33 @@ public partial class MainWindow : Window
             return;
         }
 
-        var keyChar = GetCharFromKey(e.Key);
-        if (keyChar.HasValue && Keyboard.Modifiers == ModifierKeys.None)
-        {
-            e.Handled = true;
-            _incrementalSearchBuffer += keyChar.Value;
-            _incrementalSearchTimer.Stop();
-            _incrementalSearchTimer.Start();
-            _vm.IncrementalSearchStatus = $"Buscando: {_incrementalSearchBuffer}";
-            ExecuteIncrementalSearch(_incrementalSearchBuffer);
-        }
+    }
+
+    private void ResetIncrementalSearch()
+    {
+        _incrementalSearchTimer.Stop();
+        _incrementalSearchBuffer = string.Empty;
+        _vm.IncrementalSearchStatus = string.Empty;
+    }
+
+    private void ConnectionsListBox_PreviewMouseDown(object sender, MouseButtonEventArgs e) => ResetIncrementalSearch();
+
+    private void ConnectionsListBox_LostKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
+    {
+        if (!ConnectionsListBox.IsKeyboardFocusWithin) ResetIncrementalSearch();
+    }
+
+    private void ConnectionsListBox_PreviewTextInput(object sender, TextCompositionEventArgs e)
+    {
+        if (!ConnectionsListBox.IsKeyboardFocusWithin || Keyboard.FocusedElement is TextBox or PasswordBox
+            || (Keyboard.Modifiers & (ModifierKeys.Control | ModifierKeys.Alt)) != 0
+            || string.IsNullOrEmpty(e.Text) || e.Text.Any(char.IsControl)) return;
+        e.Handled = true;
+        _incrementalSearchBuffer += e.Text;
+        _incrementalSearchTimer.Stop();
+        _incrementalSearchTimer.Start();
+        _vm.IncrementalSearchStatus = $"Buscando: {_incrementalSearchBuffer}";
+        ExecuteIncrementalSearch(_incrementalSearchBuffer);
     }
 
     private void ExecuteIncrementalSearch(string term)
@@ -316,29 +333,14 @@ public partial class MainWindow : Window
         var match = ConectaTI.App.Helpers.StringNormalizationHelper.FindBestMatch(_vm.FilteredConnections, term);
         if (match != null)
         {
-            if (_vm.SelectedConnection?.Id != match.Id)
-            {
-                _ = _vm.RequestNavigateToConnectionAsync(match);
-            }
+            var followKeyboard = ConnectionsListBox.IsKeyboardFocusWithin;
+            ConnectionsListBox.SelectedItem = match;
             ConnectionsListBox.ScrollIntoView(match);
+            // ScrollIntoView realiza o item virtualizado, mas não muda o ponto de navegação.
+            ConnectionsListBox.UpdateLayout();
+            if (followKeyboard && ConnectionsListBox.ItemContainerGenerator.ContainerFromItem(match) is ListBoxItem item)
+                item.Focus();
         }
-    }
-
-    private static char? GetCharFromKey(Key key)
-    {
-        if (key >= Key.A && key <= Key.Z)
-            return (char)('a' + (key - Key.A));
-        if (key >= Key.D0 && key <= Key.D9)
-            return (char)('0' + (key - Key.D0));
-        if (key >= Key.NumPad0 && key <= Key.NumPad9)
-            return (char)('0' + (key - Key.NumPad0));
-        if (key == Key.Space)
-            return ' ';
-        if (key == Key.OemMinus || key == Key.Subtract)
-            return '-';
-        if (key == Key.OemPeriod || key == Key.Decimal)
-            return '.';
-        return null;
     }
 
     // =========================================================================

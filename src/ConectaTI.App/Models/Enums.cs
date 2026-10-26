@@ -1,6 +1,7 @@
 namespace ConectaTI.App.Models;
 
 public enum AppLanguage { Automatic, Portuguese, English, Spanish }
+public enum InterfaceDensity { Compact, Standard, Comfortable }
 
 public sealed class SelectableOption<T> : System.ComponentModel.INotifyPropertyChanged, ILanguageObserver
 {

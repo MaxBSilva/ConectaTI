@@ -714,4 +714,11 @@ Deseja salvar mesmo assim?</value></data>
   <data name="CopyCompleteAccess" xml:space="preserve"><value>Copiar acesso completo</value></data>
   <data name="Text90F12F03968A" xml:space="preserve"><value>Dados do acesso copiados</value></data>
   <data name="TextD778EC87C370" xml:space="preserve"><value>Não foi possível copiar para a área de transferência.</value></data>
+  <data name="DensityCompact" xml:space="preserve"><value>Compacta</value></data>
+  <data name="PreferenceStandard" xml:space="preserve"><value>Padrão</value></data>
+  <data name="DensityComfortable" xml:space="preserve"><value>Confortável</value></data>
+  <data name="TextSizeLabel" xml:space="preserve"><value>Tamanho das letras</value></data>
+  <data name="TextSizeSmaller" xml:space="preserve"><value>Menor</value></data>
+  <data name="TextSizeLarger" xml:space="preserve"><value>Maior</value></data>
+  <data name="ViewModesLabel" xml:space="preserve"><value>Visões da lista</value></data>
 </root>
