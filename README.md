@@ -1,8 +1,6 @@
 # ConectaTI
 
-Gerenciador de acessos remotos para equipes de suporte que atendem diversos clientes todos os dias.
-
-**Desenvolvido por [Max Silva](https://github.com/MaxBSilva), com auxílio de inteligência artificial e revisão no ambiente interno de trabalho.**
+Gerenciador de acessos remotos para equipes de suporte.
 
 O ConectaTI reúne os acessos em uma interface para Windows e inicia os clientes de conexão já utilizados pela equipe. Cada instalação mantém sua própria base local e portátil.
 
@@ -36,7 +34,7 @@ As senhas protegidas por DPAPI pertencem ao usuário Windows de origem. Para tra
 
 O projeto foi pensado para apoiar várias equipes por meio de instalações locais. A base SQLite não oferece sincronização entre equipes nem edição simultânea em uma base compartilhada.
 
-O repositório contém código-fonte e exemplos fictícios. Bases, configurações locais, credenciais, logs e arquivos de distribuição ficam fora do Git.
+O repositório contém código-fonte e exemplos fictícios. Bases, configurações locais, credenciais, logs e arquivos.
 
 ## Desenvolvimento
 
