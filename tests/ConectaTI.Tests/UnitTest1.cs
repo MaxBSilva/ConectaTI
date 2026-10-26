@@ -25,6 +25,7 @@ public class ConectaTITests : IDisposable
 
     public ConectaTITests()
     {
+        ConectaTI.App.Localization.LocalizationService.Current.SetLanguage(AppLanguage.Portuguese);
         _tempRootDir = Path.Combine(Path.GetTempPath(), "ConectaTI_Tests_" + Guid.NewGuid().ToString("N"));
         _paths = new AppPaths(_tempRootDir);
         _logger = new AppLogger(_paths);
@@ -33,6 +34,7 @@ public class ConectaTITests : IDisposable
         _repository = new SqliteRepository(_paths, _logger);
         _repository.InitializeAndMigrate();
         _vaultService = new CredentialVaultService(_settingsService, _repository, _logger, useWindowsVault: false);
+        VaultTestSupport.Initialize(_vaultService);
     }
 
     public void Dispose()
@@ -225,7 +227,7 @@ public class ConectaTITests : IDisposable
             settings2.Load();
             var repo2 = new SqliteRepository(_paths, _logger);
             repo2.InitializeAndMigrate();
-            var vault2 = new CredentialVaultService(settings2, repo2, _logger, useWindowsVault: false);
+            var vault2 = new CredentialVaultService(settings2, repo2, _logger, useWindowsVault: false); VaultTestSupport.Initialize(vault2);
             var clipboard2 = new ClipboardService(_logger, _ => true, () => null, () => { });
 
             ProcessStartInfo? capturedStartInfo = null;
@@ -627,7 +629,7 @@ public class ConectaTITests : IDisposable
             Assert.Contains("conn-123", state.Comment);
 
             // CleanupAllManagedRdpCredentials remove todas as credenciais gerenciadas pelo ConectaTI
-            var removed = WindowsCredentialVaultInterop.CleanupAllManagedRdpCredentials();
+            var removed = WindowsCredentialVaultInterop.ClearManagedRdpCredentialsForHost(host,3389);
             Assert.True(removed >= 1);
             Assert.False(WindowsCredentialVaultInterop.InspectRdpCredentialTarget(target).Exists);
         }
@@ -638,15 +640,19 @@ public class ConectaTITests : IDisposable
     }
 
     [Fact]
-    public void SessionCleanup_ClearsTemporaryRdpCredentials()
+    public void VaultLock_PreservesTemporaryRdpCredentialsForOpenSessions()
     {
         const string host = "srv-bloqueio.conectati.interno";
         var prov = WindowsCredentialVaultInterop.ProvisionRdpSessionCredentials("conn-lock", host, 3389, @"CORP\admin", "Segredo");
         Assert.NotEmpty(prov.ProvisionedTargets);
 
-        // Limpeza de sessão deve remover credenciais temporárias TERMSRV gerenciadas pelo ConectaTI
-        _vaultService.Lock();
-        Assert.False(WindowsCredentialVaultInterop.InspectRdpCredentialTarget($"TERMSRV/{host}").Exists);
+        try
+        {
+            _vaultService.Lock();
+            Assert.False(_vaultService.IsLocked);
+            Assert.True(WindowsCredentialVaultInterop.InspectRdpCredentialTarget($"TERMSRV/{host}").Exists);
+        }
+        finally { WindowsCredentialVaultInterop.ClearManagedRdpCredentialsForHost(host,3389,"conn-lock"); }
     }
 
     [Theory]
@@ -893,7 +899,6 @@ public class ConectaTITests : IDisposable
     public async Task MasterPasswordAndPortableEncryptedExport_RoundTripsSecretsSecurely()
     {
         const string secret1 = "ChaveSecreta!ClienteA#99";
-        const string masterPass = "MestraForte@2026";
         const string transportPass = "TransportePortatil$2026";
 
         var cred = new SavedCredential
@@ -918,14 +923,11 @@ public class ConectaTITests : IDisposable
         };
         await _repository.SaveConnectionAsync(conn);
 
-        // Ativa Senha Mestra e verifica bloqueio/desbloqueio real
-        await _vaultService.ConfigureMasterPasswordAsync(null, masterPass);
-        Assert.True(_settingsService.Current.HasMasterPassword);
-
+        // Daily protection works without creating a master-password vault.
+        Assert.False(_vaultService.IsVaultCreated);
         _vaultService.Lock();
-        Assert.False(_vaultService.Unlock("SenhaErrada"));
-        Assert.True(_vaultService.Unlock(masterPass));
-        Assert.Equal(secret1, _vaultService.UnprotectSecret((await _repository.GetCredentialByIdAsync(cred.Id))!));
+        Assert.False(_vaultService.IsLocked);
+        Assert.Equal(secret1,_vaultService.UnprotectSecret((await _repository.GetCredentialByIdAsync(cred.Id))!));
 
         // Exporta pacote criptografado portátil (.ctienc)
         var importExport = new ImportExportService(_repository, _vaultService, _logger);
@@ -947,7 +949,7 @@ public class ConectaTITests : IDisposable
         var settings2 = new SettingsService(paths2, logger2);
         var repo2 = new SqliteRepository(paths2, logger2);
         repo2.InitializeAndMigrate();
-        var vault2 = new CredentialVaultService(settings2, repo2, logger2, useWindowsVault: false);
+        var vault2 = new CredentialVaultService(settings2, repo2, logger2, useWindowsVault: false); VaultTestSupport.Initialize(vault2);
         var importExport2 = new ImportExportService(repo2, vault2, logger2);
 
         var (connsImported, credsImported, _) = await importExport2.ImportEncryptedPackageAsync(
@@ -958,7 +960,9 @@ public class ConectaTITests : IDisposable
         Assert.Equal(1, connsImported);
         Assert.Equal(1, credsImported);
 
-        var importedCred = await repo2.GetCredentialByIdAsync(cred.Id);
+        var importedEntry = Assert.Single(await repo2.GetAllConnectionsAsync());
+        Assert.NotNull(importedEntry.CredentialId);
+        var importedCred = await repo2.GetCredentialByIdAsync(importedEntry.CredentialId);
         Assert.NotNull(importedCred);
         Assert.Equal(secret1, vault2.UnprotectSecret(importedCred!));
     }
@@ -1315,7 +1319,7 @@ public class ConectaTITests : IDisposable
                 var app = System.Windows.Application.Current as ConectaTI.App.App;
                 if (app == null)
                 {
-                    app = new ConectaTI.App.App();
+                    app = new ConectaTI.App.App { IsIsolatedHost = true };
                     app.InitializeComponent();
                     app.ShutdownMode = System.Windows.ShutdownMode.OnExplicitShutdown;
                 }
@@ -1370,6 +1374,7 @@ public class ConectaTITests : IDisposable
                     }
                 }
 
+                await ImprovementsUiScenarios.VerifyAsync(mainWin, vm);
                 vm.NewConnection();
                 var editorDlg = new ConectaTI.App.Views.ConnectionEditorDialog(vm);
                 var execDlg = new ConectaTI.App.Views.ExecutablesSettingsDialog(_settingsService, _vaultService, vm);

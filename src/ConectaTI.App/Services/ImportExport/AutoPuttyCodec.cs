@@ -20,7 +20,7 @@ public record AutoPuttyServerRecord(
     ConnectionProtocol Protocol,
     SshClientPreference SshPreference,
     bool PasswordRecovered,
-    string Group = "Geral");
+    string Group = "Geral", bool PasswordUnreadable = false);
 
 /// <summary>
 /// Implementa decodificação e serialização de arquivos XML compatíveis com o AutoPuTTY (versões legadas e modernas),
@@ -28,6 +28,31 @@ public record AutoPuttyServerRecord(
 /// </summary>
 public static class AutoPuttyCodec
 {
+    private static readonly AsyncLocal<ReadScope?> CurrentRead = new();
+    public static IDisposable BeginReadScope(CancellationToken token = default, IProgress<ImportProgress>? progress = null)
+        => new ReadScope(token, progress);
+
+    private sealed class ReadScope : IDisposable
+    {
+        private readonly ReadScope? _previous;
+        internal readonly CancellationToken Token;
+        internal readonly IProgress<ImportProgress>? Progress;
+        internal readonly Dictionary<string, byte[]> Keys = new();
+        public ReadScope(CancellationToken token, IProgress<ImportProgress>? progress)
+        { _previous = CurrentRead.Value; Token = token; Progress = progress; CurrentRead.Value = this; }
+        public void Dispose()
+        {
+            foreach (var key in Keys.Values) CryptographicOperations.ZeroMemory(key);
+            Keys.Clear(); CurrentRead.Value = _previous;
+        }
+    }
+    internal static void CheckReadProgress(int count)
+    {
+        CurrentRead.Value?.Token.ThrowIfCancellationRequested();
+        ImportLimits.CheckCount(count);
+        if (count % 25 == 0) CurrentRead.Value?.Progress?.Report(new("Validating", count));
+    }
+    internal static void CheckCancellation() => CurrentRead.Value?.Token.ThrowIfCancellationRequested();
     public const string DefaultInternalCryptoKey = "12ùMkldQ%kS2A";
     public const string DefaultLegacyCryptoKey = ";Sk/#µ^éD}=@|";
 
@@ -58,19 +83,20 @@ public static class AutoPuttyCodec
     {
         try
         {
-            var doc = XDocument.Parse(xmlContent);
-            var hashNode = doc.Descendants().FirstOrDefault(e => e.Name.LocalName.Equals("Hash", StringComparison.OrdinalIgnoreCase));
+            var doc = ImportLimits.ReadXml(xmlContent);
+            var metadata = doc.Root?.Elements() ?? Enumerable.Empty<XElement>();
+            var hashNode = metadata.FirstOrDefault(e => e.Name.LocalName.Equals("Hash", StringComparison.OrdinalIgnoreCase));
             if (hashNode != null && !string.IsNullOrWhiteSpace(hashNode.Value))
                 return true;
 
-            var passwordNode = doc.Descendants().FirstOrDefault(e =>
+            var passwordNode = metadata.FirstOrDefault(e =>
                 e.Name.LocalName.Equals("password", StringComparison.OrdinalIgnoreCase) ||
                 e.Name.LocalName.Equals("passwordmd5", StringComparison.OrdinalIgnoreCase) ||
                 e.Name.LocalName.Equals("passwordpbk", StringComparison.OrdinalIgnoreCase));
 
             return passwordNode != null && !string.IsNullOrWhiteSpace(passwordNode.Value);
         }
-        catch
+        catch (System.Xml.XmlException)
         {
             return false;
         }
@@ -81,8 +107,10 @@ public static class AutoPuttyCodec
     /// </summary>
     public static List<AutoPuttyServerRecord> ParseAutoPuttyXml(string xmlContent, string? optionalPassword = null)
     {
+        using var scope = CurrentRead.Value == null ? BeginReadScope() : null;
+        CurrentRead.Value?.Token.ThrowIfCancellationRequested();
         var results = new List<AutoPuttyServerRecord>();
-        var doc = XDocument.Parse(xmlContent);
+        var doc = ImportLimits.ReadXml(xmlContent);
 
         // Caso 1: Estrutura <Data><List>...texto cifrado...</List></Data>
         var listNode = doc.Descendants().FirstOrDefault(e => e.Name.LocalName.Equals("List", StringComparison.OrdinalIgnoreCase));
@@ -90,6 +118,9 @@ public static class AutoPuttyCodec
         {
             var encryptedBlob = listNode.Value.Trim();
             var decryptedXml = DecryptAutoPuttyString(encryptedBlob, optionalPassword);
+
+            if (decryptedXml == encryptedBlob || !decryptedXml.TrimStart().StartsWith('<'))
+                throw new CryptographicException(L.Text("Não foi possível decifrar a lista AutoPuTTY. Verifique a senha do arquivo."));
 
             if (!string.IsNullOrWhiteSpace(decryptedXml))
             {
@@ -111,18 +142,19 @@ public static class AutoPuttyCodec
         XDocument doc;
         try
         {
-            doc = XDocument.Parse(xmlContent);
+            doc = ImportLimits.ReadXml(xmlContent);
         }
-        catch
+        catch (System.Xml.XmlException)
         {
             // Tenta envolver em raiz se for múltiplos nós soltos
-            doc = XDocument.Parse($"<Root>{xmlContent}</Root>");
+            doc = ImportLimits.ReadXml($"<Root>{xmlContent}</Root>");
         }
 
         // Mapeia eventuais <Vault Name="..."> para senhas/chaves compartilhadas
         var vaults = new Dictionary<string, (string Password, string PrivateKey)>(StringComparer.OrdinalIgnoreCase);
         foreach (var vNode in doc.Descendants().Where(e => e.Name.LocalName.Equals("Vault", StringComparison.OrdinalIgnoreCase) && e.Attribute("Name") != null))
         {
+            CurrentRead.Value?.Token.ThrowIfCancellationRequested();
             var vName = vNode.Attribute("Name")?.Value ?? string.Empty;
             var vPassEnc = vNode.Element("Password")?.Value ?? string.Empty;
             var vPrivEnc = vNode.Element("PrivateKey")?.Value ?? string.Empty;
@@ -135,6 +167,9 @@ public static class AutoPuttyCodec
         // Extrai todos os servidores <Server Name="...">
         foreach (var sNode in doc.Descendants().Where(e => e.Name.LocalName.Equals("Server", StringComparison.OrdinalIgnoreCase)))
         {
+            CurrentRead.Value?.Token.ThrowIfCancellationRequested();
+            ImportLimits.CheckCount(records.Count + 1);
+            if (records.Count % 25 == 0) CurrentRead.Value?.Progress?.Report(new("Decoding", records.Count));
             var name = sNode.Attribute("Name")?.Value ?? sNode.Element("Name")?.Value ?? string.Empty;
             var hostRawEnc = sNode.Element("Host")?.Value ?? sNode.Attribute("Host")?.Value ?? string.Empty;
             var userRawEnc = sNode.Element("User")?.Value ?? sNode.Attribute("Username")?.Value ?? string.Empty;
@@ -179,7 +214,7 @@ public static class AutoPuttyCodec
                 Protocol: protocol,
                 SshPreference: sshPref,
                 PasswordRecovered: !string.IsNullOrEmpty(passDecrypted),
-                Group: group));
+                Group: group, PasswordUnreadable: !string.IsNullOrEmpty(passRawEnc) && string.IsNullOrEmpty(passDecrypted)));
         }
 
         return records;
@@ -243,6 +278,7 @@ public static class AutoPuttyCodec
             return string.Empty;
 
         var clean = encrypted.Trim();
+        CurrentRead.Value?.Token.ThrowIfCancellationRequested();
         var keysToTry = new List<string>();
         if (!string.IsNullOrWhiteSpace(optionalPassword)) keysToTry.Add(optionalPassword);
         keysToTry.Add(DefaultInternalCryptoKey);
@@ -261,7 +297,7 @@ public static class AutoPuttyCodec
                     if (!string.IsNullOrWhiteSpace(decrypted))
                         return decrypted;
                 }
-                catch
+                catch (Exception ex) when (ex is CryptographicException or FormatException or ArgumentException)
                 {
                     // Continua tentando
                 }
@@ -277,13 +313,14 @@ public static class AutoPuttyCodec
                 if (!string.IsNullOrWhiteSpace(decrypted))
                     return decrypted;
             }
-            catch
+            catch (Exception ex) when (ex is CryptographicException or FormatException or ArgumentException)
             {
                 // Continua tentando
             }
         }
 
-        // Se não conseguir descriptografar, pode ser texto puro
+        if (clean.StartsWith("$v", StringComparison.OrdinalIgnoreCase))
+            throw new CryptographicException(L.Text("Campo AutoPuTTY criptografado ilegível."));
         return clean;
     }
 
@@ -293,7 +330,8 @@ public static class AutoPuttyCodec
             return string.Empty;
 
         // Se contiver caracteres não Base64 ou espaços normais de texto plano, retorna como está
-        if (value.Contains(' ') || value.Contains('<') || value.Contains('\\'))
+        if (!value.TrimStart().StartsWith("$v", StringComparison.OrdinalIgnoreCase) &&
+            (value.Contains(' ') || value.Contains('<') || value.Contains('\\')))
             return value;
 
         try
@@ -301,9 +339,9 @@ public static class AutoPuttyCodec
             var decrypted = DecryptAutoPuttyString(value, optionalPassword);
             return !string.IsNullOrWhiteSpace(decrypted) ? decrypted : value;
         }
-        catch
+        catch (Exception ex) when (ex is CryptographicException or FormatException or ArgumentException)
         {
-            return value;
+            return string.Empty;
         }
     }
 
@@ -326,7 +364,7 @@ public static class AutoPuttyCodec
 
         using var decryptor = tripleDes.CreateDecryptor();
         var result = decryptor.TransformFinalBlock(encryptedBytes, 0, encryptedBytes.Length);
-        return Encoding.UTF8.GetString(result);
+        return new UTF8Encoding(false, true).GetString(result);
     }
 
     /// <summary>
@@ -365,16 +403,22 @@ public static class AutoPuttyCodec
         Array.Copy(cipherData, 0, salt, 0, salt.Length);
         Array.Copy(cipherData, salt.Length, iv, 0, iv.Length);
 
-        using var argon2 = new Argon2id(Encoding.UTF8.GetBytes(password))
+        CurrentRead.Value?.Token.ThrowIfCancellationRequested();
+        // Cache only within this read, with a bounded count. Parameters must remain compatible.
+        var cacheId = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(Convert.ToBase64String(salt) + password)));
+        byte[] key;
+        var cached = CurrentRead.Value?.Keys.TryGetValue(cacheId, out key!) == true;
+        if (!cached)
         {
-            Salt = salt,
-            DegreeOfParallelism = Parallelism,
-            Iterations = 4,
-            MemorySize = 64 * 1024
-        };
+            using var argon2 = new Argon2id(Encoding.UTF8.GetBytes(password))
+            { Salt = salt, DegreeOfParallelism = Parallelism, Iterations = 4, MemorySize = 64 * 1024 };
+            key = argon2.GetBytes(32);
+            if (CurrentRead.Value is { } context && context.Keys.Count < 64) context.Keys.Add(cacheId, key);
+        }
+        else key = CurrentRead.Value!.Keys[cacheId];
 
-        var key = argon2.GetBytes(32);
-
+        try
+        {
         using var aes = Aes.Create();
         aes.Mode = CipherMode.CBC;
         aes.Padding = PaddingMode.PKCS7;
@@ -391,7 +435,13 @@ public static class AutoPuttyCodec
             cs.FlushFinalBlock();
         }
 
-        return Encoding.UTF8.GetString(ms.ToArray());
+        var result = new UTF8Encoding(false, true).GetString(ms.ToArray());
+        return result;
+        }
+        finally
+        {
+            if (CurrentRead.Value == null || !CurrentRead.Value.Keys.ContainsKey(cacheId)) CryptographicOperations.ZeroMemory(key);
+        }
     }
 
     /// <summary>

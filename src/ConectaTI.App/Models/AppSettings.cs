@@ -2,6 +2,10 @@ namespace ConectaTI.App.Models;
 
 public class AppSettings
 {
+    public AppLanguage Language { get; set; } = AppLanguage.Automatic;
+    public bool ComfortableMode { get; set; }
+    public double FontSize { get; set; } = 12.5;
+    public Dictionary<string, double> ImportColumnWidths { get; set; } = new();
     public AppThemeMode Theme { get; set; } = AppThemeMode.System;
 
     // Caminhos dos clientes externos

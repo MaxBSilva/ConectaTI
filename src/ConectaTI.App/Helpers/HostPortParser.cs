@@ -53,7 +53,7 @@ public static class HostPortParser
 
         if (string.IsNullOrEmpty(raw))
         {
-            return new HostPortParseResult(string.Empty, defaultPort, false, false, "O endereço/hostname não pode ficar em branco.");
+            return new HostPortParseResult(string.Empty, defaultPort, false, false, L.Text("O endereço/hostname não pode ficar em branco."));
         }
 
         // Caso 1: Notação IPv6 com colchetes: [2001:db8::1]:port ou [2001:db8::1]
@@ -62,7 +62,7 @@ public static class HostPortParser
             var closingBracket = raw.IndexOf(']');
             if (closingBracket < 0)
             {
-                return new HostPortParseResult(raw, defaultPort, false, false, "Endereço IPv6 com colchete de fechamento ausente.");
+                return new HostPortParseResult(raw, defaultPort, false, false, L.Text("Endereço IPv6 com colchete de fechamento ausente."));
             }
 
             var ipv6Part = raw[1..closingBracket].Trim();
@@ -82,10 +82,10 @@ public static class HostPortParser
                     return new HostPortParseResult(ipv6Part, customPort, true, true, null);
                 }
 
-                return new HostPortParseResult(ipv6Part, defaultPort, true, false, $"Porta inválida '{portStr}'. A porta deve estar entre 1 e 65535.");
+                return new HostPortParseResult(ipv6Part, defaultPort, true, false, L.Format("Porta inválida '{0}'. A porta deve estar entre 1 e 65535.", (portStr)));
             }
 
-            return new HostPortParseResult(ipv6Part, defaultPort, false, false, $"Formato de endereço inválido após o colchete: '{remainder}'.");
+            return new HostPortParseResult(ipv6Part, defaultPort, false, false, L.Format("Formato de endereço inválido após o colchete: '{0}'.", (remainder)));
         }
 
         // Caso 2: IPv6 literal sem colchetes (ex: 2001:db8::1)
@@ -99,7 +99,7 @@ public static class HostPortParser
             }
 
             // Caso contenha múltiplos dois-pontos mas termine em :porta após colchetes
-            return new HostPortParseResult(raw, defaultPort, false, false, "Para especificar porta em endereços IPv6, utilize a notação [endereço]:porta.");
+            return new HostPortParseResult(raw, defaultPort, false, false, L.Text("Para especificar porta em endereços IPv6, utilize a notação [endereço]:porta."));
         }
 
         // Caso 3: Hostname ou IPv4 com porta única (ex: 10.30.0.11:3389 ou servidor:3390)
@@ -115,7 +115,7 @@ public static class HostPortParser
                 return new HostPortParseResult(hostPart, customPort, true, true, null);
             }
 
-            return new HostPortParseResult(hostPart, defaultPort, true, false, $"Porta inválida '{portPart}'. A porta deve estar entre 1 e 65535.");
+            return new HostPortParseResult(hostPart, defaultPort, true, false, L.Format("Porta inválida '{0}'. A porta deve estar entre 1 e 65535.", (portPart)));
         }
 
         // Caso 4: Hostname ou IPv4 padrão sem porta (ex: 10.30.0.11 ou servidor.cliente.com.br)

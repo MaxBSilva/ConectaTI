@@ -1,7 +1,15 @@
 namespace ConectaTI.App.Models;
 
-public record SelectableOption<T>(T Value, string DisplayName)
+public enum AppLanguage { Automatic, Portuguese, English, Spanish }
+
+public sealed class SelectableOption<T> : System.ComponentModel.INotifyPropertyChanged, ILanguageObserver
 {
+    public T Value { get; }
+    private readonly string _label;
+    public string DisplayName => L.Text(_label);
+    public SelectableOption(T value, string displayName) { Value = value; _label = displayName; LocalizationService.Current.Observe(this); }
+    public event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged;
+    public void OnLanguageChanged() => PropertyChanged?.Invoke(this, new(nameof(DisplayName)));
     public override string ToString() => DisplayName;
 }
 
@@ -88,6 +96,15 @@ public static class EnumDisplayExtensions
 {
     public static string ToDisplayName(this EnvironmentType env) => env switch
     {
+        EnvironmentType.Production => L.Text("Produção"),
+        EnvironmentType.Staging => L.Text("Homologação"),
+        EnvironmentType.Testing => L.Text("Teste"),
+        EnvironmentType.Unspecified or EnvironmentType.Other => L.Text("Não informado"),
+        _ => L.Text("Não informado")
+    };
+
+    public static string ToInvariantDisplayName(this EnvironmentType env) => env switch
+    {
         EnvironmentType.Production => "Produção",
         EnvironmentType.Staging => "Homologação",
         EnvironmentType.Testing => "Teste",
@@ -98,8 +115,8 @@ public static class EnumDisplayExtensions
     public static string ToBadgeText(this EnvironmentType env) => env switch
     {
         EnvironmentType.Production => "PROD",
-        EnvironmentType.Staging => "HML",
-        EnvironmentType.Testing => "TESTE",
+        EnvironmentType.Staging => L.Text("HML"),
+        EnvironmentType.Testing => L.Text("TESTE"),
         _ => string.Empty
     };
 
@@ -109,16 +126,26 @@ public static class EnumDisplayExtensions
         var norm = value.Trim().ToLowerInvariant();
         return norm switch
         {
-            "producao" or "produção" or "prod" or "production" or "prd" or "0" => EnvironmentType.Production,
-            "homologacao" or "homologação" or "homolog" or "staging" or "hml" or "qa" or "1" => EnvironmentType.Staging,
-            "teste" or "test" or "testing" or "dev" or "desenvolvimento" or "tst" or "2" => EnvironmentType.Testing,
+            "producao" or "produção" or "prod" or "production" or "producción" or "prd" or "0" => EnvironmentType.Production,
+            "homologacao" or "homologação" or "homolog" or "staging" or "homologación" or "hml" or "qa" or "1" => EnvironmentType.Staging,
+            "teste" or "test" or "testing" or "prueba" or "dev" or "desenvolvimento" or "tst" or "2" => EnvironmentType.Testing,
             "outro" or "other" or "3" => EnvironmentType.Other,
-            "nao informado" or "não informado" or "nenhum" or "none" or "unspecified" or "4" => EnvironmentType.Unspecified,
+            "nao informado" or "não informado" or "nenhum" or "none" or "unspecified" or "no especificado" or "not specified" or "4" => EnvironmentType.Unspecified,
             _ => EnvironmentType.Unspecified
         };
     }
 
     public static string ToDisplayName(this ConnectionProtocol protocol) => protocol switch
+    {
+        ConnectionProtocol.Rdp => L.Text("Área de Trabalho Remota (MSTSC)"),
+        ConnectionProtocol.Ssh => "SSH",
+        ConnectionProtocol.Sftp => "SFTP (WinSCP)",
+        ConnectionProtocol.Scp => "SCP (WinSCP)",
+        ConnectionProtocol.Vnc => "VNC",
+        _ => protocol.ToString().ToUpperInvariant()
+    };
+
+    public static string ToInvariantDisplayName(this ConnectionProtocol protocol) => protocol switch
     {
         ConnectionProtocol.Rdp => "Área de Trabalho Remota (MSTSC)",
         ConnectionProtocol.Ssh => "SSH",
@@ -140,10 +167,10 @@ public static class EnumDisplayExtensions
 
     public static string ToDisplayName(this SshClientPreference pref) => pref switch
     {
-        SshClientPreference.Default => "Padrão configurado",
+        SshClientPreference.Default => L.Text("Padrão configurado"),
         SshClientPreference.Putty => "PuTTY",
-        SshClientPreference.OpenSsh => "OpenSSH do Windows",
-        _ => "Padrão configurado"
+        SshClientPreference.OpenSsh => L.Text("OpenSSH do Windows"),
+        _ => L.Text("Padrão configurado")
     };
 
     public static int GetDefaultPort(this ConnectionProtocol protocol) => protocol switch
@@ -158,13 +185,13 @@ public static class EnumDisplayExtensions
 
     public static string ToDisplayName(this ConnectionTypeOption option) => option switch
     {
-        ConnectionTypeOption.Mstsc => "Área de Trabalho Remota (MSTSC)",
+        ConnectionTypeOption.Mstsc => L.Text("Área de Trabalho Remota (MSTSC)"),
         ConnectionTypeOption.SshPutty => "SSH — PuTTY",
         ConnectionTypeOption.SshOpenSsh => "SSH — OpenSSH",
         ConnectionTypeOption.Vnc => "VNC",
         ConnectionTypeOption.WinScpSftp => "WinSCP — SFTP",
         ConnectionTypeOption.WinScpScp => "WinSCP — SCP",
-        _ => "Área de Trabalho Remota (MSTSC)"
+        _ => L.Text("Área de Trabalho Remota (MSTSC)")
     };
 
     public static int GetDefaultPort(this ConnectionTypeOption option) => option switch

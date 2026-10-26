@@ -143,6 +143,8 @@ public class AppPaths
                     // Ignora arquivo temporário ainda em uso pelo mstsc
                 }
             }
+
+            Launchers.RdpSessionFiles.CleanupAbandoned(TempRdpDirectory);
         }
         catch
         {

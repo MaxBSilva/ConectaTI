@@ -28,6 +28,8 @@ public static class WindowsCredentialVaultInterop
 {
     public const string ManagedRdpCommentPrefix = "ConectaTI-Managed-RDP:";
 
+    internal delegate bool CredentialWriteCall(ref CREDENTIAL credential, uint flags);
+
     private const uint CRED_TYPE_GENERIC = 1;
     private const uint CRED_TYPE_DOMAIN_PASSWORD = 2;
     private const uint CRED_PERSIST_SESSION = 1;
@@ -36,7 +38,7 @@ public static class WindowsCredentialVaultInterop
     private const uint CRYPTPROTECT_UI_FORBIDDEN = 0x1;
 
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-    private struct CREDENTIAL
+    internal struct CREDENTIAL
     {
         public uint Flags;
         public uint Type;
@@ -59,22 +61,27 @@ public static class WindowsCredentialVaultInterop
         public IntPtr pbData;
     }
 
-    [DllImport("advapi32.dll", EntryPoint = "CredWriteW", CharSet = CharSet.Unicode, SetLastError = true)]
+    [DllImport("advapi32.dll", EntryPoint = "CredWriteW", CharSet = CharSet.Unicode, ExactSpelling = true, SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool CredWrite([In] ref CREDENTIAL userCredential, [In] uint flags);
 
-    [DllImport("advapi32.dll", EntryPoint = "CredReadW", CharSet = CharSet.Unicode, SetLastError = true)]
+    [DllImport("advapi32.dll", EntryPoint = "CredReadW", CharSet = CharSet.Unicode, ExactSpelling = true, SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool CredRead(string target, uint type, int reservedFlag, out IntPtr credentialPtr);
 
-    [DllImport("advapi32.dll", EntryPoint = "CredDeleteW", CharSet = CharSet.Unicode, SetLastError = true)]
+    [DllImport("advapi32.dll", EntryPoint = "CredDeleteW", CharSet = CharSet.Unicode, ExactSpelling = true, SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool CredDelete(string target, uint type, int flags);
 
-    [DllImport("advapi32.dll", EntryPoint = "CredEnumerateW", CharSet = CharSet.Unicode, SetLastError = true)]
+    [DllImport("advapi32.dll", EntryPoint = "CredEnumerateW", CharSet = CharSet.Unicode, ExactSpelling = true, SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool CredEnumerate(string? filter, uint flags, out int count, out IntPtr pCredentials);
 
     [DllImport("advapi32.dll", EntryPoint = "CredFree", SetLastError = true)]
     private static extern void CredFree([In] IntPtr cred);
 
-    [DllImport("crypt32.dll", EntryPoint = "CryptProtectData", CharSet = CharSet.Unicode, SetLastError = true)]
+    [DllImport("crypt32.dll", EntryPoint = "CryptProtectData", CharSet = CharSet.Unicode, ExactSpelling = true, SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool CryptProtectData(
         ref DATA_BLOB pDataIn,
         string szDataDescr,
@@ -84,7 +91,8 @@ public static class WindowsCredentialVaultInterop
         uint dwFlags,
         out DATA_BLOB pDataOut);
 
-    [DllImport("crypt32.dll", EntryPoint = "CryptUnprotectData", CharSet = CharSet.Unicode, SetLastError = true)]
+    [DllImport("crypt32.dll", EntryPoint = "CryptUnprotectData", CharSet = CharSet.Unicode, ExactSpelling = true, SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool CryptUnprotectData(
         ref DATA_BLOB pDataIn,
         IntPtr ppszDataDescr,
@@ -197,15 +205,19 @@ public static class WindowsCredentialVaultInterop
         string notice;
         if (preservedPreExisting.Count > 0 && provisioned.Count == 0)
         {
-            notice = $"Uma credencial preexistente do Windows para '{preservedPreExisting[0]}' foi preservada sem substituição silenciosa. A senha do cadastro foi incluída de forma criptografada no arquivo de sessão .rdp.";
+            notice = L.Format("Uma credencial preexistente do Windows para '{0}' foi preservada sem substituição silenciosa. A senha do cadastro foi incluída de forma criptografada no arquivo de sessão .rdp.", (preservedPreExisting[0]));
         }
         else if (preservedPreExisting.Count > 0)
         {
-            notice = $"Credencial preparada para o MSTSC (credencial preexistente em '{preservedPreExisting[0]}' preservada).";
+            notice = L.Format("Credencial preparada para o MSTSC (credencial preexistente em '{0}' preservada).", preservedPreExisting[0]);
+        }
+        else if (provisioned.Count == 0)
+        {
+            notice = L.Text("Não foi possível preparar a credencial temporária do MSTSC. O acesso foi preservado; a autenticação depende do cliente RDP.");
         }
         else
         {
-            notice = "Credencial do cadastro disponibilizada ao MSTSC via Gerenciador de Credenciais do Windows (temporária de sessão).";
+            notice = L.Text("Credencial do cadastro disponibilizada ao MSTSC via Gerenciador de Credenciais do Windows (temporária de sessão).");
         }
 
         return new RdpCredentialProvisionResult(
@@ -403,8 +415,12 @@ public static class WindowsCredentialVaultInterop
 
     public static bool WriteGenericSecret(string targetName, string userName, string secret)
     {
-        return WriteInternal(targetName, userName, secret, "ConectaTI Vault Secret", CRED_TYPE_GENERIC, CRED_PERSIST_LOCAL_MACHINE);
+        return WriteGenericSecret(targetName, userName, secret, CredWrite);
     }
+
+    internal static bool WriteGenericSecret(string targetName, string userName, string secret, CredentialWriteCall write) =>
+        WriteInternal(targetName, userName, secret, "ConectaTI Vault Secret", CRED_TYPE_GENERIC,
+            CRED_PERSIST_LOCAL_MACHINE, throwNativeErrors: true, write);
 
     public static bool WriteRdpSessionCredential(string host, string effectiveUser, string password)
     {
@@ -414,8 +430,13 @@ public static class WindowsCredentialVaultInterop
 
     public static string? ReadGenericSecret(string targetName)
     {
-        if (!CredRead(targetName, CRED_TYPE_GENERIC, 0, out var credPtr) || credPtr == IntPtr.Zero)
-            return null;
+        if (!CredRead(targetName, CRED_TYPE_GENERIC, 0, out var credPtr))
+        {
+            var error=Marshal.GetLastPInvokeError();
+            if(error==1168) return null;
+            throw new NativeCredentialException("CredReadW",error);
+        }
+        if(credPtr==IntPtr.Zero) throw new InvalidDataException("CredReadW returned an invalid buffer.");
 
         try
         {
@@ -447,7 +468,8 @@ public static class WindowsCredentialVaultInterop
         string secret,
         string? comment,
         uint credType,
-        uint persist)
+        uint persist,
+        bool throwNativeErrors = false, CredentialWriteCall? write = null)
     {
         var byteCount = Encoding.Unicode.GetByteCount(secret ?? string.Empty);
         var targetPtr = IntPtr.Zero;
@@ -457,6 +479,10 @@ public static class WindowsCredentialVaultInterop
 
         try
         {
+            var maxTarget=credType==CRED_TYPE_GENERIC ? 32767 : 337;
+            if(targetName.Length>maxTarget || targetName.Contains('\0') || (userName?.Length ?? 0)>513 ||
+                (userName?.Contains('\0') ?? false) || (comment?.Length ?? 0)>256 || byteCount>2560)
+                throw new ArgumentException("Credential field exceeds its native format limit.");
             targetPtr = Marshal.StringToCoTaskMemUni(targetName);
             userPtr = Marshal.StringToCoTaskMemUni(userName ?? string.Empty);
             commentPtr = Marshal.StringToCoTaskMemUni(comment ?? string.Empty);
@@ -474,10 +500,15 @@ public static class WindowsCredentialVaultInterop
                 Persist = persist
             };
 
-            return CredWrite(ref credential, 0);
+            var success = (write ?? CredWrite)(ref credential, 0);
+            // Capture before zeroing/freeing buffers or invoking any other native function.
+            var nativeError = success ? 0 : Marshal.GetLastPInvokeError();
+            if (!success && throwNativeErrors) throw new NativeCredentialWriteException(nativeError);
+            return success;
         }
-        catch
+        catch when (!throwNativeErrors)
         {
+            // Preserve the existing RDP fallback contract; generic writes keep their exception type.
             return false;
         }
         finally

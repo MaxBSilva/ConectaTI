@@ -19,12 +19,13 @@ public sealed class EditorConcurrencyEdgeTests : IDisposable
 
     public EditorConcurrencyEdgeTests()
     {
+        ConectaTI.App.Localization.LocalizationService.Current.SetLanguage(AppLanguage.Portuguese);
         var logger = new AppLogger(_paths);
         var settings = new SettingsService(_paths, logger);
         settings.Load();
         _repo = new GateRepository(_paths, logger);
         _repo.InitializeAndMigrate();
-        var vault = new CredentialVaultService(settings, _repo, logger, useWindowsVault: false);
+        var vault = new CredentialVaultService(settings, _repo, logger, useWindowsVault: false); VaultTestSupport.Initialize(vault);
         var clipboard = new ClipboardService(logger, _ => true, () => null, () => { });
         _vm = new MainViewModel(_paths, logger, settings, _repo, vault, clipboard,
             new ConnectionLauncherService(_paths, settings, _repo, vault, clipboard, logger),

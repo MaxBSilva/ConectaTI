@@ -21,12 +21,14 @@ public sealed class ManualEditingRegressionTests : IDisposable
 
     public ManualEditingRegressionTests()
     {
+        ConectaTI.App.Localization.LocalizationService.Current.SetLanguage(AppLanguage.Portuguese);
         _logger = new AppLogger(_paths);
         _settings = new SettingsService(_paths, _logger);
         _settings.Load();
         _repository = new ControlledRepository(_paths, _logger);
         _repository.InitializeAndMigrate();
         _vault = new ControlledVault(_settings, _repository, _logger);
+        VaultTestSupport.Initialize(_vault);
     }
 
     private MainViewModel CreateVm()
@@ -211,8 +213,8 @@ public sealed class ManualEditingRegressionTests : IDisposable
         var (vm, a, _) = await PairAsync(password: true);
         vm.InlinePasswordInput = "replacement";
         vm.EditingEntry.Name = "Edited";
-        if (vaultFailure) _vault.FailWrite = true;
-        else _repository.FailSave = true;
+        _vault.FailWrite = vaultFailure; // A native write failure must not affect application storage.
+        _repository.FailSave = true;
         Assert.False(await vm.SaveConnectionAsync());
         Assert.Equal("replacement", vm.InlinePasswordInput);
         Assert.Equal("Edited", vm.EditingEntry.Name);
@@ -257,13 +259,13 @@ public sealed class ManualEditingRegressionTests : IDisposable
         vm.MarkPasswordForRemoval();
         Assert.True(await vm.SaveConnectionAsync());
         Assert.Null((await _repository.GetConnectionByIdAsync(a.Id))!.CredentialId);
-        Assert.Contains(a.CredentialId!, await _repository.GetPendingVaultCleanupAsync());
-        Assert.Contains("Limpeza", vm.StatusMessage);
+        Assert.Empty(await _repository.GetPendingVaultCleanupAsync());
+        Assert.Empty(_vault.Deleted);
         _vault.FailDelete = false;
         var recovery = new ConnectionPersistenceService(_repository, _vault, _logger);
         Assert.True(await recovery.RecoverVaultCleanupAsync());
         Assert.Empty(await _repository.GetPendingVaultCleanupAsync());
-        Assert.Contains(a.CredentialId!, _vault.Deleted);
+        Assert.Empty(_vault.Deleted);
     }
 
     [Fact]
@@ -306,20 +308,15 @@ public sealed class ManualEditingRegressionTests : IDisposable
     }
 
     [Fact]
-    public async Task WindowsVault_RoundTripUsesOnlyAnIsolatedSyntheticCredential()
+    public async Task ApplicationVault_RoundTripDoesNotRequireWindowsStorage()
     {
-        var vault = new CredentialVaultService(_settings, _repository, _logger, useWindowsVault: true);
-        var credential = new SavedCredential { Name = "ConectaTI regression", Username = "fictional" };
-        try
-        {
-            credential.ProtectedSecretBase64 = vault.ProtectSecret(credential.Id, credential.Username, "test-only");
-            credential.ProtectedSecretBase64 = string.Empty; // Force the native Windows vault read.
-            Assert.Equal("test-only", vault.UnprotectSecret(credential));
-            vault.RemoveFromWindowsVault(credential.Id);
-            Assert.Empty(vault.UnprotectSecret(credential));
-        }
-        finally { vault.RemoveFromWindowsVault(credential.Id); }
-        await Task.CompletedTask;
+        var credential = new SavedCredential { Name="Synthetic",Username="fictional" };
+        _vault.FailWrite=true;
+        await _vault.SaveApplicationCredentialAsync(credential,"test-only");
+        Assert.Equal("test-only",await _vault.ReadSecretAsync(credential));
+        _vault.Lock();
+
+        Assert.Equal("test-only",await _vault.ReadSecretAsync(credential));
     }
 
     [Fact]

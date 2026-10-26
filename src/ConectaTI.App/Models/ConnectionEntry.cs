@@ -211,7 +211,7 @@ public class ConnectionEntry : ObservableObject
         !string.IsNullOrWhiteSpace(VpnNotes);
 
     [JsonIgnore]
-    public string VpnStatusBadge => HasVpnConfigured ? "● Configurada" : string.Empty;
+    public string VpnStatusBadge => HasVpnConfigured ? L.Text("● Configurada") : string.Empty;
 
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAtUtc { get; set; } = DateTime.UtcNow;
@@ -265,14 +265,14 @@ public class ConnectionEntry : ObservableObject
         get
         {
             var formatted = RawEffectiveUser;
-            return string.IsNullOrWhiteSpace(formatted) ? "Não informado" : formatted;
+            return string.IsNullOrWhiteSpace(formatted) ? L.Text("Não informado") : formatted;
         }
     }
 
     [JsonIgnore]
     public string LastOpenedDisplay => LastOpenedAtUtc.HasValue
         ? LastOpenedAtUtc.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
-        : "Nunca acessado";
+        : L.Text("Nunca acessado");
 
     [JsonIgnore]
     public IReadOnlyList<string> TagList => string.IsNullOrWhiteSpace(Tags)
@@ -282,6 +282,11 @@ public class ConnectionEntry : ObservableObject
               .Where(t => !string.IsNullOrEmpty(t))
               .Distinct(StringComparer.OrdinalIgnoreCase)
               .ToList();
+
+    public void RefreshDisplayProperties()
+    {
+        foreach (var name in new[] { nameof(EnvironmentDisplay), nameof(EnvironmentBadge), nameof(ProtocolDisplay), nameof(EffectiveUserDisplay), nameof(LastOpenedDisplay), nameof(VpnStatusBadge) }) OnPropertyChanged(name);
+    }
 
     public ConnectionEntry Clone()
     {
@@ -326,7 +331,7 @@ public class ConnectionEntry : ObservableObject
     {
         var copy = Clone();
         copy.Id = Guid.NewGuid().ToString("D");
-        copy.Name = string.IsNullOrWhiteSpace(Name) ? "Nova Conexão (Cópia)" : $"{Name} (Cópia)";
+        copy.Name = string.IsNullOrWhiteSpace(Name) ? L.Text("Nova Conexão (Cópia)") : L.Format("{0} (Cópia)", Name);
         copy.IsDeleted = false;
         copy.DeletedAtUtc = null;
         copy.CreatedAtUtc = DateTime.UtcNow;

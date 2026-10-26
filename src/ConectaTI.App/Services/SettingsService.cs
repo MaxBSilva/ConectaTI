@@ -37,6 +37,7 @@ public class SettingsService
                     {
                         loaded.ClipboardClearSeconds = 30;
                     }
+                    ViewPreferencesService.Normalize(loaded);
                     Current = loaded;
                     return Current;
                 }

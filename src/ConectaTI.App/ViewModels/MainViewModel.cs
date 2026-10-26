@@ -62,10 +62,10 @@ public partial class MainViewModel : ObservableObject
     public bool HasPendingChanges => HasUnsavedChanges();
     public bool CanSave => !IsSaving && HasPendingChanges && !IsTrashMode;
     public bool CanDiscardChanges => !IsSaving && (HasPendingChanges || IsNewRecord);
-    public string SaveButtonText => IsSaving ? "Salvando..." : HasPendingChanges ? "Salvar alterações" : "Salvar";
+    public string SaveButtonText => IsSaving ? L.Text("Salvando...") : HasPendingChanges ? L.Text("Salvar alterações") : L.Text("Salvar");
     public string PendingChangesText => HasPendingChanges
-        ? "Alterações não salvas. Salve antes de fechar."
-        : _editSessions.Values.Any(d => d.IsDirty) ? "Há rascunhos não salvos. Salve antes de fechar." : string.Empty;
+        ? L.Text("Alterações não salvas. Salve antes de fechar.")
+        : _editSessions.Values.Any(d => d.IsDirty) ? L.Text("Há rascunhos não salvos. Salve antes de fechar.") : string.Empty;
 
     private void NotifyEditState()
     {
@@ -75,7 +75,7 @@ public partial class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(SaveButtonText));
         OnPropertyChanged(nameof(PendingChangesText));
     }
-    partial void OnIsSavingChanged(bool value) => NotifyEditState();
+    partial void OnIsSavingChanged(bool value) { NotifyEditState(); OnPropertyChanged(nameof(CanBatchEdit)); }
     private void EditingEntryChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (_suppressSelectionGuard) return;
@@ -109,7 +109,7 @@ public partial class MainViewModel : ObservableObject
     {
         if (_suppressSelectionGuard || _activeSession == null) return;
         if (newValue.Id != _activeSession.Entry.Id)
-            throw new InvalidOperationException("Troque de acesso pela seleção, usando seu ID.");
+            throw new InvalidOperationException(L.Text("Troque de acesso pela seleção, usando seu ID."));
         if (oldValue != null) oldValue.PropertyChanged -= EditingEntryChanged;
         _activeSession.Entry = newValue;
         _activeSession.Revision++;
@@ -277,10 +277,9 @@ public partial class MainViewModel : ObservableObject
 
     public bool IsLocked => false;
 
-    public Func<Task<string?>>? RequestMasterPasswordMigrationCallback { get; set; }
 
     [ObservableProperty]
-    private string _statusMessage = "Pronto.";
+    private string _statusMessage = L.Text("Pronto.");
 
     [ObservableProperty]
     private string _securityBannerMessage = string.Empty;
@@ -318,8 +317,8 @@ public partial class MainViewModel : ObservableObject
     public bool IsTrashMode => CurrentViewMode == ConnectionViewMode.Trash;
     public bool IsNotTrashMode => CurrentViewMode != ConnectionViewMode.Trash;
 
-    public string FavoritesButtonLabel => FavoritesCount > 0 ? $"★ ({FavoritesCount})" : "★ Fav";
-    public string TrashButtonLabel => TrashCount > 0 ? $"🗑️ ({TrashCount})" : "🗑️ Lix";
+    public string FavoritesButtonLabel => L.Format("★ Favoritos ({0})", FavoritesCount);
+    public string TrashButtonLabel => L.Format("🗑️ Lixeira ({0})", TrashCount);
 
     public AppPaths Paths => _paths;
     public SettingsService SettingsService => _settingsService;
@@ -341,12 +340,19 @@ public partial class MainViewModel : ObservableObject
     public bool CanRemoveSavedPassword => HasSavedPassword;
     public bool HasSavedPasswordOrRemoval => HasSavedPassword || IsPasswordMarkedForRemoval;
 
-    public string SavedPasswordBadgeText => IsPasswordMarkedForRemoval ? "Remoção pendente — salvar"
-        : _activeSession?.PasswordIntent == PasswordEditIntent.Replace ? "Senha alterada — salvar"
-        : HasSavedPassword ? "Senha salva" : "Sem senha salva";
+    private string? PasswordAvailabilityMessage => HasSavedPassword ? AvailableCredentials.FirstOrDefault(c=>c.Id==EditingEntry.CredentialId) is {} c
+        ? _vaultService.AvailabilityMessage(c) : null : null;
+    public bool PasswordRecoveryFailed => _activeSession?.CredentialRecoveryFailed == true || PasswordAvailabilityMessage != null;
+    public bool HasPendingPasswordChange => IsPasswordMarkedForRemoval || _activeSession?.PasswordIntent == PasswordEditIntent.Replace;
+    public System.Windows.Media.Brush PasswordStateBrush => HasPendingPasswordChange ? System.Windows.Media.Brushes.DarkGoldenrod
+        : HasSavedPassword && !PasswordRecoveryFailed ? System.Windows.Media.Brushes.SeaGreen : System.Windows.Media.Brushes.IndianRed;
+    public string SavedPasswordBadgeText => IsPasswordMarkedForRemoval ? L.Text("Remoção pendente — salvar")
+        : _activeSession?.PasswordIntent == PasswordEditIntent.Replace ? L.Text("Senha alterada — salvar")
+        : PasswordRecoveryFailed ? L.Refresh(_activeSession?.CredentialRecoveryMessage ?? PasswordAvailabilityMessage ?? L.Text("Falha ao recuperar credencial"))
+        : HasSavedPassword ? L.Text("Senha salva") : L.Text("Sem senha salva");
 
     public string ThemeToggleIcon => ThemeService.ResolveIsDark(_settingsService.Current.Theme) ? "☀️" : "🌙";
-    public string ThemeToggleToolTip => ThemeService.ResolveIsDark(_settingsService.Current.Theme) ? "Mudar para tema claro" : "Mudar para tema escuro";
+    public string ThemeToggleToolTip => ThemeService.ResolveIsDark(_settingsService.Current.Theme) ? L.Text("Mudar para tema claro") : L.Text("Mudar para tema escuro");
 
     [RelayCommand]
     public void ToggleTheme()
@@ -367,10 +373,10 @@ public partial class MainViewModel : ObservableObject
     public string SelectedProtocolDisplay => SelectedConnection?.ProtocolDisplay ?? string.Empty;
     public string SelectedEndpointDisplay => SelectedConnection?.EndpointDisplay ?? string.Empty;
     public string SelectedHost => SelectedConnection?.Host ?? string.Empty;
-    public string SelectedUserDisplay => SelectedConnection?.EffectiveUserDisplay ?? "Não informado";
+    public string SelectedUserDisplay => SelectedConnection?.EffectiveUserDisplay ?? L.Text("Não informado");
     public bool SelectedHasUser => SelectedConnection?.HasEffectiveUser == true;
     public bool SelectedHasSavedPassword => (SelectedConnection != null && !string.IsNullOrWhiteSpace(SelectedConnection.CredentialId)) || HasSavedPassword;
-    public string SelectedPasswordStateText => SelectedHasSavedPassword ? "Senha salva" : "Sem senha salva";
+    public string SelectedPasswordStateText => SelectedHasSavedPassword ? L.Text("Senha salva") : L.Text("Sem senha salva");
     public bool SelectedShowNoPasswordNote => SelectedConnection != null && !SelectedHasSavedPassword;
     public string SelectedNotes => SelectedConnection?.Notes ?? string.Empty;
     public bool SelectedHasNotes => SelectedConnection != null && !string.IsNullOrWhiteSpace(SelectedConnection.Notes);
@@ -386,8 +392,8 @@ public partial class MainViewModel : ObservableObject
     public string PasswordStatusText => SavedPasswordBadgeText;
 
     public string PasswordFieldLabel => HasSavedPassword
-        ? "Alterar senha"
-        : "Senha";
+        ? L.Text("Alterar senha")
+        : L.Text("Senha");
 
     public MainViewModel(
         AppPaths paths,
@@ -400,11 +406,28 @@ public partial class MainViewModel : ObservableObject
         ImportExportService importExportService,
         NetworkDiagnosticService diagnosticService)
     {
+        LocalizationService.Current.Observe(this);
+        _statusTranslation = L.Capture(StatusMessage);
         _paths = paths;
         _logger = logger;
         _settingsService = settingsService;
         _repository = repository;
         _vaultService = vaultService;
+        _vaultService.LockStateChanged += (_, _) =>
+        {
+            void RefreshVaultState()
+            {
+                if (IsLocked)
+                {
+                    foreach (var editSession in _editSessions.Values) editSession.LoadedPassword=null;
+                    HideRevealedPassword();
+                }
+                OnPropertyChanged(nameof(IsLocked));
+                NotifyPasswordStatusProperties();
+            }
+            if (_uiDispatcher != null && !_uiDispatcher.CheckAccess()) _uiDispatcher.InvokeAsync(RefreshVaultState);
+            else RefreshVaultState();
+        };
         _clipboardService = clipboardService;
         _launcherService = launcherService;
         _importExportService = importExportService;
@@ -427,24 +450,7 @@ public partial class MainViewModel : ObservableObject
             var demo = SqliteRepository.CreateFictionalDemoConnections();
             await _repository.SaveConnectionsBatchAsync(demo);
             existing = await _repository.GetAllConnectionsAsync();
-            StatusMessage = "Dados fictícios carregados para teste.";
-        }
-
-        if (_vaultService.RequiresMasterPassword && RequestMasterPasswordMigrationCallback != null)
-        {
-            _ = MigrateMasterPasswordAsync();
-            async Task MigrateMasterPasswordAsync()
-            {
-                await Task.Delay(400);
-                var prevPass = await RequestMasterPasswordMigrationCallback();
-                if (!string.IsNullOrEmpty(prevPass))
-                {
-                    var ok = await _vaultService.MigrateFromMasterPasswordAsync(prevPass);
-                    StatusMessage = ok
-                        ? "Credenciais migradas para DPAPI com sucesso."
-                        : "Senha mestra incorreta. Credenciais aguardando migração.";
-                }
-            }
+            StatusMessage = L.Text("Dados fictícios carregados para teste.");
         }
 
         await ReloadAllDataAsync(selectConnectionId: existing.FirstOrDefault()?.Id);
@@ -474,7 +480,7 @@ public partial class MainViewModel : ObservableObject
             try
             {
                 AvailableCredentials.Clear();
-                AvailableCredentials.Add(new SavedCredential { Id = string.Empty, Name = "(Nenhuma senha salva)" });
+                AvailableCredentials.Add(new SavedCredential { Id = string.Empty, Name = L.Text("(Nenhuma senha salva)") });
                 foreach (var credential in credentials) AvailableCredentials.Add(credential);
                 RefreshCountsAndNavigation();
             }
@@ -484,7 +490,7 @@ public partial class MainViewModel : ObservableObject
         catch (Exception ex)
         {
             _logger.Warn("Reload", $"Falha de leitura: {ex.GetType().Name}");
-            StatusMessage = "Não foi possível atualizar a lista. Os dados já carregados foram mantidos.";
+            StatusMessage = L.Text("Não foi possível atualizar a lista. Os dados já carregados foram mantidos.");
         }
     }
 
@@ -526,7 +532,7 @@ public partial class MainViewModel : ObservableObject
         if (CurrentViewMode == mode)
             return;
 
-        if (!await ConfirmCanLeaveCurrentEditAsync("trocar o modo de visualização"))
+        if (!await ConfirmCanLeaveCurrentEditAsync(L.Text("trocar o modo de visualização")))
             return;
 
         var previous = _suppressSelectionGuard;
@@ -700,6 +706,8 @@ public partial class MainViewModel : ObservableObject
 
     public void NotifySelectedSummaryProperties()
     {
+        OnPropertyChanged(nameof(CanCopySelectedAddress));
+        OnPropertyChanged(nameof(CanCopyPersistedUser));
         OnPropertyChanged(nameof(HasSelectedConnection));
         OnPropertyChanged(nameof(SelectedName));
         OnPropertyChanged(nameof(SelectedClientName));
@@ -751,6 +759,9 @@ public partial class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(PasswordStatusText));
         OnPropertyChanged(nameof(PasswordFieldLabel));
         OnPropertyChanged(nameof(SavedPasswordBadgeText));
+        OnPropertyChanged(nameof(PasswordStateBrush));
+        OnPropertyChanged(nameof(PasswordRecoveryFailed));
+        OnPropertyChanged(nameof(HasPendingPasswordChange));
         OnPropertyChanged(nameof(HasSavedPasswordOrRemoval));
         OnPropertyChanged(nameof(CanCopySelectedPassword));
         NotifyEditState();
@@ -784,9 +795,9 @@ public partial class MainViewModel : ObservableObject
         if (!string.IsNullOrEmpty(SelectedClientFilter) && SelectedClientFilter != AllClientsFilterLabel)
             query = query.Where(c => string.Equals(c.ClientName.Trim(), SelectedClientFilter, StringComparison.OrdinalIgnoreCase));
         if (!string.IsNullOrEmpty(SelectedEnvironmentFilter) && SelectedEnvironmentFilter != AllEnvironmentsFilterLabel)
-            query = query.Where(c => c.EnvironmentDisplay == SelectedEnvironmentFilter);
+            query = query.Where(c => c.Environment.ToInvariantDisplayName() == SelectedEnvironmentFilter);
         if (!string.IsNullOrEmpty(SelectedProtocolFilter) && SelectedProtocolFilter != AllProtocolsFilterLabel)
-            query = query.Where(c => c.ProtocolDisplay == SelectedProtocolFilter);
+            query = query.Where(c => c.Protocol.ToInvariantDisplayName() == SelectedProtocolFilter);
 
         if (!string.IsNullOrWhiteSpace(SearchText))
         {
@@ -995,7 +1006,7 @@ public partial class MainViewModel : ObservableObject
             GroupName = SelectedNavigationNode?.GroupName ?? "Geral"
         };
         OpenNewDraft(new ConnectionEditSession(fresh, isNew: true));
-        StatusMessage = "Novo rascunho. Preencha os campos e clique em Salvar.";
+        StatusMessage = L.Text("Novo rascunho. Preencha os campos e clique em Salvar.");
     }
 
     private void OpenNewDraft(ConnectionEditSession session)
@@ -1052,23 +1063,24 @@ public partial class MainViewModel : ObservableObject
         var password = session.Password;
         var intent = session.PasswordIntent;
         var credentialName = session.CredentialName;
+        using var redaction = _logger.Redact([password]);
         IsSaving = true;
         try
         {
             var parsed = HostPortParser.Parse(InlineHostAndPort, snapshot.Protocol);
-            if (!parsed.IsValid) { StatusMessage = $"Corrija o endereço/porta: {parsed.ErrorMessage}"; return false; }
+            if (!parsed.IsValid) { StatusMessage = L.Format("Corrija o endereço/porta: {0}", (L.AsMessage(parsed.ErrorMessage))); return false; }
             snapshot.Host = parsed.CleanHost;
             snapshot.Port = parsed.Port;
             snapshot.Name = snapshot.Name.Trim();
-            snapshot.ClientName = string.IsNullOrWhiteSpace(snapshot.ClientName) ? "Geral" : snapshot.ClientName.Trim();
-            snapshot.GroupName = string.IsNullOrWhiteSpace(snapshot.GroupName) ? "Geral" : snapshot.GroupName.Trim();
+            snapshot.ClientName = session.IsNew && string.IsNullOrWhiteSpace(snapshot.ClientName) ? "Geral" : snapshot.ClientName.Trim();
+            snapshot.GroupName = session.IsNew && string.IsNullOrWhiteSpace(snapshot.GroupName) ? "Geral" : snapshot.GroupName.Trim();
             snapshot.PrivateKeyPath = snapshot.PrivateKeyPath.Trim();
             snapshot.Tags = snapshot.Tags.Trim();
             snapshot.VpnName = snapshot.VpnName.Trim();
             snapshot.VpnApp = snapshot.VpnApp.Trim();
             snapshot.VpnServer = snapshot.VpnServer.Trim();
             var errors = ConnectionValidator.ValidateConnection(snapshot);
-            if (errors.Count > 0) { StatusMessage = $"Corrija os campos: {errors[0]}"; return false; }
+            if (errors.Count > 0) { StatusMessage = L.Format("Corrija os campos: {0}", (L.AsMessage(errors[0]))); return false; }
             var result = await _persistence.SaveAsync(snapshot, intent, password, credentialName);
             snapshot = result.Entry;
             _dataRevision++;
@@ -1095,6 +1107,7 @@ public partial class MainViewModel : ObservableObject
             }
             if (session.PasswordRevision == passwordRevision)
             {
+                if (intent is PasswordEditIntent.Replace or PasswordEditIntent.Remove) { session.CredentialRecoveryFailed = false; session.CredentialRecoveryMessage = null; }
                 session.Password = string.Empty;
                 session.LoadedPassword = null;
                 session.PasswordIntent = PasswordEditIntent.Keep;
@@ -1125,14 +1138,14 @@ public partial class MainViewModel : ObservableObject
             finally { _suppressSelectionGuard = previous; }
             ApplyFilterAndSort(ReferenceEquals(_activeSession, session) ? snapshot.Id : null);
             StatusMessage = result.CleanupPending
-                ? "Conexão salva. Limpeza do cofre pendente; será tentada novamente."
-                : $"Conexão '{snapshot.Name}' salva.";
+                ? L.Text("Conexão salva. Limpeza do cofre pendente; será tentada novamente.")
+                : L.Format("Conexão '{0}' salva.", (snapshot.Name));
             return true;
         }
         catch (Exception ex)
         {
-            _logger.Warn("Save", $"Falha de gravação: {ex.GetType().Name}");
-            StatusMessage = "Não foi possível salvar. Suas alterações foram mantidas; tente novamente.";
+            _logger.RecordFailure("Save", ex);
+            StatusMessage = L.Text("Não foi possível salvar. Suas alterações foram mantidas; tente novamente.");
             return false;
         }
         finally { IsSaving = false; NotifyPasswordStatusProperties(); }
@@ -1162,7 +1175,7 @@ public partial class MainViewModel : ObservableObject
             var persisted = _allConnections.Concat(_trashConnections).FirstOrDefault(c => c.Id == session.Entry.Id);
             LoadSelectedIntoViewer(persisted);
         }
-        StatusMessage = "Alterações descartadas.";
+        StatusMessage = L.Text("Alterações descartadas.");
     }
 
     [RelayCommand]
@@ -1175,7 +1188,7 @@ public partial class MainViewModel : ObservableObject
         var session = new ConnectionEditSession(duplicate, isNew: true);
         session.Baseline.Name = string.Empty;
         OpenNewDraft(session);
-        StatusMessage = "Cópia criada como rascunho. Clique em Salvar para gravar.";
+        StatusMessage = L.Text("Cópia criada como rascunho. Clique em Salvar para gravar.");
         return Task.CompletedTask;
     }
 
@@ -1185,7 +1198,7 @@ public partial class MainViewModel : ObservableObject
         var target = SelectedConnection ?? EditingEntry;
         if (target == null || string.IsNullOrWhiteSpace(target.Id))
         {
-            StatusMessage = "Selecione uma conexão para excluir.";
+            StatusMessage = L.Text("Selecione uma conexão para excluir.");
             return;
         }
 
@@ -1194,8 +1207,8 @@ public partial class MainViewModel : ObservableObject
             if (ConfirmDeleteCallback != null)
             {
                 var confirmed = ConfirmDeleteCallback(
-                    "Excluir Definitivamente",
-                    $"Deseja realmente excluir permanentemente a conexão '{target.Name}'?\nEsta ação não poderá ser desfeita.");
+                    L.Text("Excluir Definitivamente"),
+                    L.Format("Deseja realmente excluir permanentemente a conexão '{0}'?\nEsta ação não poderá ser desfeita.", (target.Name)));
                 if (!confirmed)
                     return;
             }
@@ -1204,15 +1217,15 @@ public partial class MainViewModel : ObservableObject
             IsNewRecord = false;
             await _repository.PermanentlyDeleteConnectionAsync(target.Id);
             await ReloadAllDataAsync();
-            StatusMessage = $"Conexão '{target.Name}' excluída definitivamente.";
+            StatusMessage = L.Format("Conexão '{0}' excluída definitivamente.", (target.Name));
         }
         else
         {
             if (ConfirmDeleteCallback != null)
             {
                 var confirmed = ConfirmDeleteCallback(
-                    "Mover para a Lixeira",
-                    $"Deseja mover a conexão '{target.Name}' para a lixeira?");
+                    L.Text("Mover para a Lixeira"),
+                    L.Format("Deseja mover a conexão '{0}' para a lixeira?", (target.Name)));
                 if (!confirmed)
                     return;
             }
@@ -1221,7 +1234,7 @@ public partial class MainViewModel : ObservableObject
             IsNewRecord = false;
             await _repository.SoftDeleteConnectionAsync(target.Id);
             await ReloadAllDataAsync();
-            StatusMessage = $"Conexão '{target.Name}' movida para a Lixeira.";
+            StatusMessage = L.Format("Conexão '{0}' movida para a Lixeira.", (target.Name));
         }
     }
 
@@ -1231,7 +1244,7 @@ public partial class MainViewModel : ObservableObject
         var target = SelectedConnection ?? EditingEntry;
         if (target == null || string.IsNullOrWhiteSpace(target.Id))
         {
-            StatusMessage = "Selecione uma conexão na lixeira para restaurar.";
+            StatusMessage = L.Text("Selecione uma conexão na lixeira para restaurar.");
             return;
         }
 
@@ -1241,7 +1254,7 @@ public partial class MainViewModel : ObservableObject
             if (ConfirmDiscardUnsavedChangesCallback != null)
             {
                 var rename = ConfirmDiscardUnsavedChangesCallback(
-                    $"Já existe uma conexão ativa com o nome '{target.Name}'.\nDeseja restaurar renomeando automaticamente para '{target.Name} (Restaurada)'?");
+                    L.Format("Já existe uma conexão ativa com o nome '{0}'.\nDeseja restaurar renomeando automaticamente para '{1} (Restaurada)'?", (target.Name), (target.Name)));
                 if (rename)
                 {
                     target.Name = $"{target.Name} (Restaurada)";
@@ -1249,7 +1262,7 @@ public partial class MainViewModel : ObservableObject
                 }
                 else
                 {
-                    StatusMessage = "Restauração cancelada.";
+                    StatusMessage = L.Text("Restauração cancelada.");
                     return;
                 }
             }
@@ -1257,7 +1270,7 @@ public partial class MainViewModel : ObservableObject
 
         await _repository.RestoreConnectionAsync(target.Id);
         await ReloadAllDataAsync(selectConnectionId: target.Id);
-        StatusMessage = $"Conexão '{target.Name}' restaurada com sucesso.";
+        StatusMessage = L.Format("Conexão '{0}' restaurada com sucesso.", (target.Name));
     }
 
     [RelayCommand]
@@ -1265,22 +1278,22 @@ public partial class MainViewModel : ObservableObject
     {
         if (_trashConnections.Count == 0)
         {
-            StatusMessage = "A lixeira já está vazia.";
+            StatusMessage = L.Text("A lixeira já está vazia.");
             return;
         }
 
         if (ConfirmDeleteCallback != null)
         {
             var confirmed = ConfirmDeleteCallback(
-                "Esvaziar Lixeira",
-                $"Deseja realmente excluir definitivamente todos os {_trashConnections.Count} itens da lixeira?\nEsta ação não poderá ser desfeita.");
+                L.Text("Esvaziar Lixeira"),
+                L.Format("Deseja realmente excluir definitivamente todos os {0} itens da lixeira?\nEsta ação não poderá ser desfeita.", (_trashConnections.Count)));
             if (!confirmed)
                 return;
         }
 
         await _repository.EmptyRecycleBinAsync();
         await ReloadAllDataAsync();
-        StatusMessage = "Lixeira esvaziada com sucesso.";
+        StatusMessage = L.Text("Lixeira esvaziada com sucesso.");
     }
 
     [RelayCommand]
@@ -1291,11 +1304,6 @@ public partial class MainViewModel : ObservableObject
         var target = await _repository.GetConnectionByIdAsync(id);
         if (target == null || target.IsDeleted) return;
 
-        if (!string.IsNullOrWhiteSpace(target.CredentialId) && _vaultService.RequiresMasterPassword)
-        {
-            if (!await EnsureMasterPasswordMigratedOrUnlockedAsync())
-                return;
-        }
 
         var result = await _launcherService.LaunchAsync(target);
         StatusMessage = result.StatusMessage;
@@ -1306,13 +1314,13 @@ public partial class MainViewModel : ObservableObject
             if (result.IsMissingExecutable)
             {
                 ShowErrorDialogCallback?.Invoke(
-                    "Cliente Externo Ausente",
-                    result.ErrorMessage + "\n\nUse o botão de Configurações (⚙) na barra superior para localizar o programa.");
+                    L.Text("Cliente Externo Ausente"),
+                    result.ErrorMessage + L.Text("\n\nUse o botão de Configurações (⚙) na barra superior para localizar o programa."));
                 OpenExecutableSettingsCallback?.Invoke();
             }
             else
             {
-                ShowErrorDialogCallback?.Invoke("Não foi possível iniciar o cliente", result.ErrorMessage);
+                ShowErrorDialogCallback?.Invoke(L.Text("Não foi possível iniciar o cliente"), result.ErrorMessage);
             }
             return;
         }
@@ -1337,7 +1345,7 @@ public partial class MainViewModel : ObservableObject
         if (IsTrashMode) return;
         await RequestNavigateToConnectionAsync(target);
         EditingEntry.IsFavorite = !EditingEntry.IsFavorite;
-        StatusMessage = "Favorito alterado no rascunho. Clique em Salvar para gravar.";
+        StatusMessage = L.Text("Favorito alterado no rascunho. Clique em Salvar para gravar.");
     }
 
     // =========================================================================
@@ -1352,7 +1360,7 @@ public partial class MainViewModel : ObservableObject
             return;
 
         if (await _clipboardService.CopyTextWithRetryAsync(name))
-            StatusMessage = "Nome da conexão copiado";
+            StatusMessage = L.Text("Nome da conexão copiado");
     }
 
     [RelayCommand]
@@ -1366,7 +1374,7 @@ public partial class MainViewModel : ObservableObject
             return;
 
         if (await _clipboardService.CopyTextWithRetryAsync(textToCopy))
-            StatusMessage = "Endereço copiado";
+            StatusMessage = L.Text("Endereço copiado");
     }
 
     [RelayCommand]
@@ -1380,7 +1388,7 @@ public partial class MainViewModel : ObservableObject
             return;
 
         if (await _clipboardService.CopyTextWithRetryAsync(textToCopy))
-            StatusMessage = "Host:porta copiado";
+            StatusMessage = L.Text("Host:porta copiado");
     }
 
     [RelayCommand]
@@ -1401,7 +1409,7 @@ public partial class MainViewModel : ObservableObject
             return;
 
         if (await _clipboardService.CopyTextWithRetryAsync(textToCopy))
-            StatusMessage = "Usuário copiado";
+            StatusMessage = L.Text("Usuário copiado");
     }
 
     [RelayCommand]
@@ -1415,7 +1423,7 @@ public partial class MainViewModel : ObservableObject
             return;
 
         if (await _clipboardService.CopyTextWithRetryAsync(text))
-            StatusMessage = "Nome da VPN copiado";
+            StatusMessage = L.Text("Nome da VPN copiado");
     }
 
     [RelayCommand]
@@ -1429,7 +1437,7 @@ public partial class MainViewModel : ObservableObject
             return;
 
         if (await _clipboardService.CopyTextWithRetryAsync(text))
-            StatusMessage = "Servidor da VPN copiado";
+            StatusMessage = L.Text("Servidor da VPN copiado");
     }
 
     [RelayCommand]
@@ -1443,7 +1451,7 @@ public partial class MainViewModel : ObservableObject
         {
             if (await _clipboardService.CopyTextWithRetryAsync(InlinePasswordInput, isSecret: true, autoClearSeconds: clearSec))
             {
-                StatusMessage = "Senha copiada";
+                StatusMessage = L.Text("Senha copiada");
             }
             return;
         }
@@ -1451,33 +1459,50 @@ public partial class MainViewModel : ObservableObject
         var credId = EditingEntry?.CredentialId ?? SelectedConnection?.CredentialId;
         if (string.IsNullOrWhiteSpace(credId))
         {
-            StatusMessage = "Nenhuma senha cadastrada.";
+            StatusMessage = L.Text("Nenhuma senha cadastrada.");
             return;
         }
 
-        if (_vaultService.RequiresMasterPassword)
-        {
-            if (!await EnsureMasterPasswordMigratedOrUnlockedAsync())
-                return;
-        }
 
         var cred = await _repository.GetCredentialByIdAsync(credId);
         if (cred == null)
         {
-            StatusMessage = "Nenhuma senha cadastrada.";
+            if (_activeSession != null) _activeSession.CredentialRecoveryFailed = true;
+            StatusMessage = L.Text("Falha ao recuperar credencial");
+            NotifyPasswordStatusProperties();
             return;
         }
 
-        var secret = _vaultService.UnprotectSecret(cred);
-        if (string.IsNullOrEmpty(secret))
-        {
-            StatusMessage = "Nenhuma senha cadastrada.";
-            return;
-        }
+        var secret = await RecoverPasswordAsync(cred);
+        if (string.IsNullOrEmpty(secret)) return;
 
         if (await _clipboardService.CopyTextWithRetryAsync(secret, isSecret: true, autoClearSeconds: clearSec))
         {
-            StatusMessage = "Senha copiada";
+            StatusMessage = L.Text("Senha copiada");
+        }
+    }
+
+    private async Task<string?> RecoverPasswordAsync(SavedCredential credential)
+    {
+        var session = _activeSession;
+        try
+        {
+            var secret = await _vaultService.ReadSecretAsync(credential);
+            if (string.IsNullOrEmpty(secret)) throw new System.Security.Cryptography.CryptographicException(L.Text("Credencial salva ilegível."));
+            if (session != null) { session.CredentialRecoveryFailed = false; session.CredentialRecoveryMessage = null; }
+            NotifyPasswordStatusProperties();
+            return secret;
+        }
+        catch (Exception exception)
+        {
+            _logger.RecordFailure("Credentials.Read", exception);
+            if (session != null) { session.CredentialRecoveryFailed = true; session.CredentialRecoveryMessage = CredentialVaultService.RecoveryMessage(exception); }
+            if (session == _activeSession)
+            {
+                StatusMessage = CredentialVaultService.RecoveryMessage(exception);
+                NotifyPasswordStatusProperties();
+            }
+            return null;
         }
     }
 
@@ -1504,30 +1529,23 @@ public partial class MainViewModel : ObservableObject
         var credId = EditingEntry?.CredentialId;
         if (string.IsNullOrWhiteSpace(credId))
         {
-            StatusMessage = "Nenhuma senha cadastrada.";
+            StatusMessage = L.Text("Nenhuma senha cadastrada.");
             return;
         }
 
-        if (_vaultService.RequiresMasterPassword)
-        {
-            if (!await EnsureMasterPasswordMigratedOrUnlockedAsync())
-                return;
-        }
 
         var cred = await _repository.GetCredentialByIdAsync(credId);
         if (cred == null)
         {
-            StatusMessage = "Nenhuma senha cadastrada.";
+            if (_activeSession != null) _activeSession.CredentialRecoveryFailed = true;
+            StatusMessage = L.Text("Falha ao recuperar credencial");
+            NotifyPasswordStatusProperties();
             return;
         }
 
-        var secret = await Task.Run(() => _vaultService.UnprotectSecret(cred));
+        var secret = await RecoverPasswordAsync(cred);
         if (generation != _editorGeneration || session != _activeSession || passwordRevision != session?.PasswordRevision) return;
-        if (string.IsNullOrEmpty(secret))
-        {
-            StatusMessage = "Nenhuma senha cadastrada.";
-            return;
-        }
+        if (string.IsNullOrEmpty(secret)) return;
 
         _passwordRevealCts?.Cancel();
         _passwordRevealCts?.Dispose();
@@ -1538,7 +1556,7 @@ public partial class MainViewModel : ObservableObject
         RevealedPasswordText = secret;
         IsPasswordRevealed = true;
         var seconds = Math.Max(5, _settingsService.Current.PasswordRevealSeconds);
-        StatusMessage = $"Senha exibida temporariamente por {seconds} segundos.";
+        StatusMessage = L.Format("Senha exibida temporariamente por {0} segundos.", (seconds));
 
         _ = ScheduleAutoHidePasswordAsync(seconds, cts.Token);
     }
@@ -1555,13 +1573,13 @@ public partial class MainViewModel : ObservableObject
                     await _uiDispatcher.InvokeAsync(() =>
                     {
                         HideRevealedPassword();
-                        StatusMessage = "Senha ocultada novamente.";
+                        StatusMessage = L.Text("Senha ocultada novamente.");
                     });
                 }
                 else
                 {
                     HideRevealedPassword();
-                    StatusMessage = "Senha ocultada novamente.";
+                    StatusMessage = L.Text("Senha ocultada novamente.");
                 }
             }
         }
@@ -1585,29 +1603,6 @@ public partial class MainViewModel : ObservableObject
         IsPasswordRevealed = false;
     }
 
-    public async Task<bool> EnsureMasterPasswordMigratedOrUnlockedAsync()
-    {
-        if (!_vaultService.RequiresMasterPassword)
-            return true;
-
-        if (RequestMasterPasswordMigrationCallback != null)
-        {
-            var pass = await RequestMasterPasswordMigrationCallback();
-            if (!string.IsNullOrEmpty(pass))
-            {
-                var ok = await _vaultService.MigrateFromMasterPasswordAsync(pass);
-                if (ok)
-                {
-                    StatusMessage = "Credenciais migradas para DPAPI com sucesso.";
-                    return true;
-                }
-                ShowErrorDialogCallback?.Invoke("Senha Mestra", "A senha mestra informada está incorreta.");
-                return false;
-            }
-        }
-        return false;
-    }
-
     // =========================================================================
     // Diagnóstico de Rede (DNS + TCP com Timeout e Cancelamento)
     // =========================================================================
@@ -1628,8 +1623,8 @@ public partial class MainViewModel : ObservableObject
         _diagnosticCts = cts;
 
         IsRunningDiagnostic = true;
-        DiagnosticResultTitle = "Testando conexão...";
-        DiagnosticResultDetails = $"Verificando {target.Host}:{target.Port} (timeout: 4s)...";
+        DiagnosticResultTitle = L.Text("Testando conexão...");
+        DiagnosticResultDetails = L.Format("Verificando {0}:{1} (timeout: 4s)...", target.Host, target.Port);
 
         try
         {
@@ -1641,7 +1636,7 @@ public partial class MainViewModel : ObservableObject
 
             DiagnosticResultTitle = result.SummaryTitle;
             DiagnosticResultDetails = result.DetailedMessage;
-            StatusMessage = $"Teste concluído: {result.SummaryTitle}";
+            StatusMessage = L.Format("Teste concluído: {0}", (result.SummaryTitle));
         }
         finally
         {

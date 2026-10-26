@@ -1,7 +1,9 @@
 <Window x:Class="ConectaTI.App.Views.ExecutablesSettingsDialog"
+        FontSize="{DynamicResource AppFontSize}"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Configurações — ConectaTI"
+        xmlns:loc="clr-namespace:ConectaTI.App.Localization"
+        Title="{loc:Loc Text5ADE38599061}"
         Icon="pack://application:,,,/ConectaTI;component/Assets/conectati.ico"
         Width="760" Height="640"
         MinWidth="660" MinHeight="520"
@@ -19,9 +21,9 @@
 
         <DockPanel Grid.Row="0" Margin="0,0,0,12">
             <StackPanel VerticalAlignment="Center">
-                <TextBlock Text="Configurações" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextBrush}"/>
-                <TextBlock Text="Gerencie aparência, programas externos, credenciais e backups."
-                           Foreground="{DynamicResource SecondaryTextBrush}" FontSize="12.5" Margin="0,2,0,0"/>
+                <TextBlock TextWrapping="Wrap" Text="{loc:Loc Text76B0FB6AD189}" FontSize="{DynamicResource Font18}" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextBrush}"/>
+                <TextBlock TextWrapping="Wrap" Text="{loc:Loc TextED176FEF9943}"
+                           Foreground="{DynamicResource SecondaryTextBrush}" FontSize="{DynamicResource Font12_5}" Margin="0,2,0,0"/>
             </StackPanel>
         </DockPanel>
 
@@ -29,70 +31,65 @@
             <!-- ================================================================= -->
             <!-- ABA 1: GERAL (Tema e Área de Transferência)                       -->
             <!-- ================================================================= -->
-            <TabItem Header="Geral">
+            <TabItem Header="{loc:Loc Text2130A3B5E09E}">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="18">
                     <StackPanel>
-                        <TextBlock Text="Aparência" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                        <TextBlock TextWrapping="Wrap" Text="{loc:Loc Text7AE9D418353B}" FontWeight="SemiBold" Margin="0,0,0,6"/>
+                        <ComboBox x:Name="LanguageCombo" SelectionChanged="LanguageCombo_SelectionChanged" MaxWidth="650" HorizontalAlignment="Stretch" MinWidth="250" Margin="0,0,0,16">
+                            <ComboBoxItem Content="Automático — seguir o idioma do Windows"/>
+                            <ComboBoxItem Content="Português (Brasil)"/><ComboBoxItem Content="English"/><ComboBoxItem Content="Español"/>
+                        </ComboBox>
+                        <TextBlock TextWrapping="Wrap" Text="{loc:Loc TextA691DB0557A4}" FontWeight="SemiBold" Margin="0,0,0,6"/>
+                        <ComboBox x:Name="DensityCombo" SelectionChanged="ViewPreference_Changed" Width="250" HorizontalAlignment="Left" Margin="0,0,0,8"><ComboBoxItem Content="{loc:Loc TextA192EB9E9C8A}"/><ComboBoxItem Content="{loc:Loc TextD42A6DC78356}"/></ComboBox>
+                        <TextBlock TextWrapping="Wrap" Text="{loc:Loc Text5C4B4BD1A56D}"/>
+                        <Slider x:Name="FontSizeSlider" Minimum="11" Maximum="18" TickFrequency="0.5" IsSnapToTickEnabled="True" ValueChanged="FontSizeSlider_ValueChanged" MaxWidth="380" HorizontalAlignment="Stretch" Margin="0,4,0,16"/>
+                        <TextBlock TextWrapping="Wrap" Text="{loc:Loc Text04F9F0A78DBE}" FontSize="{DynamicResource Font14}" FontWeight="SemiBold" Margin="0,0,0,8"/>
                         <Grid Margin="0,0,0,18">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="260"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
                             <StackPanel Grid.Column="0">
-                                <TextBlock Text="Tema do aplicativo" FontSize="12.5" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4"/>
+                                <TextBlock TextWrapping="Wrap" Text="{loc:Loc TextEB88B483EA19}" FontSize="{DynamicResource Font12_5}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4"/>
                                 <ComboBox x:Name="ThemeModeCombo" SelectionChanged="ThemeModeCombo_SelectionChanged">
-                                    <ComboBoxItem Content="Conforme o Windows"/>
-                                    <ComboBoxItem Content="Tema claro"/>
-                                    <ComboBoxItem Content="Tema escuro"/>
+                                    <ComboBoxItem Content="{loc:Loc TextBBC72DF02AC9}"/>
+                                    <ComboBoxItem Content="{loc:Loc Text64B58754485A}"/>
+                                    <ComboBoxItem Content="{loc:Loc Text0F1C67EB81A0}"/>
                                 </ComboBox>
                             </StackPanel>
                         </Grid>
 
                         <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0" Margin="0,0,0,16"/>
 
-                        <TextBlock Text="Área de Transferência e Automação" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,10"/>
+                        <TextBlock TextWrapping="Wrap" Text="{loc:Loc Text7A1042B28193}" FontSize="{DynamicResource Font14}" FontWeight="SemiBold" Margin="0,0,0,10"/>
                         <Grid Margin="0,0,0,14">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
                             <StackPanel Grid.Column="0" Margin="0,0,8,0">
-                                <TextBlock Text="Limpar senha copiada (seg)" FontSize="12.5" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4"/>
+                                <TextBlock TextWrapping="Wrap" Text="{loc:Loc TextEDD837F12E8C}" FontSize="{DynamicResource Font12_5}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4"/>
                                 <TextBox x:Name="ClipboardClearSecondsBox"/>
                             </StackPanel>
                             <StackPanel Grid.Column="1" Margin="8,0,0,0">
-                                <TextBlock Text="Ocultar senha exibida (seg)" FontSize="12.5" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4"/>
+                                <TextBlock TextWrapping="Wrap" Text="{loc:Loc Text85A1D3DF281D}" FontSize="{DynamicResource Font12_5}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4"/>
                                 <TextBox x:Name="RevealSecondsBox"/>
                             </StackPanel>
                         </Grid>
 
                         <CheckBox x:Name="RegisterRdpVaultCheck"
-                                  Content="Preencher senha salva automaticamente ao conectar via MSTSC"
+                                  Content="{loc:Loc Text6B93836F2497}"
                                   Margin="0,0,0,18"/>
 
                         <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0" Margin="0,0,0,16"/>
 
-                        <TextBlock Text="Segurança das Credenciais" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,4"/>
-                        <TextBlock x:Name="MasterPasswordStatusText"
-                                   Text="Protegido pela conta do usuário no Windows (DPAPI)."
-                                   FontSize="12.5" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,10"/>
+                        <TextBlock TextWrapping="Wrap" Text="{loc:Loc TextBFF5D43C2C6B}" FontSize="{DynamicResource Font14}" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                        <TextBlock TextWrapping="Wrap" x:Name="MasterPasswordStatusText"
+                                   Text="{loc:Loc Text69FDFD93281A}"
+                                   FontSize="{DynamicResource Font12_5}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,10"/>
 
-                        <StackPanel x:Name="MigrationPanel" Visibility="Collapsed">
-                            <TextBlock Text="Existe uma senha mestra configurada anteriormente. Deseja migrar suas credenciais para a proteção DPAPI do Windows?"
-                                       TextWrapping="Wrap" FontSize="12" Margin="0,0,0,8"/>
-                            <Grid Margin="0,0,0,8">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <StackPanel Grid.Column="0" Margin="0,0,8,0">
-                                    <TextBlock Text="Senha mestra anterior" FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,3"/>
-                                    <PasswordBox x:Name="CurrentMasterPassBox"/>
-                                </StackPanel>
-                                <Button Grid.Column="1" Content="Migrar para DPAPI" Click="MigrateMasterPassword_Click"
-                                        VerticalAlignment="Bottom" Padding="14,6"/>
-                            </Grid>
-                        </StackPanel>
+                        <Button x:Name="MigratePreviousPasswordsButton" Visibility="Collapsed" Content="{loc:Loc TextC914B1CC0E8A}" Click="MigrateMasterPassword_Click" HorizontalAlignment="Left" Padding="12,6"/>
+
                     </StackPanel>
                 </ScrollViewer>
             </TabItem>
@@ -100,19 +97,19 @@
             <!-- ================================================================= -->
             <!-- ABA 2: PROGRAMAS (MSTSC, PuTTY, OpenSSH, WinSCP e VNC)            -->
             <!-- ================================================================= -->
-            <TabItem Header="Programas">
+            <TabItem Header="{loc:Loc Text7B637BAB4F9F}">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="18">
                     <StackPanel>
                         <DockPanel Margin="0,0,0,12">
-                            <TextBlock Text="Executáveis dos clientes de conexão" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                            <Button Content="Detectar automaticamente" Click="AutoDetectButton_Click"
+                            <TextBlock TextWrapping="Wrap" Text="{loc:Loc Text1113234D991B}" FontSize="{DynamicResource Font14}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            <Button Content="{loc:Loc Text6C1F9EBCC8F7}" Click="AutoDetectButton_Click"
                                     HorizontalAlignment="Right" Padding="12,5"/>
                         </DockPanel>
 
                         <!-- 1. Área de Trabalho Remota — mstsc.exe -->
                         <DockPanel Margin="0,2,0,3">
-                            <TextBlock Text="Área de Trabalho Remota — mstsc.exe" FontSize="12.5" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                            <TextBlock x:Name="MstscValidationText" HorizontalAlignment="Right" FontSize="11.5" VerticalAlignment="Center"/>
+                            <TextBlock TextWrapping="Wrap" Text="{loc:Loc Text594C3B2E334A}" FontSize="{DynamicResource Font12_5}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="MstscValidationText" HorizontalAlignment="Right" FontSize="{DynamicResource Font11_5}" VerticalAlignment="Center"/>
                         </DockPanel>
                         <Grid Margin="0,0,0,10">
                             <Grid.ColumnDefinitions>
@@ -121,15 +118,15 @@
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <TextBox x:Name="MstscPathBox" Grid.Column="0" TextChanged="ExecutablePathBox_TextChanged"/>
-                            <Button Grid.Column="1" Content="Procurar..." Click="BrowseMstsc_Click" Margin="6,0,0,0"/>
-                            <Button Grid.Column="2" Content="Restaurar caminho padrão" Click="RestoreDefaultMstsc_Click" Margin="6,0,0,0"
-                                    ToolTip="Restaura %WINDIR%\System32\mstsc.exe"/>
+                            <Button Grid.Column="1" Content="{loc:Loc TextB9D4506C3B66}" Click="BrowseMstsc_Click" Margin="6,0,0,0"/>
+                            <Button Grid.Column="2" Content="{loc:Loc Text4F67240E9A17}" Click="RestoreDefaultMstsc_Click" Margin="6,0,0,0"
+                                    ToolTip="{loc:Loc Text3B7E4699A24A}"/>
                         </Grid>
 
                         <!-- 2. PuTTY -->
                         <DockPanel Margin="0,2,0,3">
-                            <TextBlock Text="PuTTY" FontSize="12.5" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                            <TextBlock x:Name="PuttyValidationText" HorizontalAlignment="Right" FontSize="11.5" VerticalAlignment="Center"/>
+                            <TextBlock TextWrapping="Wrap" Text="{loc:Loc TextD653A7844124}" FontSize="{DynamicResource Font12_5}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="PuttyValidationText" HorizontalAlignment="Right" FontSize="{DynamicResource Font11_5}" VerticalAlignment="Center"/>
                         </DockPanel>
                         <Grid Margin="0,0,0,10">
                             <Grid.ColumnDefinitions>
@@ -137,13 +134,13 @@
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <TextBox x:Name="PuttyPathBox" Grid.Column="0" TextChanged="ExecutablePathBox_TextChanged"/>
-                            <Button Grid.Column="1" Content="Procurar..." Click="BrowsePutty_Click" Margin="6,0,0,0"/>
+                            <Button Grid.Column="1" Content="{loc:Loc TextB9D4506C3B66}" Click="BrowsePutty_Click" Margin="6,0,0,0"/>
                         </Grid>
 
                         <!-- 3. OpenSSH -->
                         <DockPanel Margin="0,2,0,3">
-                            <TextBlock Text="OpenSSH" FontSize="12.5" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                            <TextBlock x:Name="OpenSshValidationText" HorizontalAlignment="Right" FontSize="11.5" VerticalAlignment="Center"/>
+                            <TextBlock TextWrapping="Wrap" Text="{loc:Loc TextB34A5D5691AD}" FontSize="{DynamicResource Font12_5}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="OpenSshValidationText" HorizontalAlignment="Right" FontSize="{DynamicResource Font11_5}" VerticalAlignment="Center"/>
                         </DockPanel>
                         <Grid Margin="0,0,0,10">
                             <Grid.ColumnDefinitions>
@@ -151,13 +148,13 @@
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <TextBox x:Name="OpenSshPathBox" Grid.Column="0" TextChanged="ExecutablePathBox_TextChanged"/>
-                            <Button Grid.Column="1" Content="Procurar..." Click="BrowseOpenSsh_Click" Margin="6,0,0,0"/>
+                            <Button Grid.Column="1" Content="{loc:Loc TextB9D4506C3B66}" Click="BrowseOpenSsh_Click" Margin="6,0,0,0"/>
                         </Grid>
 
                         <!-- 4. WinSCP -->
                         <DockPanel Margin="0,2,0,3">
-                            <TextBlock Text="WinSCP" FontSize="12.5" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                            <TextBlock x:Name="WinScpValidationText" HorizontalAlignment="Right" FontSize="11.5" VerticalAlignment="Center"/>
+                            <TextBlock TextWrapping="Wrap" Text="{loc:Loc Text673FA557D7AA}" FontSize="{DynamicResource Font12_5}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="WinScpValidationText" HorizontalAlignment="Right" FontSize="{DynamicResource Font11_5}" VerticalAlignment="Center"/>
                         </DockPanel>
                         <Grid Margin="0,0,0,10">
                             <Grid.ColumnDefinitions>
@@ -165,13 +162,13 @@
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <TextBox x:Name="WinScpPathBox" Grid.Column="0" TextChanged="ExecutablePathBox_TextChanged"/>
-                            <Button Grid.Column="1" Content="Procurar..." Click="BrowseWinScp_Click" Margin="6,0,0,0"/>
+                            <Button Grid.Column="1" Content="{loc:Loc TextB9D4506C3B66}" Click="BrowseWinScp_Click" Margin="6,0,0,0"/>
                         </Grid>
 
                         <!-- 5. VNC -->
                         <DockPanel Margin="0,2,0,3">
-                            <TextBlock Text="VNC" FontSize="12.5" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                            <TextBlock x:Name="VncValidationText" HorizontalAlignment="Right" FontSize="11.5" VerticalAlignment="Center"/>
+                            <TextBlock TextWrapping="Wrap" Text="{loc:Loc TextE41A2B6503B0}" FontSize="{DynamicResource Font12_5}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="VncValidationText" HorizontalAlignment="Right" FontSize="{DynamicResource Font11_5}" VerticalAlignment="Center"/>
                         </DockPanel>
                         <Grid Margin="0,0,0,12">
                             <Grid.ColumnDefinitions>
@@ -179,7 +176,7 @@
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <TextBox x:Name="VncPathBox" Grid.Column="0" TextChanged="ExecutablePathBox_TextChanged"/>
-                            <Button Grid.Column="1" Content="Procurar..." Click="BrowseVnc_Click" Margin="6,0,0,0"/>
+                            <Button Grid.Column="1" Content="{loc:Loc TextB9D4506C3B66}" Click="BrowseVnc_Click" Margin="6,0,0,0"/>
                         </Grid>
 
                         <Grid Margin="0,4,0,10">
@@ -188,24 +185,24 @@
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
                             <StackPanel Grid.Column="0" Margin="0,0,8,0">
-                                <TextBlock Text="Cliente SSH padrão" FontSize="12.5" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4"/>
+                                <TextBlock TextWrapping="Wrap" Text="{loc:Loc TextF429B5263082}" FontSize="{DynamicResource Font12_5}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4"/>
                                 <ComboBox x:Name="PreferredSshCombo">
-                                    <ComboBoxItem Content="PuTTY" Tag="Putty"/>
-                                    <ComboBoxItem Content="OpenSSH do Windows" Tag="OpenSsh"/>
+                                    <ComboBoxItem Content="{loc:Loc TextD653A7844124}" Tag="Putty"/>
+                                    <ComboBoxItem Content="{loc:Loc Text2FFCD6F40E95}" Tag="OpenSsh"/>
                                 </ComboBox>
                             </StackPanel>
                             <StackPanel Grid.Column="1" Margin="8,0,0,0">
-                                <TextBlock Text="Padrão de parâmetros VNC" FontSize="12.5" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4"/>
+                                <TextBlock TextWrapping="Wrap" Text="{loc:Loc Text5DE6B45BC540}" FontSize="{DynamicResource Font12_5}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4"/>
                                 <ComboBox x:Name="VncFlavorCombo">
-                                    <ComboBoxItem Content="TigerVNC / RealVNC (host::porta)" Tag="TigerRealVnc"/>
-                                    <ComboBoxItem Content="TightVNC (-host=host -port=porta)" Tag="TightVnc"/>
-                                    <ComboBoxItem Content="UltraVNC (host:porta)" Tag="UltraVnc"/>
-                                    <ComboBoxItem Content="Personalizado ({host} {port} {user})" Tag="Custom"/>
+                                    <ComboBoxItem Content="{loc:Loc Text28EE40536291}" Tag="TigerRealVnc"/>
+                                    <ComboBoxItem Content="{loc:Loc Text23E564CAAABA}" Tag="TightVnc"/>
+                                    <ComboBoxItem Content="{loc:Loc Text28C0CC7F0976}" Tag="UltraVnc"/>
+                                    <ComboBoxItem Content="{loc:Loc Text1DA724AB1F99}" Tag="Custom"/>
                                 </ComboBox>
                             </StackPanel>
                         </Grid>
 
-                        <TextBlock Text="Formato personalizado VNC" FontSize="12.5" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4"/>
+                        <TextBlock TextWrapping="Wrap" Text="{loc:Loc TextC62CB625D100}" FontSize="{DynamicResource Font12_5}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4"/>
                         <TextBox x:Name="VncTemplateBox"/>
                     </StackPanel>
                 </ScrollViewer>
@@ -214,14 +211,14 @@
             <!-- ================================================================= -->
             <!-- ABA 3: CREDENCIAIS                                                -->
             <!-- ================================================================= -->
-            <TabItem Header="Credenciais">
+            <TabItem Header="{loc:Loc TextADF9E60F4D90}">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="20">
                     <StackPanel>
-                        <TextBlock Text="Credenciais salvas" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,6"/>
-                        <TextBlock Text="Gerencie as senhas e credenciais salvas no aplicativo, incluindo credenciais reutilizadas entre múltiplos servidores."
+                        <TextBlock TextWrapping="Wrap" Text="{loc:Loc TextD1D6DB3BE482}" FontSize="{DynamicResource Font15}" FontWeight="SemiBold" Margin="0,0,0,6"/>
+                        <TextBlock Text="{loc:Loc Text4BF37FF33AA7}"
                                    Foreground="{DynamicResource SecondaryTextBrush}" TextWrapping="Wrap" Margin="0,0,0,14"/>
 
-                        <Button Content="Gerenciar credenciais salvas..."
+                        <Button Content="{loc:Loc TextF68E4F381086}"
                                 Click="OpenCredentialsDialog_Click"
                                 HorizontalAlignment="Left"
                                 Style="{DynamicResource PrimaryButtonStyle}"
@@ -235,12 +232,12 @@
                                 CornerRadius="6"
                                 Padding="14">
                             <StackPanel>
-                                <TextBlock Text="🔒 Aviso Importante sobre Portabilidade de Credenciais (DPAPI)"
-                                           FontSize="13" FontWeight="SemiBold" Margin="0,0,0,6"/>
-                                <TextBlock Text="As senhas no ConectaTI são protegidas por padrão pela API nativa do Windows (DPAPI), atrelada exclusivamente ao seu usuário local e a esta máquina física."
-                                           Foreground="{DynamicResource SecondaryTextBrush}" TextWrapping="Wrap" Margin="0,0,0,6" FontSize="12"/>
-                                <TextBlock Text="Ao copiar o executável ou a pasta do ConectaTI para outro computador ou outro usuário do Windows, os cadastros das conexões continuam funcionando, mas as senhas deverão ser digitadas novamente se você não realizar a exportação com a opção 'Pacote Criptografado (.ctienc)' na aba de Importação e Backup."
-                                           Foreground="{DynamicResource SecondaryTextBrush}" TextWrapping="Wrap" FontSize="12"/>
+                                <TextBlock TextWrapping="Wrap" Text="{loc:Loc Text622599F7B801}"
+                                           FontSize="{DynamicResource Font13}" FontWeight="SemiBold" Margin="0,0,0,6"/>
+                                <TextBlock Text="{loc:Loc TextE683DE8248AB}"
+                                           Foreground="{DynamicResource SecondaryTextBrush}" TextWrapping="Wrap" Margin="0,0,0,6" FontSize="{DynamicResource Font12}"/>
+                                <TextBlock Text="{loc:Loc Text215985FC156E}"
+                                           Foreground="{DynamicResource SecondaryTextBrush}" TextWrapping="Wrap" FontSize="{DynamicResource Font12}"/>
                             </StackPanel>
                         </Border>
                     </StackPanel>
@@ -250,19 +247,19 @@
             <!-- ================================================================= -->
             <!-- ABA 4: IMPORTAÇÃO E BACKUP                                        -->
             <!-- ================================================================= -->
-            <TabItem Header="Importação e backup">
+            <TabItem Header="{loc:Loc TextEF101CAD23DF}">
                 <StackPanel Margin="20">
-                    <TextBlock Text="Importação, exportação e cópias de segurança" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,6"/>
-                    <TextBlock Text="Importe planilhas CSV, arquivos JSON ou listas do AutoPuTTY, exporte seus cadastros e gerencie backups locais do banco de dados."
+                    <TextBlock TextWrapping="Wrap" Text="{loc:Loc Text4A366C8B3706}" FontSize="{DynamicResource Font15}" FontWeight="SemiBold" Margin="0,0,0,6"/>
+                    <TextBlock Text="{loc:Loc Text6285442CFEFD}"
                                Foreground="{DynamicResource SecondaryTextBrush}" TextWrapping="Wrap" Margin="0,0,0,16"/>
 
                     <WrapPanel>
-                        <Button Content="Abrir importação, exportação e backups..."
+                        <Button Content="{loc:Loc Text9ECAAA06B087}"
                                 Click="OpenImportExportDialog_Click"
                                 Style="{DynamicResource PrimaryButtonStyle}"
                                 Padding="16,8" Margin="0,0,10,8"/>
 
-                        <Button Content="Criar backup agora"
+                        <Button Content="{loc:Loc TextD2DF9DBF7DC0}"
                                 Click="CreateQuickBackup_Click"
                                 Padding="14,8" Margin="0,0,0,8"/>
                     </WrapPanel>
@@ -272,11 +269,11 @@
             <!-- ================================================================= -->
             <!-- ABA 5: DIAGNÓSTICO                                                -->
             <!-- ================================================================= -->
-            <TabItem Header="Diagnóstico">
+            <TabItem Header="{loc:Loc TextE695EB16E81F}">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="20">
                     <StackPanel>
-                        <TextBlock Text="Diagnóstico do Sistema e Armazenamento" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,6"/>
-                        <TextBlock Text="Informações sobre banco de dados, localização dos arquivos, integridade e logs."
+                        <TextBlock TextWrapping="Wrap" Text="{loc:Loc Text877BC3447067}" FontSize="{DynamicResource Font15}" FontWeight="SemiBold" Margin="0,0,0,6"/>
+                        <TextBlock Text="{loc:Loc Text240CF7238558}"
                                    Foreground="{DynamicResource SecondaryTextBrush}" TextWrapping="Wrap" Margin="0,0,0,14"/>
 
                         <Border Background="{DynamicResource SurfaceAltBrush}"
@@ -291,8 +288,8 @@
                                         <ColumnDefinition Width="190"/>
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Text="Caminho efetivo do banco:" FontWeight="SemiBold" FontSize="12"/>
-                                    <TextBlock x:Name="DiagDbPathText" Grid.Column="1" Text="Carregando..." TextWrapping="Wrap" FontSize="12" FontFamily="Consolas"/>
+                                    <TextBlock TextWrapping="Wrap" Grid.Column="0" Text="{loc:Loc Text4E8983D8D972}" FontWeight="SemiBold" FontSize="{DynamicResource Font12}"/>
+                                    <TextBlock x:Name="DiagDbPathText" Grid.Column="1" Text="{loc:Loc Text1258573B225A}" TextWrapping="Wrap" FontSize="{DynamicResource Font12}" FontFamily="Consolas"/>
                                 </Grid>
 
                                 <Grid Margin="0,0,0,8">
@@ -300,8 +297,8 @@
                                         <ColumnDefinition Width="190"/>
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Text="Versão do schema SQLite:" FontWeight="SemiBold" FontSize="12"/>
-                                    <TextBlock x:Name="DiagSchemaVersionText" Grid.Column="1" Text="Carregando..." FontSize="12"/>
+                                    <TextBlock TextWrapping="Wrap" Grid.Column="0" Text="{loc:Loc Text99D46ADA74E4}" FontWeight="SemiBold" FontSize="{DynamicResource Font12}"/>
+                                    <TextBlock TextWrapping="Wrap" x:Name="DiagSchemaVersionText" Grid.Column="1" Text="{loc:Loc Text1258573B225A}" FontSize="{DynamicResource Font12}"/>
                                 </Grid>
 
                                 <Grid Margin="0,0,0,8">
@@ -309,8 +306,8 @@
                                         <ColumnDefinition Width="190"/>
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Text="Status da pasta de dados:" FontWeight="SemiBold" FontSize="12"/>
-                                    <TextBlock x:Name="DiagWritableText" Grid.Column="1" Text="Carregando..." FontSize="12"/>
+                                    <TextBlock TextWrapping="Wrap" Grid.Column="0" Text="{loc:Loc Text393F24C49FCC}" FontWeight="SemiBold" FontSize="{DynamicResource Font12}"/>
+                                    <TextBlock TextWrapping="Wrap" x:Name="DiagWritableText" Grid.Column="1" Text="{loc:Loc Text1258573B225A}" FontSize="{DynamicResource Font12}"/>
                                 </Grid>
 
                                 <Grid Margin="0,0,0,8">
@@ -318,8 +315,8 @@
                                         <ColumnDefinition Width="190"/>
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Text="Contagem de conexões:" FontWeight="SemiBold" FontSize="12"/>
-                                    <TextBlock x:Name="DiagCountsText" Grid.Column="1" Text="Carregando..." FontSize="12"/>
+                                    <TextBlock TextWrapping="Wrap" Grid.Column="0" Text="{loc:Loc Text0C7669885EC9}" FontWeight="SemiBold" FontSize="{DynamicResource Font12}"/>
+                                    <TextBlock TextWrapping="Wrap" x:Name="DiagCountsText" Grid.Column="1" Text="{loc:Loc Text1258573B225A}" FontSize="{DynamicResource Font12}"/>
                                 </Grid>
 
                                 <Grid Margin="0,0,0,6">
@@ -327,16 +324,16 @@
                                         <ColumnDefinition Width="190"/>
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Text="Último erro sanitizado:" FontWeight="SemiBold" FontSize="12"/>
-                                    <TextBlock x:Name="DiagLastErrorText" Grid.Column="1" Text="Nenhum erro registrado." Foreground="{DynamicResource SecondaryTextBrush}" TextWrapping="Wrap" FontSize="12"/>
+                                    <TextBlock TextWrapping="Wrap" Grid.Column="0" Text="{loc:Loc Text4E8E952D032B}" FontWeight="SemiBold" FontSize="{DynamicResource Font12}"/>
+                                    <TextBlock x:Name="DiagLastErrorText" Grid.Column="1" Text="{loc:Loc Text5B47F14BF7A3}" Foreground="{DynamicResource SecondaryTextBrush}" TextWrapping="Wrap" FontSize="{DynamicResource Font12}"/>
                                 </Grid>
                             </StackPanel>
                         </Border>
 
                         <WrapPanel Orientation="Horizontal" Margin="0,4,0,0">
-                            <Button Content="📁 Abrir pasta do banco" Click="OpenDatabaseFolder_Click" Padding="14,7" Margin="0,0,8,8"/>
-                            <Button Content="📁 Abrir pasta de logs" Click="OpenLogsFolder_Click" Padding="14,7" Margin="0,0,8,8"/>
-                            <Button Content="📋 Copiar relatório de diagnóstico" Click="CopyDiagnosticReport_Click" Padding="14,7" Margin="0,0,0,8"/>
+                            <Button Content="{loc:Loc TextE093EB410320}" Click="OpenDatabaseFolder_Click" Padding="14,7" Margin="0,0,8,8"/>
+                            <Button Content="{loc:Loc Text425C16F62D4A}" Click="OpenLogsFolder_Click" Padding="14,7" Margin="0,0,8,8"/>
+                            <Button Content="{loc:Loc Text75331D5D1612}" Click="CopyDiagnosticReport_Click" Padding="14,7" Margin="0,0,0,8"/>
                         </WrapPanel>
                     </StackPanel>
                 </ScrollViewer>
@@ -346,8 +343,8 @@
         <DockPanel Grid.Row="2" Margin="0,14,0,0">
             <TextBlock x:Name="DialogFeedbackText" VerticalAlignment="Center" Foreground="{DynamicResource SecondaryTextBrush}"/>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                <Button Content="Cancelar" Click="CancelButton_Click" Padding="16,7" Margin="0,0,8,0"/>
-                <Button Content="Salvar" Click="SaveButton_Click" Style="{DynamicResource PrimaryButtonStyle}" Padding="20,7"/>
+                <Button Content="{loc:Loc TextBB9DBB406DCB}" Click="CancelButton_Click" Padding="16,7" Margin="0,0,8,0"/>
+                <Button Content="{loc:Loc TextAEF7CD5B2081}" Click="SaveButton_Click" Style="{DynamicResource PrimaryButtonStyle}" Padding="20,7"/>
             </StackPanel>
         </DockPanel>
     </Grid>

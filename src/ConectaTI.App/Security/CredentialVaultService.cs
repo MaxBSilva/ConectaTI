@@ -7,14 +7,11 @@ using ConectaTI.App.Services;
 namespace ConectaTI.App.Security;
 
 /// <summary>
-/// Gerencia o armazenamento seguro de credenciais combinando:
-/// 1. DPAPI (DataProtectionScope.CurrentUser) com entropia de aplicação.
-/// 2. Gerenciador de Credenciais do Windows (Windows Credential Manager).
-/// 3. Camada criptográfica adicional AES-256-GCM derivada por PBKDF2-SHA256 (210.000 iterações)
-///    quando o usuário ativa uma Senha Mestra.
-/// 4. Criptografia autenticada portátil (PBKDF2-SHA256 + AES-256-GCM) para exportação entre computadores.
+/// Automatic CurrentUser DPAPI secrets in SQLite. The master-password format is retained for migration.
+/// DPAPI and Windows Credential Manager are retained only for reading legacy credentials.
+/// Portable encrypted packages use their independent transport password.
 /// </summary>
-public class CredentialVaultService
+public partial class CredentialVaultService
 {
     private static readonly byte[] ApplicationDpapiEntropy =
         Encoding.UTF8.GetBytes("ConectaTI::DPAPI::CurrentUser::Entropy::v1");
@@ -39,12 +36,9 @@ public class CredentialVaultService
     private byte[]? _activeMasterKey;
 
     public bool IsLocked => false;
+    internal bool IsLegacyVaultLocked { get { lock (_cryptoGate) return _dataKey == null; } }
 
-    public event EventHandler? LockStateChanged
-    {
-        add { }
-        remove { }
-    }
+    public event EventHandler? LockStateChanged;
 
     public CredentialVaultService(
         SettingsService settingsService,
@@ -58,7 +52,7 @@ public class CredentialVaultService
         _useWindowsVault = useWindowsVault;
     }
 
-    public bool RequiresMasterPassword => _settingsService.Current.HasMasterPassword;
+    public bool RequiresMasterPassword => false;
 
     public void Lock()
     {
@@ -68,11 +62,16 @@ public class CredentialVaultService
             _activeMasterKey = null;
         }
 
-        WindowsCredentialVaultInterop.CleanupAllManagedRdpCredentials();
-        _logger.Info("Security", "Credenciais temporárias de sessão limpas.");
+        lock (_cryptoGate)
+        {
+            Interlocked.Increment(ref _vaultGeneration);
+            if (_dataKey != null) CryptographicOperations.ZeroMemory(_dataKey);
+            _dataKey=null; _vaultMetadata=null; _nonces.Clear();
+        }
+        LockStateChanged?.Invoke(this,EventArgs.Empty);
     }
 
-    public bool Unlock(string? masterPassword = null)
+    public bool UnlockLegacyMasterPassword(string? masterPassword = null)
     {
         if (!_settingsService.Current.HasMasterPassword)
         {
@@ -82,12 +81,14 @@ public class CredentialVaultService
         if (string.IsNullOrEmpty(masterPassword))
             return false;
 
+        byte[]? candidateKey=null;
+        byte[]? decryptedVerifier=null;
         try
         {
             var salt = Convert.FromBase64String(_settingsService.Current.MasterPasswordSaltBase64);
-            var candidateKey = DeriveKeyPbkdf2(masterPassword, salt);
+            candidateKey = DeriveKeyPbkdf2(masterPassword, salt);
             var verifierBytes = Convert.FromBase64String(_settingsService.Current.MasterPasswordVerifierBase64);
-            var decryptedVerifier = DecryptAesGcm(verifierBytes, candidateKey);
+            decryptedVerifier = DecryptAesGcm(verifierBytes, candidateKey);
 
             if (!CryptographicOperations.FixedTimeEquals(decryptedVerifier, VerifierPlaintext))
             {
@@ -100,6 +101,7 @@ public class CredentialVaultService
                 CryptographicOperations.ZeroMemory(_activeMasterKey);
 
             _activeMasterKey = candidateKey;
+            candidateKey=null;
             _logger.Info("Security", "Chave mestra carregada com sucesso.");
             return true;
         }
@@ -108,70 +110,26 @@ public class CredentialVaultService
             _logger.Warn("Security", $"Falha ao validar senha mestra: {ex.GetType().Name}");
             return false;
         }
+        finally
+        {
+            if(candidateKey!=null)CryptographicOperations.ZeroMemory(candidateKey);
+            if(decryptedVerifier!=null)CryptographicOperations.ZeroMemory(decryptedVerifier);
+        }
     }
 
-    /// <summary>
-    /// Migra todas as credenciais protegidas por senha mestra anterior para proteção nativa DPAPI do Windows.
-    /// </summary>
     public async Task<bool> MigrateFromMasterPasswordAsync(string previousMasterPassword)
     {
-        if (!_settingsService.Current.HasMasterPassword)
-            return true;
-
-        if (!Unlock(previousMasterPassword))
-            return false;
-
-        await ConfigureMasterPasswordAsync(previousMasterPassword, null);
-        _logger.Info("Security", "Migração para DPAPI concluída com sucesso. Senha mestra desativada.");
+        await MigratePreviousVaultAsync(previousMasterPassword);
         return true;
     }
 
     /// <summary>
-    /// Protege o segredo de uma credencial para gravação em banco e no Windows Credential Manager.
+    /// Protege o segredo automaticamente com DPAPI CurrentUser. O parâmetro legado writeToWindowsVault não cria cópias Windows.
     /// </summary>
-    public string ProtectSecret(string credentialId, string effectiveUsername, string plainPassword, bool writeToWindowsVault = true)
+    public string ProtectSecret(string credentialId, string effectiveUsername, string plainPassword, bool writeToWindowsVault = false)
     {
-        if (string.IsNullOrEmpty(plainPassword))
-            return string.Empty;
-
-        EnsureUnlockedForMasterKeyOperation();
-
-        var plainBytes = Encoding.UTF8.GetBytes(plainPassword);
-        try
-        {
-            byte[] innerPayload;
-            string prefix;
-
-            if (_settingsService.Current.HasMasterPassword && _activeMasterKey != null)
-            {
-                innerPayload = EncryptAesGcm(plainBytes, _activeMasterKey);
-                prefix = EnvelopePrefixMasterPlusDpapi;
-            }
-            else
-            {
-                innerPayload = plainBytes;
-                prefix = EnvelopePrefixDpapiOnly;
-            }
-
-            var dpapiBlob = ProtectedData.Protect(
-                innerPayload,
-                ApplicationDpapiEntropy,
-                DataProtectionScope.CurrentUser);
-
-            var finalEnvelope = prefix + Convert.ToBase64String(dpapiBlob);
-
-            if (_useWindowsVault && writeToWindowsVault && !string.IsNullOrWhiteSpace(credentialId))
-            {
-                WriteToWindowsVault(new SavedCredential { Id = credentialId,
-                    Username = effectiveUsername, ProtectedSecretBase64 = finalEnvelope });
-            }
-
-            return finalEnvelope;
-        }
-        finally
-        {
-            CryptographicOperations.ZeroMemory(plainBytes);
-        }
+        if (string.IsNullOrEmpty(plainPassword)) return string.Empty;
+        return ProtectAutomaticSecret(credentialId,plainPassword);
     }
 
     /// <summary>
@@ -179,17 +137,15 @@ public class CredentialVaultService
     /// </summary>
     public string UnprotectSecret(SavedCredential credential)
     {
-        if (IsLocked)
-            throw new InvalidOperationException("O aplicativo está bloqueado. Desbloqueie antes de acessar credenciais.");
-
+        if (credential.SecretStorage == CredentialSecretStorage.ApplicationVault)
+            return string.IsNullOrEmpty(credential.ProtectedSecretBase64) ? string.Empty
+                : DecryptApplicationSecret(credential.Id,credential.ProtectedSecretBase64);
+        if (credential.ProtectedSecretBase64.StartsWith(AutomaticPrefix, StringComparison.Ordinal))
+            return UnprotectAutomaticSecret(credential.Id, credential.ProtectedSecretBase64);
         var envelope = credential.ProtectedSecretBase64;
-        if (string.IsNullOrWhiteSpace(envelope) && _useWindowsVault)
-        {
-            envelope = WindowsCredentialVaultInterop.ReadGenericSecret(GetWindowsVaultTargetName(credential.Id)) ?? string.Empty;
-        }
 
         if (string.IsNullOrWhiteSpace(envelope))
-            return string.Empty;
+            throw new CryptographicException("Legacy credential is unreadable.");
 
         return UnprotectEnvelopeString(envelope);
     }
@@ -199,7 +155,6 @@ public class CredentialVaultService
         if (string.IsNullOrWhiteSpace(envelope))
             return string.Empty;
 
-        EnsureUnlockedForMasterKeyOperation();
 
         var isMasterEncrypted = envelope.StartsWith(EnvelopePrefixMasterPlusDpapi, StringComparison.Ordinal);
         var base64Part = envelope;
@@ -223,7 +178,7 @@ public class CredentialVaultService
             if (isMasterEncrypted)
             {
                 if (_activeMasterKey == null)
-                    throw new InvalidOperationException("A chave da senha mestra não está carregada na sessão.");
+                    throw new InvalidOperationException(L.Text("A chave da senha mestra não está carregada na sessão."));
 
                 var plainBytes = DecryptAesGcm(innerPayload, _activeMasterKey);
                 try
@@ -246,9 +201,9 @@ public class CredentialVaultService
 
     public virtual void WriteToWindowsVault(SavedCredential credential)
     {
-        if (_useWindowsVault && !WindowsCredentialVaultInterop.WriteGenericSecret(
-            GetWindowsVaultTargetName(credential.Id), credential.EffectiveUserDisplay, credential.ProtectedSecretBase64))
-            throw new System.ComponentModel.Win32Exception(System.Runtime.InteropServices.Marshal.GetLastWin32Error());
+        if (_useWindowsVault)
+            WindowsCredentialVaultInterop.WriteGenericSecret(
+                GetWindowsVaultTargetName(credential.Id), credential.EffectiveUserDisplay, credential.ProtectedSecretBase64);
     }
 
     public virtual void RemoveFromWindowsVault(string credentialId)
@@ -264,64 +219,9 @@ public class CredentialVaultService
     /// </summary>
     public async Task ConfigureMasterPasswordAsync(string? currentMasterPassword, string? newMasterPassword)
     {
-        if (_settingsService.Current.HasMasterPassword)
-        {
-            if (!Unlock(currentMasterPassword))
-                throw new CryptographicException("A senha mestra atual informada está incorreta.");
-        }
-
-        // 1. Lê e descriptografa todas as credenciais com a configuração atual
-        var allCredentials = await _repository.GetAllCredentialsAsync();
-        var plainSecrets = new Dictionary<string, string>(StringComparer.Ordinal);
-        foreach (var cred in allCredentials)
-        {
-            plainSecrets[cred.Id] = string.IsNullOrWhiteSpace(cred.ProtectedSecretBase64)
-                ? string.Empty
-                : UnprotectSecret(cred);
-        }
-
-        // 2. Atualiza a chave mestra
-        if (string.IsNullOrWhiteSpace(newMasterPassword))
-        {
-            // Desativa senha mestra (mantém proteção DPAPI do usuário Windows)
-            if (_activeMasterKey != null)
-            {
-                CryptographicOperations.ZeroMemory(_activeMasterKey);
-                _activeMasterKey = null;
-            }
-            _settingsService.Current.HasMasterPassword = false;
-            _settingsService.Current.MasterPasswordSaltBase64 = string.Empty;
-            _settingsService.Current.MasterPasswordVerifierBase64 = string.Empty;
-        }
-        else
-        {
-            var salt = RandomNumberGenerator.GetBytes(SaltSizeBytes);
-            var newKey = DeriveKeyPbkdf2(newMasterPassword, salt);
-            var verifier = EncryptAesGcm(VerifierPlaintext, newKey);
-
-            if (_activeMasterKey != null)
-                CryptographicOperations.ZeroMemory(_activeMasterKey);
-
-            _activeMasterKey = newKey;
-            _settingsService.Current.HasMasterPassword = true;
-            _settingsService.Current.MasterPasswordSaltBase64 = Convert.ToBase64String(salt);
-            _settingsService.Current.MasterPasswordVerifierBase64 = Convert.ToBase64String(verifier);
-        }
-
-        // 3. Re-protege todas as credenciais com o novo estado
-        foreach (var cred in allCredentials)
-        {
-            var plain = plainSecrets[cred.Id];
-            cred.ProtectedSecretBase64 = string.IsNullOrEmpty(plain)
-                ? string.Empty
-                : ProtectSecret(cred.Id, cred.EffectiveUserDisplay, plain);
-            await _repository.SaveCredentialAsync(cred);
-        }
-
-        _settingsService.Save();
-        _logger.Info("Security", _settingsService.Current.HasMasterPassword
-            ? "Senha mestra configurada e cofre re-criptografado."
-            : "Senha mestra removida; cofre mantido sob proteção DPAPI do Windows.");
+        if (string.IsNullOrEmpty(newMasterPassword)) throw new InvalidOperationException(L.Text("A senha mestra é necessária para recuperar os segredos."));
+        if (!IsVaultCreated) await CreateVaultAsync(newMasterPassword,newMasterPassword);
+        else await ChangeVaultPasswordAsync(currentMasterPassword ?? "",newMasterPassword,newMasterPassword);
     }
 
     // =========================================================================
@@ -331,40 +231,30 @@ public class CredentialVaultService
     public static byte[] EncryptPortablePayload(byte[] plainUtf8Bytes, string transportPassword)
     {
         if (string.IsNullOrWhiteSpace(transportPassword) || transportPassword.Length < 6)
-            throw new ArgumentException("A senha de proteção para exportação deve ter pelo menos 6 caracteres.");
+            throw new ArgumentException(L.Text("A senha de proteção para exportação deve ter pelo menos 6 caracteres."));
 
-        var salt = RandomNumberGenerator.GetBytes(SaltSizeBytes);
-        var key = DeriveKeyPbkdf2(transportPassword, salt);
-        try
-        {
-            var cipherWithNonceAndTag = EncryptAesGcm(plainUtf8Bytes, key);
-            // Formato binário: Magic "CTIENC01" (8 bytes) + Salt (32 bytes) + Nonce+Tag+Cipher
-            var magic = Encoding.ASCII.GetBytes("CTIENC01");
-            var output = new byte[magic.Length + salt.Length + cipherWithNonceAndTag.Length];
-            Buffer.BlockCopy(magic, 0, output, 0, magic.Length);
-            Buffer.BlockCopy(salt, 0, output, magic.Length, salt.Length);
-            Buffer.BlockCopy(cipherWithNonceAndTag, 0, output, magic.Length + salt.Length, cipherWithNonceAndTag.Length);
-            return output;
-        }
-        finally
-        {
-            CryptographicOperations.ZeroMemory(key);
-        }
+        return EncryptPortableV2(plainUtf8Bytes,transportPassword);
     }
 
     public static byte[] DecryptPortablePayload(byte[] encryptedFileBytes, string transportPassword)
     {
         if (string.IsNullOrWhiteSpace(transportPassword))
-            throw new ArgumentException("Informe a senha do pacote criptografado.");
+            throw new ArgumentException(L.Text("Informe a senha do pacote criptografado."));
 
+        if (encryptedFileBytes.AsSpan().StartsWith("CTIENC02"u8))
+        {
+            try { return DecryptPortableV2(encryptedFileBytes,transportPassword); }
+            catch (CryptographicException ex)
+            { throw new CryptographicException(L.Text("Senha incorreta ou pacote criptografado adulterado/corrompido."),ex); }
+        }
         var magic = Encoding.ASCII.GetBytes("CTIENC01");
         if (encryptedFileBytes == null || encryptedFileBytes.Length < magic.Length + SaltSizeBytes + NonceSizeBytes + TagSizeBytes)
-            throw new InvalidDataException("O arquivo selecionado não é um pacote criptografado válido do ConectaTI.");
+            throw new InvalidDataException(L.Text("O arquivo selecionado não é um pacote criptografado válido do ConectaTI."));
 
         for (var i = 0; i < magic.Length; i++)
         {
             if (encryptedFileBytes[i] != magic[i])
-                throw new InvalidDataException("Cabeçalho de arquivo criptografado inválido (esperado CTIENC01).");
+                throw new InvalidDataException(L.Text("Cabeçalho de arquivo criptografado inválido (esperado CTIENC01)."));
         }
 
         var salt = new byte[SaltSizeBytes];
@@ -381,7 +271,7 @@ public class CredentialVaultService
         }
         catch (CryptographicException)
         {
-            throw new CryptographicException("Senha incorreta ou pacote criptografado adulterado/corrompido.");
+            throw new CryptographicException(L.Text("Senha incorreta ou pacote criptografado adulterado/corrompido."));
         }
         finally
         {
@@ -392,22 +282,19 @@ public class CredentialVaultService
     private void EnsureUnlockedForMasterKeyOperation()
     {
         if (IsLocked)
-            throw new InvalidOperationException("O cofre de credenciais está bloqueado.");
+            throw new InvalidOperationException(L.Text("O cofre de credenciais está bloqueado."));
 
         if (_settingsService.Current.HasMasterPassword && _activeMasterKey == null)
-            throw new InvalidOperationException("A senha mestra precisa ser validada para acessar os segredos.");
+            throw new InvalidOperationException(L.Text("A senha mestra precisa ser validada para acessar os segredos."));
     }
 
     private static string GetWindowsVaultTargetName(string credentialId) => $"ConectaTI:Credential:{credentialId}";
 
     private static byte[] DeriveKeyPbkdf2(string password, byte[] salt)
     {
-        return Rfc2898DeriveBytes.Pbkdf2(
-            Encoding.UTF8.GetBytes(password),
-            salt,
-            Pbkdf2Iterations,
-            HashAlgorithmName.SHA256,
-            KeySizeBytes);
+        var bytes=Encoding.UTF8.GetBytes(password);
+        try { return Rfc2898DeriveBytes.Pbkdf2(bytes,salt,Pbkdf2Iterations,HashAlgorithmName.SHA256,KeySizeBytes); }
+        finally { CryptographicOperations.ZeroMemory(bytes); }
     }
 
     private static byte[] EncryptAesGcm(byte[] plaintext, byte[] key)
@@ -429,7 +316,7 @@ public class CredentialVaultService
     private static byte[] DecryptAesGcm(byte[] combinedNonceTagCipher, byte[] key)
     {
         if (combinedNonceTagCipher.Length < NonceSizeBytes + TagSizeBytes)
-            throw new CryptographicException("Dados criptografados inválidos.");
+            throw new CryptographicException(L.Text("Dados criptografados inválidos."));
 
         var nonce = new byte[NonceSizeBytes];
         var tag = new byte[TagSizeBytes];

@@ -51,7 +51,7 @@ public class ConnectionLauncherService
     private readonly CredentialVaultService _vaultService;
     private readonly ClipboardService _clipboardService;
     private readonly AppLogger _logger;
-    private readonly Func<ProcessStartInfo, int?> _processStarter;
+    private readonly Func<ProcessStartInfo, int?>? _customProcessStarter;
 
     private readonly ConcurrentDictionary<string, SemaphoreSlim> _hostLocks = new(StringComparer.OrdinalIgnoreCase);
     private readonly ConcurrentDictionary<string, ActiveRdpHandshake> _activeRdpHandshakes = new(StringComparer.OrdinalIgnoreCase);
@@ -79,7 +79,7 @@ public class ConnectionLauncherService
         _vaultService = vaultService;
         _clipboardService = clipboardService;
         _logger = logger;
-        _processStarter = customProcessStarter ?? DefaultStartProcess;
+        _customProcessStarter = customProcessStarter;
     }
 
     public ConnectionLaunchPlan BuildLaunchPlan(
@@ -101,7 +101,7 @@ public class ConnectionLauncherService
             ConnectionProtocol.Ssh => BuildSshPlan(entry, userIdentity, settings, !string.IsNullOrEmpty(decryptedPassword)),
             ConnectionProtocol.Sftp or ConnectionProtocol.Scp => BuildWinScpPlan(entry, userIdentity, settings, !string.IsNullOrEmpty(decryptedPassword)),
             ConnectionProtocol.Vnc => BuildVncPlan(entry, userIdentity, settings, !string.IsNullOrEmpty(decryptedPassword)),
-            _ => throw new NotSupportedException($"Protocolo não suportado: {entry.Protocol}")
+            _ => throw new NotSupportedException(L.Format("Protocolo não suportado: {0}", (entry.Protocol)))
         };
     }
 
@@ -115,21 +115,7 @@ public class ConnectionLauncherService
 
     public async Task<ConnectionLaunchResult> LaunchAsync(ConnectionEntry entry)
     {
-        // 1. Impede acesso enquanto o aplicativo estiver bloqueado
-        if (_vaultService.IsLocked)
-        {
-            return new ConnectionLaunchResult(
-                false,
-                null,
-                string.Empty,
-                string.Empty,
-                string.Empty,
-                null,
-                "Aplicativo bloqueado.",
-                string.Empty,
-                "O ConectaTI está bloqueado. Desbloqueie o aplicativo antes de iniciar conexões.",
-                false);
-        }
+        // Request the session only when this connection actually uses a saved secret.
 
         // 2. Validação completa do cadastro (incluindo proteção contra quebras de linha)
         var errors = ConnectionValidator.ValidateConnection(entry);
@@ -142,7 +128,7 @@ public class ConnectionLauncherService
                 string.Empty,
                 string.Empty,
                 null,
-                "Dados inválidos no cadastro.",
+                L.Text("Dados inválidos no cadastro."),
                 string.Empty,
                 string.Join(Environment.NewLine, errors),
                 false);
@@ -151,6 +137,7 @@ public class ConnectionLauncherService
         // 3. Obtém credencial salva vinculada ao cadastro (se houver)
         SavedCredential? credential = null;
         var decryptedPassword = string.Empty;
+        var unavailableSecretNotice = string.Empty;
 
         if (!string.IsNullOrWhiteSpace(entry.CredentialId))
         {
@@ -159,28 +146,22 @@ public class ConnectionLauncherService
             {
                 try
                 {
-                    decryptedPassword = _vaultService.UnprotectSecret(credential);
+                    decryptedPassword = await _vaultService.ReadSecretAsync(credential);
                 }
                 catch (Exception ex)
                 {
-                    _logger.Warn("Launcher", $"Não foi possível ler o segredo da credencial '{credential.Name}': {ex.Message}");
-                    return new ConnectionLaunchResult(
-                        false,
-                        null,
-                        string.Empty,
-                        string.Empty,
-                        string.Empty,
-                        null,
-                        "Erro ao acessar a senha salva.",
-                        string.Empty,
-                        "Não foi possível descriptografar a senha salva para esta conexão. Verifique o bloqueio ou edite a senha.",
-                        false);
+                    _logger.RecordFailure("Launch.Credentials.Read",ex);
+                    unavailableSecretNotice=CredentialVaultService.RecoveryMessage(ex)+" "+
+                        L.Text("O cliente remoto solicitará as credenciais manualmente.");
+                    credential=null;
+
                 }
             }
         }
 
         var hasPassword = !string.IsNullOrEmpty(decryptedPassword);
         var plan = BuildLaunchPlan(entry, credential, hasPassword ? decryptedPassword : null);
+        if(unavailableSecretNotice.Length>0) plan=plan with {SecurityNotice=unavailableSecretNotice};
 
         if (!plan.IsExecutableAvailable)
         {
@@ -192,7 +173,7 @@ public class ConnectionLauncherService
                 plan.EffectiveEndpoint,
                 plan.EffectiveUser,
                 null,
-                "Executável do cliente não encontrado.",
+                L.Text("Executável do cliente não encontrado."),
                 string.Empty,
                 plan.MissingExecutableError,
                 true);
@@ -202,6 +183,7 @@ public class ConnectionLauncherService
         var hostSemaphore = _hostLocks.GetOrAdd(cleanHostKey, _ => new SemaphoreSlim(1, 1));
 
         await hostSemaphore.WaitAsync();
+        FileStream? rdpSessionLease = null;
         try
         {
             var securityNotice = plan.SecurityNotice;
@@ -253,6 +235,7 @@ public class ConnectionLauncherService
                 {
                     _paths.EnsureDirectories();
                     _paths.CleanupTempRdpFiles();
+                    rdpSessionLease = RdpSessionFiles.AcquireLease(plan.TempRdpFilePath);
                     await File.WriteAllTextAsync(plan.TempRdpFilePath, plan.TempRdpContent, new UTF8Encoding(true));
                 }
             }
@@ -269,7 +252,26 @@ public class ConnectionLauncherService
                 psi.ArgumentList.Add(arg);
             }
 
-            var processId = _processStarter(psi);
+            int? processId;
+            if (_customProcessStarter is not null)
+            {
+                processId = _customProcessStarter(psi);
+            }
+            else
+            {
+                var process = Process.Start(psi);
+                processId = process?.Id;
+                if (process is not null && rdpSessionLease is not null)
+                {
+                    // Conserva o arquivo até o fim deste processo exato, sem buscar janelas/PIDs.
+                    _ = RdpSessionFiles.CleanupOnExitAsync(process, rdpSessionLease, plan.TempRdpFilePath!);
+                    rdpSessionLease = null; // A tarefa passa a ser dona do lease e do Process.
+                }
+                else
+                {
+                    process?.Dispose();
+                }
+            }
 
             var openedAt = DateTime.UtcNow;
             entry.LastOpenedAtUtc = openedAt;
@@ -308,13 +310,14 @@ public class ConnectionLauncherService
                 plan.EffectiveEndpoint,
                 plan.EffectiveUser,
                 null,
-                "Erro ao iniciar cliente externo.",
+                L.Text("Erro ao iniciar cliente externo."),
                 string.Empty,
-                $"Não foi possível iniciar o executável '{plan.ExecutablePath}': {ex.Message}",
+                L.Format("Não foi possível iniciar o executável '{0}': {1}", (plan.ExecutablePath), (ex.Message)),
                 false);
         }
         finally
         {
+            rdpSessionLease?.Dispose();
             hostSemaphore.Release();
         }
     }
@@ -397,8 +400,7 @@ public class ConnectionLauncherService
             sb.AppendLine("administrative session:i:1");
         }
 
-        var safeFileId = string.IsNullOrWhiteSpace(entry.Id) ? Guid.NewGuid().ToString("N") : entry.Id;
-        var rdpFilePath = Path.Combine(_paths.TempRdpDirectory, $"conectati-{safeFileId}.rdp");
+        var rdpFilePath = RdpSessionFiles.CreatePath(_paths.TempRdpDirectory, entry.Name, entry.ClientName);
 
         var args = new List<string> { rdpFilePath };
         if (entry.RdpAdminSession)
@@ -407,25 +409,25 @@ public class ConnectionLauncherService
         }
 
         var userDisplay = string.IsNullOrWhiteSpace(identity.EffectiveDownLevelLogonName)
-            ? "(Solicitar no cliente)"
+            ? L.Text("(Solicitar no cliente)")
             : identity.EffectiveDownLevelLogonName;
 
         var notice = hasPassword
-            ? "Nota: Caso uma política de segurança do domínio ou do servidor (como restrição de delegação NTLM/CredSSP) exija autenticação interativa, o Windows solicitará a confirmação na janela do MSTSC."
-            : "Conexão sem senha salva: o cliente de Área de Trabalho Remota (MSTSC) solicitará a senha ao conectar.";
+            ? L.Text("Nota: Caso uma política de segurança do domínio ou do servidor (como restrição de delegação NTLM/CredSSP) exija autenticação interativa, o Windows solicitará a confirmação na janela do MSTSC.")
+            : L.Text("Conexão sem senha salva: o cliente de Área de Trabalho Remota (MSTSC) solicitará a senha ao conectar.");
 
         return new ConnectionLaunchPlan(
             available,
             resolvedExe,
-            "Área de Trabalho Remota (MSTSC)",
+            L.Text("Área de Trabalho Remota (MSTSC)"),
             args,
             rdpFilePath,
             sb.ToString(),
             endpointDisplay,
             identity.EffectiveDownLevelLogonName,
-            $"Cliente iniciado: Área de Trabalho Remota (MSTSC) para {endpointDisplay} (Usuário: {userDisplay}).",
+            L.Format("Cliente iniciado: Área de Trabalho Remota (MSTSC) para {0} (Usuário: {1}).", (endpointDisplay), (userDisplay)),
             notice,
-            $"O executável configurado para Área de Trabalho Remota ('{resolvedExe}') não foi encontrado. Verifique o caminho em 'Configurar Executáveis' ou clique em 'Restaurar caminho padrão'.");
+            L.Format("O executável configurado para Área de Trabalho Remota ('{0}') não foi encontrado. Verifique o caminho em 'Configurar Executáveis' ou clique em 'Restaurar caminho padrão'.", (resolvedExe)));
     }
 
     private static ConnectionLaunchPlan BuildSshPlan(
@@ -475,8 +477,8 @@ public class ConnectionLauncherService
             args.Add(cleanHost);
 
             var notice = hasPassword
-                ? "O OpenSSH não recebe senhas por linha de comando por motivos de segurança. Utilize autenticação por chave ou informe a senha no prompt do terminal."
-                : "Autenticação via chave privada / agente SSH ou solicitação interativa no terminal.";
+                ? L.Text("O OpenSSH não recebe senhas por linha de comando por motivos de segurança. Utilize autenticação por chave ou informe a senha no prompt do terminal.")
+                : L.Text("Autenticação via chave privada / agente SSH ou solicitação interativa no terminal.");
 
             return new ConnectionLaunchPlan(
                 available,
@@ -487,9 +489,9 @@ public class ConnectionLauncherService
                 null,
                 endpoint,
                 identity.EffectiveSshUsername,
-                $"Cliente iniciado: OpenSSH (ssh.exe) para {endpoint}.",
+                L.Format("Cliente iniciado: OpenSSH (ssh.exe) para {0}.", (endpoint)),
                 notice,
-                "O executável do OpenSSH (ssh.exe) não foi encontrado. Configure o caminho em 'Configurar Executáveis'.");
+                L.Text("O executável do OpenSSH (ssh.exe) não foi encontrado. Configure o caminho em 'Configurar Executáveis'."));
         }
         else
         {
@@ -515,8 +517,8 @@ public class ConnectionLauncherService
             args.Add(cleanHost);
 
             var notice = hasPassword
-                ? "Por segurança, o ConectaTI não envia senhas em texto puro via argumento '-pw'. Utilize chave privada/Pageant ou o botão 'Copiar Senha' na tela de detalhes."
-                : "O PuTTY utilizará chave privada / Pageant ou solicitará a senha no terminal.";
+                ? L.Text("Por segurança, o ConectaTI não envia senhas em texto puro via argumento '-pw'. Utilize chave privada/Pageant ou o botão 'Copiar Senha' na tela de detalhes.")
+                : L.Text("O PuTTY utilizará chave privada / Pageant ou solicitará a senha no terminal.");
 
             return new ConnectionLaunchPlan(
                 available,
@@ -527,9 +529,9 @@ public class ConnectionLauncherService
                 null,
                 endpoint,
                 identity.EffectiveSshUsername,
-                $"Cliente iniciado: PuTTY (putty.exe) para {endpoint}.",
+                L.Format("Cliente iniciado: PuTTY (putty.exe) para {0}.", (endpoint)),
                 notice,
-                "O executável do PuTTY (putty.exe) não foi encontrado. Configure o caminho em 'Configurar Executáveis' ou altere o cliente SSH para OpenSSH.");
+                L.Text("O executável do PuTTY (putty.exe) não foi encontrado. Configure o caminho em 'Configurar Executáveis' ou altere o cliente SSH para OpenSSH."));
         }
     }
 
@@ -556,8 +558,8 @@ public class ConnectionLauncherService
         }
 
         var notice = hasPassword
-            ? "Por segurança, a senha não é exposta na URL de linha de comando do WinSCP. Utilize chave privada ou o botão 'Copiar Senha'."
-            : "O WinSCP utilizará chave privada / Pageant ou solicitará a senha ao conectar.";
+            ? L.Text("Por segurança, a senha não é exposta na URL de linha de comando do WinSCP. Utilize chave privada ou o botão 'Copiar Senha'.")
+            : L.Text("O WinSCP utilizará chave privada / Pageant ou solicitará a senha ao conectar.");
 
         return new ConnectionLaunchPlan(
             available,
@@ -568,9 +570,9 @@ public class ConnectionLauncherService
             null,
             formattedHostPort,
             identity.EffectiveSshUsername,
-            $"Cliente iniciado: WinSCP ({scheme.ToUpperInvariant()}) para {formattedHostPort}.",
+            L.Format("Cliente iniciado: WinSCP ({0}) para {1}.", (scheme.ToUpperInvariant()), (formattedHostPort)),
             notice,
-            "O executável do WinSCP (WinSCP.exe) não foi encontrado. Localize o executável na tela 'Configurar Executáveis'.");
+            L.Text("O executável do WinSCP (WinSCP.exe) não foi encontrado. Localize o executável na tela 'Configurar Executáveis'."));
     }
 
     private static ConnectionLaunchPlan BuildVncPlan(
@@ -632,27 +634,21 @@ public class ConnectionLauncherService
         }
 
         var notice = hasPassword
-            ? "O cliente VNC solicitará a senha ao abrir (senhas não são passadas em texto puro por argumentos)."
-            : "O cliente VNC solicitará a senha caso o servidor exija autenticação.";
+            ? L.Text("O cliente VNC solicitará a senha ao abrir (senhas não são passadas em texto puro por argumentos).")
+            : L.Text("O cliente VNC solicitará a senha caso o servidor exija autenticação.");
 
         return new ConnectionLaunchPlan(
             available,
             exe,
-            $"Cliente VNC ({settings.VncFlavor})",
+            L.Format("Cliente VNC ({0})", (settings.VncFlavor)),
             args,
             null,
             null,
             endpoint,
             identity.CleanUsername,
-            $"Cliente iniciado: VNC para {endpoint}.",
+            L.Format("Cliente iniciado: VNC para {0}.", (endpoint)),
             notice,
-            "Nenhum cliente VNC foi encontrado. Configure o caminho do executável VNC em 'Configurar Executáveis'.");
-    }
-
-    private static int? DefaultStartProcess(ProcessStartInfo psi)
-    {
-        var proc = Process.Start(psi);
-        return proc?.Id;
+            L.Text("Nenhum cliente VNC foi encontrado. Configure o caminho do executável VNC em 'Configurar Executáveis'."));
     }
 
     public static List<string> SplitArgumentsPreservingQuotes(string input)

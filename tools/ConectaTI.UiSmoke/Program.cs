@@ -37,6 +37,8 @@ internal static class Program
                 var logger = new AppLogger(paths);
                 var settings = new SettingsService(paths, logger);
                 settings.Load();
+                ConectaTI.App.Localization.LocalizationService.Current.SetLanguage(settings.Current.Language);
+                ViewPreferencesService.Apply(settings.Current);
                 var repository = new SqliteRepository(paths, logger);
                 await Task.Run(repository.InitializeAndMigrate);
                 if ((await repository.GetAllConnectionsAsync(true)).Count == 0)

@@ -6,17 +6,16 @@ namespace ConectaTI.App.Services;
 
 public record ConnectionSaveResult(ConnectionEntry Entry, bool CleanupPending);
 
-// Coordinates SQLite and Windows: prepare a dedicated credential, commit the link,
-// then retire unreferenced secrets. Cleanup survives failures and process termination.
+// App secrets and links commit together in SQLite. Windows cleanup only retires old app-owned copies.
 public sealed class ConnectionPersistenceService(
     SqliteRepository repository, CredentialVaultService vault, AppLogger logger)
 {
-    private readonly SemaphoreSlim _gate = new(1, 1);
+    private SemaphoreSlim Gate => repository.CredentialOperationGate;
 
     public async Task<ConnectionSaveResult> SaveAsync(ConnectionEntry snapshot,
         PasswordEditIntent intent, string password, string credentialName)
     {
-        await _gate.WaitAsync();
+        await Gate.WaitAsync();
         try
         {
             var entry = snapshot.Clone();
@@ -32,10 +31,6 @@ public sealed class ConnectionPersistenceService(
                 };
                 staged.ProtectedSecretBase64 = await Task.Run(() => vault.ProtectSecret(
                     staged.Id, staged.EffectiveUserDisplay, password, writeToWindowsVault: false));
-                // A crash before the link commit leaves a durable cleanup instruction.
-                await repository.QueueVaultCleanupAsync(staged.Id);
-                try { await Task.Run(() => vault.WriteToWindowsVault(staged)); }
-                catch { await CleanupCoreAsync(); throw; }
                 entry.CredentialId = staged.Id;
             }
             else if (intent == PasswordEditIntent.Remove) entry.CredentialId = null;
@@ -45,32 +40,22 @@ public sealed class ConnectionPersistenceService(
             var clean = await CleanupCoreAsync();
             return new ConnectionSaveResult(entry, !clean);
         }
-        finally { _gate.Release(); }
+        finally { Gate.Release(); }
     }
 
     public async Task<bool> RecoverVaultCleanupAsync()
     {
-        await _gate.WaitAsync();
+        await Gate.WaitAsync();
         try { return await CleanupCoreAsync(); }
-        finally { _gate.Release(); }
+        finally { Gate.Release(); }
     }
 
-    private async Task<bool> CleanupCoreAsync()
+    internal Task<bool> CleanupWithGateHeldAsync() => CleanupCoreAsync();
+
+    private Task<bool> CleanupCoreAsync()
     {
-        try
-        {
-            foreach (var id in await repository.GetPendingVaultCleanupAsync())
-            {
-                await Task.Run(() => vault.RemoveFromWindowsVault(id));
-                await repository.CompleteVaultCleanupAsync(id);
-            }
-            return true;
-        }
-        catch (Exception ex)
-        {
-            // Never log exception messages or payloads from vault operations.
-            logger.Warn("VaultCleanup", $"Limpeza pendente: {ex.GetType().Name}");
-            return false;
-        }
+        // Kept for compatibility with old callers/queues. Windows originals are never deleted automatically.
+        logger.Info("Vault", "App secrets committed in SQLite; Windows originals preserved.");
+        return Task.FromResult(true);
     }
 }

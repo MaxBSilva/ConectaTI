@@ -5,6 +5,9 @@ public enum PasswordEditIntent { Keep, Replace, Remove }
 // Session-only state. Neither drafts nor their plaintext passwords are serialized.
 internal sealed class ConnectionEditSession(ConnectionEntry entry, bool isNew = false)
 {
+    public bool CredentialRecoveryFailed { get; set; }
+    public string? CredentialRecoveryMessage { get; set; }
+
     public ConnectionEntry Entry { get; set; } = entry.Clone();
     public ConnectionEntry Baseline { get; set; } = entry.Clone();
     public bool IsNew { get; set; } = isNew;

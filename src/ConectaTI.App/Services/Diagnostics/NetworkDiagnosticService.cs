@@ -35,8 +35,8 @@ public class NetworkDiagnosticService
                 Array.Empty<string>(),
                 0,
                 0,
-                "Host inválido",
-                "O hostname ou endereço IP informado não possui um formato DNS, IPv4 ou IPv6 válido.");
+                L.Text("Host inválido"),
+                L.Text("O hostname ou endereço IP informado não possui um formato DNS, IPv4 ou IPv6 válido."));
         }
 
         if (!ConnectionValidator.IsValidPort(port))
@@ -47,8 +47,8 @@ public class NetworkDiagnosticService
                 Array.Empty<string>(),
                 0,
                 0,
-                "Porta inválida",
-                "A porta deve estar entre 1 e 65535.");
+                L.Text("Porta inválida"),
+                L.Text("A porta deve estar entre 1 e 65535."));
         }
 
         using var timeoutCts = new CancellationTokenSource(TimeSpan.FromMilliseconds(Math.Clamp(timeoutMs, 500, 30000)));
@@ -78,10 +78,10 @@ public class NetworkDiagnosticService
                 Array.Empty<string>(),
                 dnsSw.ElapsedMilliseconds,
                 0,
-                wasUserCancel ? "Teste cancelado" : "Timeout na resolução DNS",
+                wasUserCancel ? L.Text("Teste cancelado") : L.Text("Timeout na resolução DNS"),
                 wasUserCancel
-                    ? "O diagnóstico de rede foi cancelado pelo usuário."
-                    : $"A resolução DNS para '{cleanHost}' excedeu o tempo limite de {timeoutMs} ms.");
+                    ? L.Text("O diagnóstico de rede foi cancelado pelo usuário.")
+                    : L.Format("A resolução DNS para '{0}' excedeu o tempo limite de {1} ms.", (cleanHost), (timeoutMs)));
         }
         catch (Exception ex)
         {
@@ -92,8 +92,8 @@ public class NetworkDiagnosticService
                 Array.Empty<string>(),
                 dnsSw.ElapsedMilliseconds,
                 0,
-                "Falha na resolução DNS",
-                $"Não foi possível resolver o endereço '{cleanHost}': {ex.Message}");
+                L.Text("Falha na resolução DNS"),
+                L.Format("Não foi possível resolver o endereço '{0}': {1}", (cleanHost), (ex.Message)));
         }
 
         if (addresses.Length == 0)
@@ -104,8 +104,8 @@ public class NetworkDiagnosticService
                 Array.Empty<string>(),
                 dnsSw.ElapsedMilliseconds,
                 0,
-                "DNS sem registros",
-                $"O host '{cleanHost}' não retornou nenhum endereço IPv4 ou IPv6.");
+                L.Text("DNS sem registros"),
+                L.Format("O host '{0}' não retornou nenhum endereço IPv4 ou IPv6.", (cleanHost)));
         }
 
         var addrStrings = addresses.Select(a => a.ToString()).Distinct().ToList();
@@ -123,10 +123,10 @@ public class NetworkDiagnosticService
                 addrStrings,
                 dnsSw.ElapsedMilliseconds,
                 tcpSw.ElapsedMilliseconds,
-                $"Porta TCP {port} acessível ({tcpSw.ElapsedMilliseconds} ms)",
-                $"DNS resolvido ({string.Join(", ", addrStrings)}) em {dnsSw.ElapsedMilliseconds} ms. " +
-                $"Conexão TCP na porta {port} estabelecida em {tcpSw.ElapsedMilliseconds} ms.\n" +
-                "Nota: Isso confirma apenas que a porta de rede está acessível (handshake TCP), e NÃO significa que o usuário está autenticado no serviço.");
+                L.Format("Porta TCP {0} acessível ({1} ms)", (port), (tcpSw.ElapsedMilliseconds)),
+                L.Format("DNS resolvido ({0}) em {1} ms. ", (string.Join(", ", addrStrings)), (dnsSw.ElapsedMilliseconds)) +
+                L.Format("Conexão TCP na porta {0} estabelecida em {1} ms.\n", (port), (tcpSw.ElapsedMilliseconds)) +
+                L.Text("Nota: Isso confirma apenas que a porta de rede está acessível (handshake TCP), e NÃO significa que o usuário está autenticado no serviço."));
         }
         catch (OperationCanceledException)
         {
@@ -138,10 +138,10 @@ public class NetworkDiagnosticService
                 addrStrings,
                 dnsSw.ElapsedMilliseconds,
                 tcpSw.ElapsedMilliseconds,
-                wasUserCancel ? "Teste cancelado" : $"Timeout TCP na porta {port}",
+                wasUserCancel ? L.Text("Teste cancelado") : L.Format("Timeout TCP na porta {0}", (port)),
                 wasUserCancel
-                    ? "O diagnóstico TCP foi cancelado pelo usuário."
-                    : $"DNS resolvido ({string.Join(", ", addrStrings)}), porém a porta TCP {port} não respondeu dentro de {timeoutMs} ms (possível firewall, VPN desconectada ou serviço inativo).");
+                    ? L.Text("O diagnóstico TCP foi cancelado pelo usuário.")
+                    : L.Format("DNS resolvido ({0}), porém a porta TCP {1} não respondeu dentro de {2} ms (possível firewall, VPN desconectada ou serviço inativo).", (string.Join(", ", addrStrings)), (port), (timeoutMs)));
         }
         catch (Exception ex)
         {
@@ -152,8 +152,8 @@ public class NetworkDiagnosticService
                 addrStrings,
                 dnsSw.ElapsedMilliseconds,
                 tcpSw.ElapsedMilliseconds,
-                $"Porta TCP {port} inacessível",
-                $"DNS resolvido ({string.Join(", ", addrStrings)}), mas a conexão TCP na porta {port} falhou: {ex.Message}");
+                L.Format("Porta TCP {0} inacessível", (port)),
+                L.Format("DNS resolvido ({0}), mas a conexão TCP na porta {1} falhou: {2}", (string.Join(", ", addrStrings)), (port), (ex.Message)));
         }
     }
 }

@@ -33,6 +33,7 @@ data_location.txt
 *.log
 *.rdp
 *.ctienc
+*.ctishare
 .env
 .env.*
 !.env.example
@@ -40,3 +41,6 @@ data_location.txt
 *.p12
 *.pem
 *.key
+*.ppk
+id_rsa
+id_ed25519

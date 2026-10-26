@@ -1,0 +1,714 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <data name="Text9AE35F54B00F" xml:space="preserve"><value>The application folder ('{0}') does not allow writing files.
+
+Would you like to choose a writable folder for the database and settings?</value></data>
+  <data name="Text6EF90FF9E2E1" xml:space="preserve"><value>ConectaTI — Folder permissions</value></data>
+  <data name="TextBB1B8C3A4F25" xml:space="preserve"><value>Select the ConectaTI data folder</value></data>
+  <data name="Text52DBCB775EA2" xml:space="preserve"><value>An unexpected error occurred:
+{0}</value></data>
+  <data name="Text3785AD08D718" xml:space="preserve"><value>ConectaTI — Error</value></data>
+  <data name="TextE4CA9186B0CB" xml:space="preserve"><value>Select SSH private key file</value></data>
+  <data name="Text1761C63E5999" xml:space="preserve"><value>SSH keys (*.ppk;*.pem;id_rsa;id_ed25519)|*.ppk;*.pem;*id_rsa*;*id_ed25519*|All files (*.*)|*.*</value></data>
+  <data name="Text5032B8582897" xml:space="preserve"><value>Credential migration — ConectaTI</value></data>
+  <data name="Text61A07DA467DF" xml:space="preserve"><value>The application no longer locks using a master password.
+Enter your previous master password to safely migrate credentials to native Windows protection (DPAPI):</value></data>
+  <data name="Text0E920A38F068" xml:space="preserve"><value>Migrate</value></data>
+  <data name="TextBB9DBB406DCB" xml:space="preserve"><value>Cancel</value></data>
+  <data name="TextC28470978608" xml:space="preserve"><value>The connection name is required.</value></data>
+  <data name="Text5282C8900A70" xml:space="preserve"><value>The connection name cannot contain line breaks.</value></data>
+  <data name="TextCB544ECFBAC8" xml:space="preserve"><value>The client cannot contain line breaks.</value></data>
+  <data name="Text71AC3D58B5B0" xml:space="preserve"><value>The address / hostname (DNS, IPv4 or IPv6) is invalid or empty.</value></data>
+  <data name="TextD96011D9BB27" xml:space="preserve"><value>The port must be between 1 and 65535.</value></data>
+  <data name="Text3BA4DE6C7039" xml:space="preserve"><value>The username cannot contain line breaks or control characters.</value></data>
+  <data name="Text397C84F59F7C" xml:space="preserve"><value>The domain cannot contain line breaks or control characters.</value></data>
+  <data name="TextED2C4ED8F582" xml:space="preserve"><value>The private key path contains invalid characters.</value></data>
+  <data name="Text8CBA62DA3DE5" xml:space="preserve"><value>Remote Desktop resolution must be between 640x480 and 7680x4320.</value></data>
+  <data name="Text1C94CD05A275" xml:space="preserve"><value>The address/hostname cannot be empty.</value></data>
+  <data name="Text670E04FBFF15" xml:space="preserve"><value>The IPv6 address is missing a closing bracket.</value></data>
+  <data name="Text1BF2CD07A724" xml:space="preserve"><value>Invalid port '{0}'. The port must be between 1 and 65535.</value></data>
+  <data name="TextF287C834C6FF" xml:space="preserve"><value>Invalid address format after the bracket: '{0}'.</value></data>
+  <data name="TextC1D8EA96B180" xml:space="preserve"><value>Use [address]:port to specify a port for IPv6 addresses.</value></data>
+  <data name="Text74BBC50E9163" xml:space="preserve"><value>● Configured</value></data>
+  <data name="Text01AF1ECB8056" xml:space="preserve"><value>Not specified</value></data>
+  <data name="TextAD72F59B04A9" xml:space="preserve"><value>Never opened</value></data>
+  <data name="TextCCB244688314" xml:space="preserve"><value>Production</value></data>
+  <data name="Text4EA947CEAF9E" xml:space="preserve"><value>Staging</value></data>
+  <data name="Text89F308210C7C" xml:space="preserve"><value>Testing</value></data>
+  <data name="TextF094D2273F29" xml:space="preserve"><value>Remote Desktop (MSTSC)</value></data>
+  <data name="Text5063CE4ECB9E" xml:space="preserve"><value>Configured default</value></data>
+  <data name="TextF2F565782838" xml:space="preserve"><value>1 connection selected</value></data>
+  <data name="TextD88D8334B422" xml:space="preserve"><value>{0} connections selected</value></data>
+  <data name="Text57AB79A37083" xml:space="preserve"><value>Batch edit completed: {0} connections updated.</value></data>
+  <data name="TextB219A9081980" xml:space="preserve"><value>Address copied</value></data>
+  <data name="Text92A42EAF0DC0" xml:space="preserve"><value>Username copied</value></data>
+  <data name="Text7368658C96C4" xml:space="preserve"><value>Save changes</value></data>
+  <data name="TextAEF7CD5B2081" xml:space="preserve"><value>Save</value></data>
+  <data name="TextD159352B720A" xml:space="preserve"><value>Unsaved changes. Save before closing.</value></data>
+  <data name="Text7462F80878DE" xml:space="preserve"><value>There are unsaved drafts. Save before closing.</value></data>
+  <data name="Text978F6F967F7D" xml:space="preserve"><value>Switch connections using their ID in the selection.</value></data>
+  <data name="Text45A489C52210" xml:space="preserve"><value>Ready.</value></data>
+  <data name="TextD6D6FEFCEA99" xml:space="preserve"><value>Removal pending — save</value></data>
+  <data name="Text1A0B1475E31A" xml:space="preserve"><value>Password changed — save</value></data>
+  <data name="Text96B9123C8EE5" xml:space="preserve"><value>Credential recovery failed</value></data>
+  <data name="Text2A7921A17C12" xml:space="preserve"><value>Password saved</value></data>
+  <data name="Text89BCE06167B7" xml:space="preserve"><value>No saved password</value></data>
+  <data name="Text167F89BE0895" xml:space="preserve"><value>Switch to light theme</value></data>
+  <data name="Text7384EFDBB7B1" xml:space="preserve"><value>Switch to dark theme</value></data>
+  <data name="Text32F9C37CFC7D" xml:space="preserve"><value>Change password</value></data>
+  <data name="TextD482C10B3D4D" xml:space="preserve"><value>Password</value></data>
+  <data name="TextCEDFBE0CD013" xml:space="preserve"><value>Fictional data loaded for testing.</value></data>
+  <data name="TextA121CC15F379" xml:space="preserve"><value>Incorrect master password. Credentials are awaiting migration.</value></data>
+  <data name="Text50225B1043A5" xml:space="preserve"><value>(No saved password)</value></data>
+  <data name="Text28182B20536F" xml:space="preserve"><value>Could not refresh the list. Previously loaded data was retained.</value></data>
+  <data name="Text484AFB43F310" xml:space="preserve"><value>change view mode</value></data>
+  <data name="Text09A5528A3880" xml:space="preserve"><value>All connections</value></data>
+  <data name="TextAD2C8BA9AC94" xml:space="preserve"><value>Favorites</value></data>
+  <data name="Text3068EBA03D59" xml:space="preserve"><value>Recent</value></data>
+  <data name="Text06494C771DFB" xml:space="preserve"><value>New draft. Fill in the fields and click Save.</value></data>
+  <data name="TextAECFB0D972CE" xml:space="preserve"><value>Correct the address/port: {0}</value></data>
+  <data name="Text6B04C0BDE20E" xml:space="preserve"><value>Correct the fields: {0}</value></data>
+  <data name="TextC5C0F744EE20" xml:space="preserve"><value>Connection saved. Vault cleanup is pending and will be retried.</value></data>
+  <data name="TextD5BD97D74237" xml:space="preserve"><value>Connection '{0}' saved.</value></data>
+  <data name="TextEE55D67E143B" xml:space="preserve"><value>Could not save. Your changes were retained; please try again.</value></data>
+  <data name="Text983CCBC2B9FC" xml:space="preserve"><value>Changes discarded.</value></data>
+  <data name="TextA74F877CF388" xml:space="preserve"><value>Copy created as a draft. Click Save to store it.</value></data>
+  <data name="TextDB42AF0C2D2A" xml:space="preserve"><value>Select a connection to delete.</value></data>
+  <data name="Text37045D507711" xml:space="preserve"><value>Delete permanently</value></data>
+  <data name="Text198C279A5E0C" xml:space="preserve"><value>Permanently delete connection '{0}'?
+This action cannot be undone.</value></data>
+  <data name="TextF2AAA616AA7D" xml:space="preserve"><value>Connection '{0}' permanently deleted.</value></data>
+  <data name="Text45CA62F6F26B" xml:space="preserve"><value>Move to trash</value></data>
+  <data name="Text337DF60F88D3" xml:space="preserve"><value>Move connection '{0}' to the trash?</value></data>
+  <data name="TextDACA3EE8C5D7" xml:space="preserve"><value>Connection '{0}' moved to trash.</value></data>
+  <data name="Text2A98DC098DBD" xml:space="preserve"><value>Select a connection in the trash to restore.</value></data>
+  <data name="Text69CF11CF7548" xml:space="preserve"><value>An active connection named '{0}' already exists.
+Restore it with the new name '{1} (Restored)'?</value></data>
+  <data name="TextA4E9DF69CA47" xml:space="preserve"><value>Restore canceled.</value></data>
+  <data name="Text784AD8B24DC5" xml:space="preserve"><value>Connection '{0}' successfully restored.</value></data>
+  <data name="Text8AD4A6075F48" xml:space="preserve"><value>The trash is already empty.</value></data>
+  <data name="Text1CE7CE01F161" xml:space="preserve"><value>Empty trash</value></data>
+  <data name="TextC23930BEB19F" xml:space="preserve"><value>Permanently delete all {0} items in the trash?
+This action cannot be undone.</value></data>
+  <data name="TextE6E73DEDD8ED" xml:space="preserve"><value>Trash emptied successfully.</value></data>
+  <data name="Text561E1D26DD1D" xml:space="preserve"><value>External client missing</value></data>
+  <data name="TextA50195A83C9E" xml:space="preserve"><value>
+
+Use Settings (⚙) in the top bar to locate the program.</value></data>
+  <data name="TextE84FAE810E79" xml:space="preserve"><value>Could not start the client</value></data>
+  <data name="Text3A04ABD7C05E" xml:space="preserve"><value>Favorite changed in the draft. Click Save to store it.</value></data>
+  <data name="Text20C3955A562E" xml:space="preserve"><value>Connection name copied</value></data>
+  <data name="Text6CED5B71AE68" xml:space="preserve"><value>Host:port copied</value></data>
+  <data name="Text6B88208D437B" xml:space="preserve"><value>VPN name copied</value></data>
+  <data name="TextA8BB49926B43" xml:space="preserve"><value>VPN server copied</value></data>
+  <data name="TextB325D760DD3C" xml:space="preserve"><value>Password copied</value></data>
+  <data name="Text696874DAA0C6" xml:space="preserve"><value>No password stored.</value></data>
+  <data name="Text249B801C16EE" xml:space="preserve"><value>Saved credential is unreadable.</value></data>
+  <data name="Text91632B69D521" xml:space="preserve"><value>Could not recover the saved credential. Check diagnostics or replace the password.</value></data>
+  <data name="TextCE4789FAFFA2" xml:space="preserve"><value>Password temporarily shown for {0} seconds.</value></data>
+  <data name="Text26DC18A38122" xml:space="preserve"><value>Password hidden again.</value></data>
+  <data name="Text3C20CC397058" xml:space="preserve"><value>Master password</value></data>
+  <data name="TextD20FE87839EE" xml:space="preserve"><value>The master password is incorrect.</value></data>
+  <data name="TextAD65A30531BE" xml:space="preserve"><value>Testing connection...</value></data>
+  <data name="Text7D519924399C" xml:space="preserve"><value>Test completed: {0}</value></data>
+  <data name="Text7FEDB99C6AAE" xml:space="preserve"><value>Batch edit failed. Changes were rolled back.</value></data>
+  <data name="TextC7357A8C89AC" xml:space="preserve"><value>New connection — ConectaTI</value></data>
+  <data name="TextB05362A58951" xml:space="preserve"><value>Edit connection — ConectaTI</value></data>
+  <data name="TextC9DC78D19188" xml:space="preserve"><value>New connection</value></data>
+  <data name="Text5304E831336A" xml:space="preserve"><value>Edit connection</value></data>
+  <data name="Text36A7AEABB235" xml:space="preserve"><value>New credential (enter the password above)</value></data>
+  <data name="Text2FFE82799B79" xml:space="preserve"><value>Saved password: (none)</value></data>
+  <data name="TextEF31BC5F6E5E" xml:space="preserve"><value>Saved password: ••••••••••••</value></data>
+  <data name="TextC032D4D9171D" xml:space="preserve"><value>The vault is locked.</value></data>
+  <data name="TextEC203DDB0F3E" xml:space="preserve"><value>Enter an identifying name for the credential.</value></data>
+  <data name="TextA2661FF39CE5" xml:space="preserve"><value>Validation</value></data>
+  <data name="Text4F8B12359860" xml:space="preserve"><value>Credential '{0}' saved successfully.</value></data>
+  <data name="TextA3E2AEDD5D0F" xml:space="preserve"><value>Delete credential '{0}'?
+Connections using it will no longer have a saved credential.</value></data>
+  <data name="TextD76F94DD0A8A" xml:space="preserve"><value>Confirm deletion</value></data>
+  <data name="Text33DE6D024153" xml:space="preserve"><value>Credential deleted.</value></data>
+  <data name="TextDD8487358426" xml:space="preserve"><value>This credential has no stored password.</value></data>
+  <data name="Text0B7D8BDB3762" xml:space="preserve"><value>Unlock the application to reveal passwords.</value></data>
+  <data name="Text7C774F2BBC00" xml:space="preserve"><value>Password shown for 10 seconds.</value></data>
+  <data name="TextDE696E326852" xml:space="preserve"><value>Error revealing password</value></data>
+  <data name="Text9CDC776E44A5" xml:space="preserve"><value>Writable (OK)</value></data>
+  <data name="TextE66280F75223" xml:space="preserve"><value>{0} active | {1} in trash</value></data>
+  <data name="TextEE92D933F216" xml:space="preserve"><value>No errors recorded in this session.</value></data>
+  <data name="Text16EF12A23B4A" xml:space="preserve"><value>Error collecting diagnostics</value></data>
+  <data name="TextD7F8A0CF19D0" xml:space="preserve"><value>Diagnostic report copied to the clipboard!</value></data>
+  <data name="Text30E0ECD7A8DB" xml:space="preserve"><value>Some data is protected by a legacy master password.</value></data>
+  <data name="Text24957F903D8A" xml:space="preserve"><value>Protected by your Windows account (DPAPI). No master password lock.</value></data>
+  <data name="TextEFC51FA27440" xml:space="preserve"><value>Path not specified</value></data>
+  <data name="TextC6A53920248C" xml:space="preserve"><value>Not configured</value></data>
+  <data name="TextE2EAB204AE18" xml:space="preserve"><value>Available ({0})</value></data>
+  <data name="Text28B661023613" xml:space="preserve"><value>File not found</value></data>
+  <data name="Text20DC55788510" xml:space="preserve"><value>Default MSTSC path restored.</value></data>
+  <data name="Text637FC57B63A3" xml:space="preserve"><value>Automatic detection completed.</value></data>
+  <data name="Text862251833896" xml:space="preserve"><value>mstsc.exe|mstsc.exe|Executables (*.exe)|*.exe</value></data>
+  <data name="TextE74A32744B59" xml:space="preserve"><value>putty.exe|putty.exe|Executables (*.exe)|*.exe</value></data>
+  <data name="Text3CC8B57AEA6A" xml:space="preserve"><value>ssh.exe|ssh.exe|Executables (*.exe)|*.exe</value></data>
+  <data name="Text6B77AB9DC3C3" xml:space="preserve"><value>WinSCP.exe|WinSCP.exe|Executables (*.exe)|*.exe</value></data>
+  <data name="Text1CE5B2038110" xml:space="preserve"><value>Select executable</value></data>
+  <data name="Text2BFA42E1F246" xml:space="preserve"><value>Credentials successfully migrated to DPAPI.</value></data>
+  <data name="TextF228BCF5941A" xml:space="preserve"><value>All credentials were migrated to native DPAPI protection.
+The master password was disabled.</value></data>
+  <data name="Text44DD5925A760" xml:space="preserve"><value>Migration completed</value></data>
+  <data name="Text5D488EBE3D7E" xml:space="preserve"><value>Invalid master password</value></data>
+  <data name="Text6E59439D8D01" xml:space="preserve"><value>Migration error</value></data>
+  <data name="Text584CFE35FDD9" xml:space="preserve"><value>Credentials updated.</value></data>
+  <data name="Text0A7EE51734E2" xml:space="preserve"><value>Data updated by import/restore.</value></data>
+  <data name="TextF3AA0B0A919A" xml:space="preserve"><value>Backup created: {0}</value></data>
+  <data name="Text426EE4CC467E" xml:space="preserve"><value>Error creating backup</value></data>
+  <data name="Text850F50CF47B6" xml:space="preserve"><value>The MSTSC path ('{0}') was not found on disk.
+Save anyway?</value></data>
+  <data name="TextA56F47FB4545" xml:space="preserve"><value>MSTSC executable not found</value></data>
+  <data name="TextBCD1823FE217" xml:space="preserve"><value>Validating file</value></data>
+  <data name="Text9B4F7EC99E94" xml:space="preserve"><value>Decoding {0} connections</value></data>
+  <data name="Text3F07A69756DD" xml:space="preserve"><value>Preparing credentials: {0} of {1}</value></data>
+  <data name="TextE77D017A2C52" xml:space="preserve"><value>Creating backup</value></data>
+  <data name="Text91322E100479" xml:space="preserve"><value>Importing {0} of {1} connections</value></data>
+  <data name="Text8FD4F983B1CB" xml:space="preserve"><value>Committing changes</value></data>
+  <data name="TextDB003659B843" xml:space="preserve"><value>Import completed</value></data>
+  <data name="Text3F794AA92AE0" xml:space="preserve"><value>Refreshing list</value></data>
+  <data name="TextC70D9100D173" xml:space="preserve"><value>Select import file</value></data>
+  <data name="Text3F6D06708218" xml:space="preserve"><value>XML, CSV, JSON, AutoPuTTY|*.xml;*.csv;*.json;*.ini|All files|*.*</value></data>
+  <data name="TextA4A33AAC261D" xml:space="preserve"><value>Import canceled. No changes were saved.</value></data>
+  <data name="Text186BB0A31C05" xml:space="preserve"><value>Completed. Found: {0}; imported: {1}; updated: {2}; ignored: {3}; duplicates created: {4}; errors: {5}.</value></data>
+  <data name="TextC889856E26FC" xml:space="preserve"><value> Vault cleanup pending.</value></data>
+  <data name="TextE7568A09EDA6" xml:space="preserve"><value>Import canceled. Changes were rolled back.</value></data>
+  <data name="TextAA84D19B0C8F" xml:space="preserve"><value>The operation failed. No partial import was committed. Copy diagnostics for details.</value></data>
+  <data name="Text4788A2D1F6CE" xml:space="preserve"><value>Canceling operation…</value></data>
+  <data name="Text9242759B46A7" xml:space="preserve"><value>Default automatic backup folder: {0}
+</value></data>
+  <data name="TextF745EB916400" xml:space="preserve"><value>Restore checks SQLite integrity (PRAGMA integrity_check) and creates a safety backup before replacing data.</value></data>
+  <data name="TextA3A455E4D8EC" xml:space="preserve"><value>AutoPuTTY file password</value></data>
+  <data name="Text8D22B220A932" xml:space="preserve"><value>The file uses a master password. Enter the password to decode its connections:</value></data>
+  <data name="Text800990D28BC1" xml:space="preserve"><value>Export connections to XML (ConectaTI)</value></data>
+  <data name="Text32FE310D7473" xml:space="preserve"><value>XML file (*.xml)|*.xml</value></data>
+  <data name="TextE68672DB36C0" xml:space="preserve"><value>Exported {0} connections to ConectaTI XML.</value></data>
+  <data name="Text0D04349ED623" xml:space="preserve"><value>XML export error</value></data>
+  <data name="Text8864D42402D2" xml:space="preserve"><value>Export AutoPuTTY compatible XML</value></data>
+  <data name="TextFA5B321ADAEE" xml:space="preserve"><value>AutoPuTTY file (*.xml)|*.xml</value></data>
+  <data name="Text4D23BA584281" xml:space="preserve"><value>Exported {0} connections in AutoPuTTY compatible format.</value></data>
+  <data name="Text538CD483E086" xml:space="preserve"><value>AutoPuTTY XML export error</value></data>
+  <data name="Text1420EBD7DD50" xml:space="preserve"><value>(Do not map)</value></data>
+  <data name="Text92BDEA9DE6AB" xml:space="preserve"><value>Export connections to CSV (without passwords)</value></data>
+  <data name="Text3DE1E8508081" xml:space="preserve"><value>UTF-8 CSV file (*.csv)|*.csv</value></data>
+  <data name="TextA91FB892AC26" xml:space="preserve"><value>Exported {0} connections to CSV (without passwords).</value></data>
+  <data name="Text1D706223F47A" xml:space="preserve"><value>CSV export error</value></data>
+  <data name="Text624E0FCFA2F0" xml:space="preserve"><value>Export connections to JSON (without passwords)</value></data>
+  <data name="TextCFB8EF71763C" xml:space="preserve"><value>UTF-8 JSON file (*.json)|*.json</value></data>
+  <data name="TextF3EAE56CEA73" xml:space="preserve"><value>Exported {0} connections to JSON (without passwords).</value></data>
+  <data name="TextD3640115766C" xml:space="preserve"><value>JSON export error</value></data>
+  <data name="Text37A8406B298E" xml:space="preserve"><value>Enter a transport password with at least 6 characters.</value></data>
+  <data name="TextE01DEC25D089" xml:space="preserve"><value>Transport password</value></data>
+  <data name="Text32B5264F624E" xml:space="preserve"><value>Export portable encrypted package</value></data>
+  <data name="TextDE1A71994A5E" xml:space="preserve"><value>Encrypted package (.ctienc) exported successfully (PBKDF2-SHA256 + AES-256-GCM).</value></data>
+  <data name="TextACAD39670E69" xml:space="preserve"><value>Encrypted package export error</value></data>
+  <data name="Text4269F4D2D299" xml:space="preserve"><value>Enter the .ctienc transport password before importing.</value></data>
+  <data name="TextDC586A7D9B69" xml:space="preserve"><value>Import portable encrypted package</value></data>
+  <data name="TextF1E271F74D90" xml:space="preserve"><value>ConectaTI encrypted package (*.ctienc)|*.ctienc|All files (*.*)|*.*</value></data>
+  <data name="Text49CC4D9624DD" xml:space="preserve"><value>Package imported: {0} connections and {1} credentials protected in the local vault.</value></data>
+  <data name="Text17415B498A91" xml:space="preserve"><value>Encrypted package imported successfully!
+
+</value></data>
+  <data name="TextB787B0AA7BC9" xml:space="preserve"><value>• Connections imported/updated: {0}
+</value></data>
+  <data name="Text34195DAD5ACB" xml:space="preserve"><value>• Credentials imported and protected with local DPAPI: {0}
+
+</value></data>
+  <data name="TextE3478E378979" xml:space="preserve"><value>Pre-import backup saved to:
+{0}</value></data>
+  <data name="TextD85BA9B03278" xml:space="preserve"><value>Import completed</value></data>
+  <data name="Text1876BDD6CFA1" xml:space="preserve"><value>Encrypted package import failed</value></data>
+  <data name="Text839EB1F270B6" xml:space="preserve"><value>Save consistent SQLite database backup</value></data>
+  <data name="TextE9F40085E31D" xml:space="preserve"><value>Consistent backup created at: {0}</value></data>
+  <data name="TextCC6F97BFACFA" xml:space="preserve"><value>Consistent backup successfully created at:
+{0}</value></data>
+  <data name="Text48C86CFEAA6E" xml:space="preserve"><value>Backup created</value></data>
+  <data name="Text7BFAEBF3A238" xml:space="preserve"><value>Could not create backup: {0}</value></data>
+  <data name="Text3CCBAFE5C2B3" xml:space="preserve"><value>Backup error</value></data>
+  <data name="Text0806252D92C9" xml:space="preserve"><value>Select SQLite backup file to restore</value></data>
+  <data name="Text6F86F0DA5491" xml:space="preserve"><value>ConectaTI SQLite database (*.db)|*.db|All files (*.*)|*.*</value></data>
+  <data name="TextF22C6B3917DD" xml:space="preserve"><value>Restore the database from this file:
+{0}?
+
+</value></data>
+  <data name="Text884417572F45" xml:space="preserve"><value>A safety backup of the current state will be created automatically before restoring.</value></data>
+  <data name="Text898D12826BFB" xml:space="preserve"><value>Confirm backup restore</value></data>
+  <data name="TextA2387F1AE809" xml:space="preserve"><value>Backup restored successfully.</value></data>
+  <data name="TextF2822FEEF292" xml:space="preserve"><value>Database restored successfully!</value></data>
+  <data name="Text9CC778BF4084" xml:space="preserve"><value>Restore completed</value></data>
+  <data name="Text900869C4D144" xml:space="preserve"><value>Restore failed and the original database was preserved:
+
+{0}</value></data>
+  <data name="Text485C39CF17B1" xml:space="preserve"><value>Restore failed</value></data>
+  <data name="Text4B9B7BEEFEF4" xml:space="preserve"><value>=== CONECTATI DIAGNOSTICS ===</value></data>
+  <data name="TextD4651015BE50" xml:space="preserve"><value>Collection time: {0:yyyy-MM-dd HH:mm:ss}</value></data>
+  <data name="Text1D5CE3949D20" xml:space="preserve"><value>Application version: {0}</value></data>
+  <data name="Text13F09EDD39DA" xml:space="preserve"><value>Operating system: {0} ({1})</value></data>
+  <data name="TextF3023E491A82" xml:space="preserve"><value>Runtime: {0}</value></data>
+  <data name="Text98DF1D090350" xml:space="preserve"><value>Selected language: {0}</value></data>
+  <data name="Text290AC574F9B1" xml:space="preserve"><value>Effective language: {0}</value></data>
+  <data name="Text6527EE017A29" xml:space="preserve"><value>Process memory at collection time (Working Set): {0} bytes</value></data>
+  <data name="Text0F83F6176A8E" xml:space="preserve"><value>Stage: {0}</value></data>
+  <data name="Text01B5587B85C0" xml:space="preserve"><value>Error time (UTC): {0:O}</value></data>
+  <data name="Text3E01533F8080" xml:space="preserve"><value>Exception: {0}</value></data>
+  <data name="Text5CECDA9B091F" xml:space="preserve"><value>Technical message: {0}</value></data>
+  <data name="Text32179074D8C4" xml:space="preserve"><value>Stack trace: {0}</value></data>
+  <data name="TextBC7CA17F1572" xml:space="preserve"><value>File size: {0} bytes</value></data>
+  <data name="Text7CF0AB03F669" xml:space="preserve"><value>Identified records: {0}</value></data>
+  <data name="TextB9091743F148" xml:space="preserve"><value>Elapsed time (ms): {0:F0}</value></data>
+  <data name="Text0A86D7DE3111" xml:space="preserve"><value>Executable folder: {0}</value></data>
+  <data name="TextD71959D53445" xml:space="preserve"><value>Effective data folder: {0}</value></data>
+  <data name="Text0E8880647654" xml:space="preserve"><value>Data folder permissions: {0}</value></data>
+  <data name="Text427ACB5D2B13" xml:space="preserve"><value>Effective database path: {0}</value></data>
+  <data name="Text011CBDBB9A5A" xml:space="preserve"><value>Database exists: {0}</value></data>
+  <data name="TextA2982EFE468D" xml:space="preserve"><value>Database size: {0}</value></data>
+  <data name="TextA770B0E13A17" xml:space="preserve"><value>SQLite schema version: {0}</value></data>
+  <data name="Text30562378CC00" xml:space="preserve"><value>Active connections: {0}</value></data>
+  <data name="Text78774A177F64" xml:space="preserve"><value>Connections in trash: {0}</value></data>
+  <data name="Text6847807B1704" xml:space="preserve"><value>Last recorded error: {0}</value></data>
+  <data name="Text83590516E1D1" xml:space="preserve"><value>(This report is sanitized and does not include passwords, private keys or confidential data).</value></data>
+  <data name="TextB578B3BC3696" xml:space="preserve"><value>Invalid host</value></data>
+  <data name="Text5BB460109599" xml:space="preserve"><value>The hostname or IP address is not a valid DNS, IPv4 or IPv6 value.</value></data>
+  <data name="TextEFC35E89AAD9" xml:space="preserve"><value>Invalid port</value></data>
+  <data name="Text247798C87954" xml:space="preserve"><value>Test canceled</value></data>
+  <data name="Text341CFE21B015" xml:space="preserve"><value>DNS lookup timed out</value></data>
+  <data name="Text1F10ADB84433" xml:space="preserve"><value>The network diagnostic was canceled by the user.</value></data>
+  <data name="TextFD2DA1AD872D" xml:space="preserve"><value>DNS lookup for '{0}' exceeded the {1} ms timeout.</value></data>
+  <data name="Text2F3A2A09B9CB" xml:space="preserve"><value>DNS lookup failed</value></data>
+  <data name="TextFC32F543EC32" xml:space="preserve"><value>Could not resolve address '{0}': {1}</value></data>
+  <data name="Text0ABEC6F50CF2" xml:space="preserve"><value>No DNS records</value></data>
+  <data name="Text8FCDC3168E33" xml:space="preserve"><value>Host '{0}' returned no IPv4 or IPv6 addresses.</value></data>
+  <data name="TextD97F9C85CFD8" xml:space="preserve"><value>TCP port {0} reachable ({1} ms)</value></data>
+  <data name="Text0444841889A3" xml:space="preserve"><value>DNS resolved ({0}) in {1} ms. </value></data>
+  <data name="TextB84420F09614" xml:space="preserve"><value>TCP connection to port {0} established in {1} ms.
+</value></data>
+  <data name="Text2F28984EB5B9" xml:space="preserve"><value>Note: This confirms network port reachability (TCP handshake) only and does NOT confirm user authentication.</value></data>
+  <data name="TextBDD8416DA9FC" xml:space="preserve"><value>TCP timeout on port {0}</value></data>
+  <data name="TextDC3B16E9047D" xml:space="preserve"><value>The TCP diagnostic was canceled by the user.</value></data>
+  <data name="Text2D76CDADD347" xml:space="preserve"><value>DNS resolved ({0}), but TCP port {1} did not respond within {2} ms (possible firewall, disconnected VPN or inactive service).</value></data>
+  <data name="Text9CB104C43DC6" xml:space="preserve"><value>TCP port {0} unreachable</value></data>
+  <data name="Text8738A9666085" xml:space="preserve"><value>DNS resolved ({0}), but the TCP connection to port {1} failed: {2}</value></data>
+  <data name="Text51B35C1ADA31" xml:space="preserve"><value>Could not decrypt the AutoPuTTY list. Check the file password.</value></data>
+  <data name="TextE0753396680A" xml:space="preserve"><value>Unreadable encrypted AutoPuTTY field.</value></data>
+  <data name="Text669DD8794BE6" xml:space="preserve"><value>Could not read the encrypted package contents.</value></data>
+  <data name="Text4171F40DD53E" xml:space="preserve"><value>Encrypted package (.ctienc)</value></data>
+  <data name="Text338B2D164FE9" xml:space="preserve"><value>CSV ({0} rows)</value></data>
+  <data name="Text8E52B97135D8" xml:space="preserve"><value>Invalid JSON</value></data>
+  <data name="Text61F36F3F8C16" xml:space="preserve"><value>Error parsing JSON file: {0}</value></data>
+  <data name="TextE49A245285A1" xml:space="preserve"><value>Empty JSON</value></data>
+  <data name="Text6DBA62D62956" xml:space="preserve"><value>No records found in the JSON file.</value></data>
+  <data name="Text838A55F762DE" xml:space="preserve"><value>JSON ({0} records)</value></data>
+  <data name="Text3A14E387B6B8" xml:space="preserve"><value>AutoPuTTY (empty)</value></data>
+  <data name="TextBF77E75F8825" xml:space="preserve"><value>The selected file is empty.</value></data>
+  <data name="Text4AC03A9AAE2A" xml:space="preserve"><value>AutoPuTTY (encrypted / binary)</value></data>
+  <data name="Text16FE7163379C" xml:space="preserve"><value>The selected file appears to be encrypted or in a proprietary AutoPuTTY binary format. </value></data>
+  <data name="Text649725F0D7E8" xml:space="preserve"><value>For safety and reliability, ConectaTI does not attempt to break proprietary encrypted files. </value></data>
+  <data name="TextE41F45F448A0" xml:space="preserve"><value>AutoPuTTY INI ({0} records)</value></data>
+  <data name="Text5665370D093B" xml:space="preserve"><value>Unrecognized AutoPuTTY format</value></data>
+  <data name="Text95A6FE27F2DB" xml:space="preserve"><value>The file could not be recognized automatically as an AutoPuTTY list. </value></data>
+  <data name="Text868DF1A6DDBD" xml:space="preserve"><value>Check whether the file is password protected, or use CSV import with column mapping.</value></data>
+  <data name="Text5A58CD447568" xml:space="preserve"><value>Empty XML</value></data>
+  <data name="Text193E6ABC162C" xml:space="preserve"><value>The selected XML file is empty.</value></data>
+  <data name="Text68291ECA72E1" xml:space="preserve"><value>ConectaTI XML ({0} connections)</value></data>
+  <data name="Text140EEB759F34" xml:space="preserve"><value>Invalid ConectaTI XML</value></data>
+  <data name="Text1836C1AAB15F" xml:space="preserve"><value>Error parsing XML file: {0}</value></data>
+  <data name="Text6C7C6DF4A6AC" xml:space="preserve"><value>Invalid: {0}</value></data>
+  <data name="Text6FD706C8DA8D" xml:space="preserve"><value>Duplicate (Client + Name + Host:Port already exists)</value></data>
+  <data name="Text1AE28CCE8B7B" xml:space="preserve"><value>Ready to import</value></data>
+  <data name="TextA25B2692F1F4" xml:space="preserve"><value>AutoPuTTY XML recognized: {0} connections | Valid: {1} | Password recovered: {2}</value></data>
+  <data name="TextCD8796F7AED6" xml:space="preserve"><value>AutoPuTTY XML ({0} connections)</value></data>
+  <data name="Text0B52C8D05DF5" xml:space="preserve"><value>Invalid AutoPuTTY XML</value></data>
+  <data name="TextA1D2777C5EAF" xml:space="preserve"><value>Could not parse the AutoPuTTY XML. Check diagnostics.</value></data>
+  <data name="Text7D36B6DFE9B3" xml:space="preserve"><value>XML ({0} connections)</value></data>
+  <data name="TextFA08805D0DD6" xml:space="preserve"><value>Invalid XML</value></data>
+  <data name="Text0A2269EEB15E" xml:space="preserve"><value>Could not parse the XML file: {0}</value></data>
+  <data name="Text84DF530E8E5A" xml:space="preserve"><value>Unrecognized XML</value></data>
+  <data name="Text9426213DD520" xml:space="preserve"><value>The XML contains no recognized connection elements, or uses a password that was not provided.</value></data>
+  <data name="Text8B278829DFB3" xml:space="preserve"><value>Total: {0} | Valid: {1} | Duplicates: {2} | Invalid: {3}</value></data>
+  <data name="Text8D55D876660F" xml:space="preserve"><value>The file exceeds the 32 MB limit.</value></data>
+  <data name="Text10BAECECA4C3" xml:space="preserve"><value>A field in the file exceeds the allowed limit.</value></data>
+  <data name="Text3C8F8E3D3122" xml:space="preserve"><value>An import is already running.</value></data>
+  <data name="Text43E76209F507" xml:space="preserve"><value>The file exceeds the limit of 20,000 connections.</value></data>
+  <data name="TextDDD50DB1F991" xml:space="preserve"><value>The XML exceeds the allowed limit.</value></data>
+  <data name="Text56BD82C0FA86" xml:space="preserve"><value>Unsupported protocol: {0}</value></data>
+  <data name="Text5D30A43DC2AD" xml:space="preserve"><value>ConectaTI is locked. Unlock the application before starting connections.</value></data>
+  <data name="TextF44543F236FD" xml:space="preserve"><value>Invalid connection data.</value></data>
+  <data name="TextE7C6CE16352F" xml:space="preserve"><value>Error accessing saved password.</value></data>
+  <data name="Text68A01A78908C" xml:space="preserve"><value>Could not decrypt this connection's saved password. Check the lock or edit the password.</value></data>
+  <data name="TextAB94A9625860" xml:space="preserve"><value>Client executable not found.</value></data>
+  <data name="TextECC28C5593E8" xml:space="preserve"><value>Error starting external client.</value></data>
+  <data name="Text3161E43CDF92" xml:space="preserve"><value>Could not start executable '{0}': {1}</value></data>
+  <data name="Text1F7451DA4168" xml:space="preserve"><value>(Prompt in client)</value></data>
+  <data name="TextBC6CBBD9C8AF" xml:space="preserve"><value>Note: If domain or server security policies (such as NTLM/CredSSP delegation restrictions) require interactive authentication, Windows will ask for confirmation in MSTSC.</value></data>
+  <data name="Text1B4708DC8A40" xml:space="preserve"><value>No saved password: Remote Desktop (MSTSC) will ask for a password when connecting.</value></data>
+  <data name="Text91C0382AC0E2" xml:space="preserve"><value>Client started: Remote Desktop (MSTSC) to {0} (User: {1}).</value></data>
+  <data name="Text7DE0D31FD42C" xml:space="preserve"><value>The configured Remote Desktop executable ('{0}') was not found. Check 'Configure executables' or click 'Restore default path'.</value></data>
+  <data name="TextC559F66E3B9C" xml:space="preserve"><value>OpenSSH does not accept command-line passwords for security reasons. Use key authentication or enter the password in the terminal.</value></data>
+  <data name="Text9914DB517050" xml:space="preserve"><value>Authentication with private key / SSH agent or interactive terminal prompt.</value></data>
+  <data name="TextF7BE88BD41AB" xml:space="preserve"><value>Client started: OpenSSH (ssh.exe) to {0}.</value></data>
+  <data name="Text6932562E79EA" xml:space="preserve"><value>The OpenSSH executable (ssh.exe) was not found. Set its path in 'Configure executables'.</value></data>
+  <data name="Text4703773E5387" xml:space="preserve"><value>For security, ConectaTI does not send plaintext passwords using '-pw'. Use a private key/Pageant or 'Copy password' in the details view.</value></data>
+  <data name="TextF97009E113F3" xml:space="preserve"><value>PuTTY will use a private key / Pageant or ask for a password in the terminal.</value></data>
+  <data name="TextD42E6AC100C9" xml:space="preserve"><value>Client started: PuTTY (putty.exe) to {0}.</value></data>
+  <data name="Text044B871AFA0E" xml:space="preserve"><value>The PuTTY executable (putty.exe) was not found. Set its path in 'Configure executables' or switch the SSH client to OpenSSH.</value></data>
+  <data name="Text90CA0692C05A" xml:space="preserve"><value>For security, passwords are not included in WinSCP command-line URLs. Use a private key or 'Copy password'.</value></data>
+  <data name="Text0872B74AE7A2" xml:space="preserve"><value>WinSCP will use a private key / Pageant or ask for a password when connecting.</value></data>
+  <data name="Text34D82B929453" xml:space="preserve"><value>Client started: WinSCP ({0}) to {1}.</value></data>
+  <data name="Text22589EFC4763" xml:space="preserve"><value>The WinSCP executable (WinSCP.exe) was not found. Locate it in 'Configure executables'.</value></data>
+  <data name="TextA4D48DAE1125" xml:space="preserve"><value>The VNC client will ask for a password when opened (passwords are not passed as plaintext arguments).</value></data>
+  <data name="Text177695AF12B2" xml:space="preserve"><value>The VNC client will ask for a password if the server requires authentication.</value></data>
+  <data name="Text1B9B5635DAB4" xml:space="preserve"><value>VNC client ({0})</value></data>
+  <data name="Text744D414E54AF" xml:space="preserve"><value>Client started: VNC to {0}.</value></data>
+  <data name="TextE5E6B2B83A27" xml:space="preserve"><value>No VNC client was found. Set the VNC executable path in 'Configure executables'.</value></data>
+  <data name="Text1B6D051157D2" xml:space="preserve"><value>The application is locked. Unlock it before accessing credentials.</value></data>
+  <data name="Text8EA31C9A0D2B" xml:space="preserve"><value>The master password key is not loaded in this session.</value></data>
+  <data name="Text59ACF2F5DA10" xml:space="preserve"><value>The current master password is incorrect.</value></data>
+  <data name="Text76B2372BA111" xml:space="preserve"><value>The export protection password must contain at least 6 characters.</value></data>
+  <data name="Text7F214167ED90" xml:space="preserve"><value>Enter the encrypted package password.</value></data>
+  <data name="TextA087C3AD2C49" xml:space="preserve"><value>The selected file is not a valid ConectaTI encrypted package.</value></data>
+  <data name="TextF870843F49BA" xml:space="preserve"><value>Invalid encrypted file header (expected CTIENC01).</value></data>
+  <data name="TextCF97CA1038EE" xml:space="preserve"><value>Incorrect password or tampered/corrupted encrypted package.</value></data>
+  <data name="TextA97B110DDBA9" xml:space="preserve"><value>The credential vault is locked.</value></data>
+  <data name="Text28E2D2B39A2C" xml:space="preserve"><value>Validate the master password to access secrets.</value></data>
+  <data name="TextD660C57C5B74" xml:space="preserve"><value>Invalid encrypted data.</value></data>
+  <data name="Text4ADDEEC5BF64" xml:space="preserve"><value>An existing Windows credential for '{0}' was preserved. The connection password was encrypted in the .rdp session file.</value></data>
+  <data name="TextC4E0043328CE" xml:space="preserve"><value>Connection credential provided to MSTSC through Windows Credential Manager (temporary session).</value></data>
+  <data name="Text9BB1328098A8" xml:space="preserve"><value>Add new connection (Ctrl+N)</value></data>
+  <data name="TextBADD8CCF4A67" xml:space="preserve"><value>+ New</value></data>
+  <data name="TextA7B73FF6C5D1" xml:space="preserve"><value>Toggle theme</value></data>
+  <data name="Text3B11819721B7" xml:space="preserve"><value>Batch edit</value></data>
+  <data name="Text76B0FB6AD189" xml:space="preserve"><value>Settings</value></data>
+  <data name="Text013F5E45ED6C" xml:space="preserve"><value>Search connections (Ctrl+F)</value></data>
+  <data name="Text5F55EDF90089" xml:space="preserve"><value>Search</value></data>
+  <data name="Text0160E76C91E7" xml:space="preserve"><value>Search...</value></data>
+  <data name="Text9F3EBBDE555A" xml:space="preserve"><value>Clear search</value></data>
+  <data name="TextBD02B9A7D71D" xml:space="preserve"><value>All</value></data>
+  <data name="TextB3977B864159" xml:space="preserve"><value>All active connections</value></data>
+  <data name="TextFEA0D3D1588C" xml:space="preserve"><value>Connections marked as favorites</value></data>
+  <data name="Text4E6C1551840F" xml:space="preserve"><value>🕒 Recent</value></data>
+  <data name="TextC62B898F85F9" xml:space="preserve"><value>Recently opened connections</value></data>
+  <data name="TextF4A70EAE5B48" xml:space="preserve"><value>Trash (deleted connections)</value></data>
+  <data name="Text3B0B0FDFE2E3" xml:space="preserve"><value>Connect</value></data>
+  <data name="Text88F77287CBDB" xml:space="preserve"><value>Duplicate</value></data>
+  <data name="Text8B19518FF49B" xml:space="preserve"><value>Delete</value></data>
+  <data name="TextD222A8EA2FB8" xml:space="preserve"><value>Restore from trash</value></data>
+  <data name="Text4164CBC3F186" xml:space="preserve"><value>Delete permanently</value></data>
+  <data name="TextD7017B73BD1E" xml:space="preserve"><value>Empty trash</value></data>
+  <data name="TextE5F454CC6361" xml:space="preserve"><value>Test connection</value></data>
+  <data name="Text51FC562A8C0A" xml:space="preserve"><value>Copy hostname/address</value></data>
+  <data name="TextF401E192756A" xml:space="preserve"><value>Copy username</value></data>
+  <data name="Text298A26FABB25" xml:space="preserve"><value>Copy password</value></data>
+  <data name="TextFA6E89A3EFC8" xml:space="preserve"><value>Drag to resize the list</value></data>
+  <data name="TextB50E4138B1C1" xml:space="preserve"><value>New drafts in this session</value></data>
+  <data name="TextF82BFA5FF80D" xml:space="preserve"><value>New drafts</value></data>
+  <data name="TextEC97782257F3" xml:space="preserve"><value>🗑️ Connection in trash</value></data>
+  <data name="Text010AD8D3A1F4" xml:space="preserve"><value>♻️ Restore</value></data>
+  <data name="TextBF09C0A4277F" xml:space="preserve"><value>Connection name</value></data>
+  <data name="TextF32697AC9339" xml:space="preserve"><value>Copy connection name</value></data>
+  <data name="TextD63850D3A222" xml:space="preserve"><value>Copy name</value></data>
+  <data name="Text134E55471D20" xml:space="preserve"><value>Address / Hostname[:port]</value></data>
+  <data name="TextADCA1D03FBAC" xml:space="preserve"><value>Copy address</value></data>
+  <data name="TextB8EFA018467E" xml:space="preserve"><value>User [DOMAIN\username]</value></data>
+  <data name="TextA3037DC71A43" xml:space="preserve"><value>Remove</value></data>
+  <data name="Text86509F57E908" xml:space="preserve"><value>Remove this connection's saved password</value></data>
+  <data name="TextB2236FABE665" xml:space="preserve"><value>Show / hide password</value></data>
+  <data name="Text236F9B72F9D6" xml:space="preserve"><value>Copy password (clears after 30 seconds)</value></data>
+  <data name="TextE6E1B71770FE" xml:space="preserve"><value>Private key</value></data>
+  <data name="TextCBC206F5964B" xml:space="preserve"><value>Browse for SSH private key file</value></data>
+  <data name="Text2FC429DB7583" xml:space="preserve"><value>Connection type</value></data>
+  <data name="Text76D0D8DA1D7C" xml:space="preserve"><value>Connect to server (Enter in list)</value></data>
+  <data name="TextCFB546213C60" xml:space="preserve"><value>Save changes to this connection (Ctrl+S)</value></data>
+  <data name="Text289CA5B692D9" xml:space="preserve"><value>More options (Duplicate, Delete, Test)</value></data>
+  <data name="Text38101476AF05" xml:space="preserve"><value>Duplicate connection</value></data>
+  <data name="Text138CC6F361D2" xml:space="preserve"><value>Delete connection</value></data>
+  <data name="Text94B925D07059" xml:space="preserve"><value>Copy host:port</value></data>
+  <data name="Text534C4DA81431" xml:space="preserve"><value>Discard changes</value></data>
+  <data name="Text5D951376C42F" xml:space="preserve"><value>More options</value></data>
+  <data name="TextF851D9A83AB0" xml:space="preserve"><value>Client</value></data>
+  <data name="Text399B037DAB0F" xml:space="preserve"><value>Group</value></data>
+  <data name="Text0D2B7CA65666" xml:space="preserve"><value>Environment</value></data>
+  <data name="TextE7A2C0C4DBFB" xml:space="preserve"><value>Favorite</value></data>
+  <data name="TextC01DDBEAAB7C" xml:space="preserve"><value>Notes</value></data>
+  <data name="Text8F804E33755B" xml:space="preserve"><value>RDP options (MSTSC)</value></data>
+  <data name="TextCDD35DEA1EE3" xml:space="preserve"><value>Full screen</value></data>
+  <data name="Text101BBBFD9127" xml:space="preserve"><value>Multimon</value></data>
+  <data name="Text2E55394916E0" xml:space="preserve"><value>Admin (/admin)</value></data>
+  <data name="Text5D6A22D7076B" xml:space="preserve"><value>Width</value></data>
+  <data name="Text196624F8AC36" xml:space="preserve"><value>Height</value></data>
+  <data name="TextF2FE19B9DB31" xml:space="preserve"><value>Use SSH authentication agent (Pageant / ssh-agent)</value></data>
+  <data name="Text7B3218B5EEBD" xml:space="preserve"><value>Additional VNC parameters</value></data>
+  <data name="Text0120E59D18C6" xml:space="preserve"><value>Client VPN</value></data>
+  <data name="TextA4A2EF0A67A1" xml:space="preserve"><value>VPN name</value></data>
+  <data name="TextFDADA95F7ABC" xml:space="preserve"><value>Copy VPN name</value></data>
+  <data name="Text23ECCE63EAEA" xml:space="preserve"><value>Application</value></data>
+  <data name="Text28E4CE98A862" xml:space="preserve"><value>Server / IP[:port]</value></data>
+  <data name="TextD23258F58F26" xml:space="preserve"><value>Copy VPN server</value></data>
+  <data name="Text46C202C7E457" xml:space="preserve"><value>Batch edit</value></data>
+  <data name="TextD9A99F9E4EDA" xml:space="preserve"><value>Only the chosen fields will be saved. Other data and credentials will be preserved.</value></data>
+  <data name="Text21190A7FCFCB" xml:space="preserve"><value>Do not change</value></data>
+  <data name="Text828036BF894B" xml:space="preserve"><value>Set value</value></data>
+  <data name="Text258ACE67BE6A" xml:space="preserve"><value>Clear field</value></data>
+  <data name="Text319A21755771" xml:space="preserve"><value>Change environment</value></data>
+  <data name="TextE2162AD991BD" xml:space="preserve"><value>Apply changes</value></data>
+  <data name="Text0F2BD88EF0AC" xml:space="preserve"><value>Close</value></data>
+  <data name="TextFAA972EC1C89" xml:space="preserve"><value>Connection — ConectaTI</value></data>
+  <data name="Text80B067419682" xml:space="preserve"><value>Enter the main connection details.</value></data>
+  <data name="Text5086900635FE" xml:space="preserve"><value>Name</value></data>
+  <data name="TextEF5E7E12BDAC" xml:space="preserve"><value>Address</value></data>
+  <data name="Text0A230B5DD43B" xml:space="preserve"><value>DNS hostname, IPv4 or IPv6 address</value></data>
+  <data name="TextF53BBAA05FAE" xml:space="preserve"><value>Username</value></data>
+  <data name="Text138610D10FB9" xml:space="preserve"><value>Local user, DOMAIN\username or user@domain</value></data>
+  <data name="TextFF8E2C52F95D" xml:space="preserve"><value>Remove saved password</value></data>
+  <data name="TextD9DB020133DE" xml:space="preserve"><value>Enter a password to save, or leave blank to keep the existing password</value></data>
+  <data name="TextA2068A0DE3BB" xml:space="preserve"><value>Leave blank to preserve the existing password.</value></data>
+  <data name="TextBD998143DA98" xml:space="preserve"><value>Advanced options</value></data>
+  <data name="Text946D1F8153CE" xml:space="preserve"><value>Port</value></data>
+  <data name="Text356377BA453A" xml:space="preserve"><value>Domain</value></data>
+  <data name="Text6DD8CF662565" xml:space="preserve"><value>Mark as favorite</value></data>
+  <data name="TextB9D4506C3B66" xml:space="preserve"><value>Browse...</value></data>
+  <data name="Text4255EF5ED251" xml:space="preserve"><value>Screen preferences (MSTSC)</value></data>
+  <data name="Text9C2447A06C8D" xml:space="preserve"><value>Multiple monitors</value></data>
+  <data name="Text7A9412FE2BF6" xml:space="preserve"><value>Admin session (/admin)</value></data>
+  <data name="TextB11E7CA5545B" xml:space="preserve"><value>Width (px)</value></data>
+  <data name="TextDE73D011D72D" xml:space="preserve"><value>Height (px)</value></data>
+  <data name="Text2F06B83E3014" xml:space="preserve"><value>SSH client</value></data>
+  <data name="Text15C4DC7F49C4" xml:space="preserve"><value>Use SSH authentication agent</value></data>
+  <data name="Text514834825DDF" xml:space="preserve"><value>Additional VNC parameters</value></data>
+  <data name="Text505B2AD89124" xml:space="preserve"><value>Reusable saved credentials</value></data>
+  <data name="Text0EB22940AE07" xml:space="preserve"><value>Save credentials shared by multiple servers of the same client. Passwords are protected with your Windows user account.</value></data>
+  <data name="Text9627552FAEAE" xml:space="preserve"><value>+ New credential</value></data>
+  <data name="TextC6A682B06524" xml:space="preserve"><value>Credential details</value></data>
+  <data name="Text8A9E5ED513D0" xml:space="preserve"><value>Name / Identification (e.g. Alpha domain admin):</value></data>
+  <data name="Text57EBFE7D2AF5" xml:space="preserve"><value>Username:</value></data>
+  <data name="TextF31F0C0D3463" xml:space="preserve"><value>Domain (optional):</value></data>
+  <data name="Text9ED98A224A5A" xml:space="preserve"><value>Password (leave blank when editing to keep the current password):</value></data>
+  <data name="TextDF42F6785A38" xml:space="preserve"><value>👁 Reveal temporarily</value></data>
+  <data name="TextEED46B88EF57" xml:space="preserve"><value>Notes:</value></data>
+  <data name="Text6B94E07B7879" xml:space="preserve"><value>Delete credential</value></data>
+  <data name="Text2F06521E1324" xml:space="preserve"><value>Save credential</value></data>
+  <data name="Text5ADE38599061" xml:space="preserve"><value>Settings — ConectaTI</value></data>
+  <data name="TextED176FEF9943" xml:space="preserve"><value>Manage appearance, external programs, credentials and backups.</value></data>
+  <data name="Text2130A3B5E09E" xml:space="preserve"><value>General</value></data>
+  <data name="Text7AE9D418353B" xml:space="preserve"><value>Language</value></data>
+  <data name="TextA691DB0557A4" xml:space="preserve"><value>View</value></data>
+  <data name="TextA192EB9E9C8A" xml:space="preserve"><value>Compact mode</value></data>
+  <data name="TextD42A6DC78356" xml:space="preserve"><value>Comfortable mode</value></data>
+  <data name="Text5C4B4BD1A56D" xml:space="preserve"><value>Font size (11–18)</value></data>
+  <data name="Text04F9F0A78DBE" xml:space="preserve"><value>Appearance</value></data>
+  <data name="TextEB88B483EA19" xml:space="preserve"><value>Application theme</value></data>
+  <data name="TextBBC72DF02AC9" xml:space="preserve"><value>Follow Windows</value></data>
+  <data name="Text64B58754485A" xml:space="preserve"><value>Light theme</value></data>
+  <data name="Text0F1C67EB81A0" xml:space="preserve"><value>Dark theme</value></data>
+  <data name="Text7A1042B28193" xml:space="preserve"><value>Clipboard and automation</value></data>
+  <data name="TextEDD837F12E8C" xml:space="preserve"><value>Clear copied password (sec)</value></data>
+  <data name="Text85A1D3DF281D" xml:space="preserve"><value>Hide revealed password (sec)</value></data>
+  <data name="Text6B93836F2497" xml:space="preserve"><value>Fill saved password automatically when connecting with MSTSC</value></data>
+  <data name="Text8088EDF59986" xml:space="preserve"><value>Credential security</value></data>
+  <data name="Text69FDFD93281A" xml:space="preserve"><value>Protected by your Windows account (DPAPI).</value></data>
+  <data name="Text4F3A24641E8C" xml:space="preserve"><value>A master password was configured previously. Migrate your credentials to Windows DPAPI protection?</value></data>
+  <data name="Text79478964AC03" xml:space="preserve"><value>Previous master password</value></data>
+  <data name="TextB94059562C9E" xml:space="preserve"><value>Migrate to DPAPI</value></data>
+  <data name="Text7B637BAB4F9F" xml:space="preserve"><value>Programs</value></data>
+  <data name="Text1113234D991B" xml:space="preserve"><value>Connection client executables</value></data>
+  <data name="Text6C1F9EBCC8F7" xml:space="preserve"><value>Detect automatically</value></data>
+  <data name="Text594C3B2E334A" xml:space="preserve"><value>Remote Desktop — mstsc.exe</value></data>
+  <data name="Text4F67240E9A17" xml:space="preserve"><value>Restore default path</value></data>
+  <data name="Text3B7E4699A24A" xml:space="preserve"><value>Restores %WINDIR%\System32\mstsc.exe</value></data>
+  <data name="TextD653A7844124" xml:space="preserve"><value>PuTTY</value></data>
+  <data name="TextB34A5D5691AD" xml:space="preserve"><value>OpenSSH</value></data>
+  <data name="Text673FA557D7AA" xml:space="preserve"><value>WinSCP</value></data>
+  <data name="TextE41A2B6503B0" xml:space="preserve"><value>VNC</value></data>
+  <data name="TextF429B5263082" xml:space="preserve"><value>Default SSH client</value></data>
+  <data name="Text2FFCD6F40E95" xml:space="preserve"><value>Windows OpenSSH</value></data>
+  <data name="Text5DE6B45BC540" xml:space="preserve"><value>VNC parameter format</value></data>
+  <data name="Text28EE40536291" xml:space="preserve"><value>TigerVNC / RealVNC (host::port)</value></data>
+  <data name="Text23E564CAAABA" xml:space="preserve"><value>TightVNC (-host=host -port=port)</value></data>
+  <data name="Text28C0CC7F0976" xml:space="preserve"><value>UltraVNC (host:port)</value></data>
+  <data name="Text1DA724AB1F99" xml:space="preserve"><value>Custom ({host} {port} {user})</value></data>
+  <data name="TextC62CB625D100" xml:space="preserve"><value>Custom VNC format</value></data>
+  <data name="TextADF9E60F4D90" xml:space="preserve"><value>Credentials</value></data>
+  <data name="TextD1D6DB3BE482" xml:space="preserve"><value>Saved credentials</value></data>
+  <data name="Text4BF37FF33AA7" xml:space="preserve"><value>Manage saved passwords and credentials, including credentials reused across multiple servers.</value></data>
+  <data name="TextF68E4F381086" xml:space="preserve"><value>Manage saved credentials...</value></data>
+  <data name="Text622599F7B801" xml:space="preserve"><value>🔒 Credential portability notice (DPAPI)</value></data>
+  <data name="TextE683DE8248AB" xml:space="preserve"><value>Passwords in ConectaTI are protected by the native Windows API (DPAPI), tied to your local user account and this computer.</value></data>
+  <data name="Text215985FC156E" xml:space="preserve"><value>Copying the executable or ConectaTI folder to another computer or Windows user preserves connection details, but passwords must be entered again unless you use 'Encrypted package (.ctienc)' in Import and backup.</value></data>
+  <data name="TextEF101CAD23DF" xml:space="preserve"><value>Import and backup</value></data>
+  <data name="Text4A366C8B3706" xml:space="preserve"><value>Import, export and backups</value></data>
+  <data name="Text6285442CFEFD" xml:space="preserve"><value>Import CSV sheets, JSON files or AutoPuTTY lists, export connections and manage local database backups.</value></data>
+  <data name="Text9ECAAA06B087" xml:space="preserve"><value>Open import, export and backups...</value></data>
+  <data name="TextD2DF9DBF7DC0" xml:space="preserve"><value>Create backup now</value></data>
+  <data name="TextE695EB16E81F" xml:space="preserve"><value>Diagnostics</value></data>
+  <data name="Text877BC3447067" xml:space="preserve"><value>System and storage diagnostics</value></data>
+  <data name="Text240CF7238558" xml:space="preserve"><value>Database information, file locations, integrity and logs.</value></data>
+  <data name="Text4E8983D8D972" xml:space="preserve"><value>Effective database path:</value></data>
+  <data name="Text1258573B225A" xml:space="preserve"><value>Loading...</value></data>
+  <data name="Text99D46ADA74E4" xml:space="preserve"><value>SQLite schema version:</value></data>
+  <data name="Text393F24C49FCC" xml:space="preserve"><value>Data folder status:</value></data>
+  <data name="Text0C7669885EC9" xml:space="preserve"><value>Connection counts:</value></data>
+  <data name="Text4E8E952D032B" xml:space="preserve"><value>Last sanitized error:</value></data>
+  <data name="Text5B47F14BF7A3" xml:space="preserve"><value>No errors recorded.</value></data>
+  <data name="TextE093EB410320" xml:space="preserve"><value>📁 Open database folder</value></data>
+  <data name="Text425C16F62D4A" xml:space="preserve"><value>📁 Open logs folder</value></data>
+  <data name="Text75331D5D1612" xml:space="preserve"><value>📋 Copy diagnostic report</value></data>
+  <data name="Text73678BF75065" xml:space="preserve"><value>Import, export and backups</value></data>
+  <data name="TextB6F0955054E9" xml:space="preserve"><value>Import, export and backup center</value></data>
+  <data name="Text3B0A5A1E174A" xml:space="preserve"><value>ConectaTI automatically creates a consistent SQLite backup before every import or restore.</value></data>
+  <data name="TextBCA6FB12656B" xml:space="preserve"><value>📥 Import (CSV, JSON, AutoPuTTY)</value></data>
+  <data name="Text31FDC4DB1E53" xml:space="preserve"><value>📂 Select file (CSV, JSON or AutoPuTTY)...</value></data>
+  <data name="Text21BC7F7BEFE6" xml:space="preserve"><value>No file selected.</value></data>
+  <data name="Text97AE53268AEE" xml:space="preserve"><value>CSV column mapping (adjust as needed to refresh the preview):</value></data>
+  <data name="TextFB7EE8498663" xml:space="preserve"><value>Name column:</value></data>
+  <data name="Text56585CE08261" xml:space="preserve"><value>Client column:</value></data>
+  <data name="Text0E1B7842441A" xml:space="preserve"><value>Group column:</value></data>
+  <data name="TextF5AE3AEE593F" xml:space="preserve"><value>Environment column:</value></data>
+  <data name="Text82EA994D8FE8" xml:space="preserve"><value>Protocol column:</value></data>
+  <data name="TextEB01DF50C92A" xml:space="preserve"><value>Host/IP column:</value></data>
+  <data name="Text579F337DA7DA" xml:space="preserve"><value>Port column:</value></data>
+  <data name="Text190CCBA7A9C2" xml:space="preserve"><value>Username column:</value></data>
+  <data name="Text0582689D33DD" xml:space="preserve"><value>Import preview:</value></data>
+  <data name="TextE7F0E6D956C1" xml:space="preserve"><value>Import</value></data>
+  <data name="TextFD399BF6BC7B" xml:space="preserve"><value>Protocol</value></data>
+  <data name="Text7DD05206EDBD" xml:space="preserve"><value>Host:Port</value></data>
+  <data name="Text1EF3DC410D8F" xml:space="preserve"><value>Unrecovered fields</value></data>
+  <data name="Text43C68567BBA3" xml:space="preserve"><value>Status / Validation</value></data>
+  <data name="TextAAE9D86B7B6B" xml:space="preserve"><value>When a duplicate connection is found:</value></data>
+  <data name="Text0805CA9F38F4" xml:space="preserve"><value>Ignore duplicates</value></data>
+  <data name="TextB5F5FA6CC88C" xml:space="preserve"><value>Update existing connection</value></data>
+  <data name="Text584EC3CBC4BC" xml:space="preserve"><value>Create new record</value></data>
+  <data name="TextF49A89363BA1" xml:space="preserve"><value>✅ Import selected records</value></data>
+  <data name="Text61338C780811" xml:space="preserve"><value>📤 Export and encrypted package</value></data>
+  <data name="Text48A9BE6FBD76" xml:space="preserve"><value>1. Standard connection export (without passwords)</value></data>
+  <data name="Text711CB2D61528" xml:space="preserve"><value>Exports all connections as UTF-8. For security, no passwords are included in XML, CSV or JSON files.</value></data>
+  <data name="Text4301E713A4E5" xml:space="preserve"><value>📄 Export to XML (ConectaTI .xml)</value></data>
+  <data name="TextC59FA8B7E3AB" xml:space="preserve"><value>📄 Export AutoPuTTY compatible XML (.xml)</value></data>
+  <data name="Text5A753154D30E" xml:space="preserve"><value>📄 Export to CSV (UTF-8)</value></data>
+  <data name="TextF7ECE35DBD78" xml:space="preserve"><value>📋 Export to JSON (UTF-8)</value></data>
+  <data name="Text06BD82FB2C77" xml:space="preserve"><value>2. Secure transfer of connections + credentials between computers (.ctienc)</value></data>
+  <data name="Text2D461C488DBE" xml:space="preserve"><value>DPAPI data is tied to the local Windows account and computer. Use this package with a separate password (PBKDF2-SHA256, 210,000 iterations + AES-256-GCM) to securely transfer connections and credentials to another computer.</value></data>
+  <data name="TextB0D14565314E" xml:space="preserve"><value>Transport password (at least 6 characters):</value></data>
+  <data name="TextE39E8062429C" xml:space="preserve"><value>🔐 Export encrypted package (.ctienc)</value></data>
+  <data name="Text97AC69B93DB9" xml:space="preserve"><value>🔓 Import encrypted package (.ctienc)</value></data>
+  <data name="TextF63B8E3B6C6F" xml:space="preserve"><value>💾 SQLite database backups</value></data>
+  <data name="Text9FFB8C775A69" xml:space="preserve"><value>Consistent backup and restore (SQLite Online Backup API)</value></data>
+  <data name="Text0FEFDA3881D7" xml:space="preserve"><value>💾 Create backup now...</value></data>
+  <data name="TextDDDE69B0B9C9" xml:space="preserve"><value>♻️ Restore from backup...</value></data>
+  <data name="TextD4B7CE2E6AE1" xml:space="preserve"><value>Cancel operation</value></data>
+  <data name="TextE453736CF3D0" xml:space="preserve"><value>Copy error details</value></data>
+  <data name="Text5F36969B7D29" xml:space="preserve"><value>All clients</value></data>
+  <data name="Text104F2BFBA365" xml:space="preserve"><value>All environments</value></data>
+  <data name="Text9E35F81E203A" xml:space="preserve"><value>All types</value></data>
+  <data name="Text240E2AE4AF08" xml:space="preserve"><value>Password:</value></data>
+  <data name="Text03FD14DD52A8" xml:space="preserve"><value>Saving...</value></data>
+  <data name="TextCCD0BFF0D229" xml:space="preserve"><value>Read-only (restricted)</value></data>
+  <data name="Text9A15D6F3857A" xml:space="preserve"><value>Read-only (restricted)</value></data>
+  <data name="TextC4CE9279FB77" xml:space="preserve"><value>No errors recorded</value></data>
+  <data name="Text811C1B0F7210" xml:space="preserve"><value>Credential not recovered</value></data>
+  <data name="Text1434BC9421E7" xml:space="preserve"><value>Invalid record</value></data>
+  <data name="Text5C4C248158A7" xml:space="preserve"><value>Row {0}: {1}</value></data>
+  <data name="Text875A5546CE3C" xml:space="preserve"><value>(none)</value></data>
+  <data name="Text2995B0BC2068" xml:space="preserve"><value>Could not parse the JSON file. Check diagnostics.</value></data>
+  <data name="Text2F581253357B" xml:space="preserve"><value>Enter a value or choose Clear field.</value></data>
+  <data name="TextF0C1775C92FF" xml:space="preserve"><value>Decoding {0} connection</value></data>
+  <data name="Text3F63B599B494" xml:space="preserve"><value>Importing {0} of {1} connection</value></data>
+  <data name="Text9313455E45AA" xml:space="preserve"><value>Yes</value></data>
+  <data name="Text9BC947E58B62" xml:space="preserve"><value>No</value></data>
+  <data name="Text6FE77F9C8861" xml:space="preserve"><value>New connection (Copy)</value></data>
+  <data name="Text9B3308DD0BDF" xml:space="preserve"><value>{0} (Copy)</value></data>
+  <data name="Text6914A8839859" xml:space="preserve"><value>★ Favorites ({0})</value></data>
+  <data name="TextA211FC504F52" xml:space="preserve"><value>🗑️ Trash ({0})</value></data>
+  <data name="Text3B3B0F54ADCD" xml:space="preserve"><value>STG</value></data>
+  <data name="Text9AED541153E3" xml:space="preserve"><value>TEST</value></data>
+  <data name="TextE7F8A41F58ED" xml:space="preserve"><value>Specify a folder after --data-dir.</value></data>
+  <data name="Text8AB20554C843" xml:space="preserve"><value>The XML structure exceeds the allowed limits.</value></data>
+  <data name="Text21C53C7EB9E5" xml:space="preserve"><value>Native API: {0}</value></data>
+  <data name="Text1B1E81CEDA6B" xml:space="preserve"><value>Native Win32 error code: {0}</value></data>
+  <data name="TextE02AB9DA6477" xml:space="preserve"><value>Record index (1-based): {0}</value></data>
+  <data name="TextD79DDA8DB255" xml:space="preserve"><value>Source row: {0}</value></data>
+  <data name="TextEBAB52436ECC" xml:space="preserve"><value>Credential index (1-based): {0}</value></data>
+  <data name="TextC737A6B823BA" xml:space="preserve"><value>Credential prepared for MSTSC (existing credential at '{0}' preserved).</value></data>
+  <data name="Text36901B8CA742" xml:space="preserve"><value>Checking {0}:{1} (timeout: 4s)...</value></data>
+  <data name="Text98A4FEEBE11E" xml:space="preserve"><value>Vault</value></data>
+  <data name="TextAD764FEC6F8C" xml:space="preserve"><value>Lock vault</value></data>
+  <data name="TextDD1C21F6E983" xml:space="preserve"><value>Application vault</value></data>
+  <data name="TextDD4F0FBA06B3" xml:space="preserve"><value>Manage vault</value></data>
+  <data name="Text2B6DA0F09E71" xml:space="preserve"><value>Windows Credential Manager (legacy)</value></data>
+  <data name="Text4BAAAF1463DB" xml:space="preserve"><value>SQLite — Windows user DPAPI</value></data>
+  <data name="Text49C289CCA183" xml:space="preserve"><value>Application vault — AES-256-GCM</value></data>
+  <data name="TextB811316D9495" xml:space="preserve"><value>Unlock the vault to continue.</value></data>
+  <data name="Text3884853E626A" xml:space="preserve"><value>Use a master password with at least 8 characters.</value></data>
+  <data name="TextBCB11334DCD7" xml:space="preserve"><value>The master password confirmation does not match.</value></data>
+  <data name="Text215B81D50DD3" xml:space="preserve"><value>The vault already exists.</value></data>
+  <data name="TextF276B607D4B3" xml:space="preserve"><value>Create the vault before unlocking.</value></data>
+  <data name="Text35A3BE486BAA" xml:space="preserve"><value>The master password is required to recover secrets.</value></data>
+  <data name="Text5D447CEEDBB5" xml:space="preserve"><value>The master password is required to recover secrets. There is no emergency recovery key.</value></data>
+  <data name="Text7363C6CAF8B8" xml:space="preserve"><value>Current master password</value></data>
+  <data name="TextFCF3112F9FAF" xml:space="preserve"><value>New master password</value></data>
+  <data name="TextCC1E487CE067" xml:space="preserve"><value>Confirm master password</value></data>
+  <data name="TextDE2D3E8B6709" xml:space="preserve"><value>Legacy master password (only if previously used)</value></data>
+  <data name="TextA58260D66D45" xml:space="preserve"><value>Migrate legacy credentials</value></data>
+  <data name="Text996824A24F60" xml:space="preserve"><value>Vault locked.</value></data>
+  <data name="Text6B390533B9D8" xml:space="preserve"><value>Vault unlocked for this session.</value></data>
+  <data name="Text2AB2366ADD14" xml:space="preserve"><value>Create a master password to start using the application vault.</value></data>
+  <data name="TextFD8D179D6B93" xml:space="preserve"><value>Create vault</value></data>
+  <data name="Text14B55B0E1E40" xml:space="preserve"><value>Unlock vault</value></data>
+  <data name="TextD124364F4E04" xml:space="preserve"><value>Change master password</value></data>
+  <data name="Text4DB82907D6F4" xml:space="preserve"><value>Processing vault...</value></data>
+  <data name="Text54387B7DCBA2" xml:space="preserve"><value>Wrong master password or tampered vault. Existing data was preserved.</value></data>
+  <data name="Text3558FE3051F5" xml:space="preserve"><value>The vault operation could not be completed. Existing data was preserved.</value></data>
+  <data name="TextCC74EAD12306" xml:space="preserve"><value>Credentials migrated: {0}; pending: {1}. Windows originals were preserved.</value></data>
+  <data name="TextBBFE4AEE9E47" xml:space="preserve"><value>Pending: {0} ({1})</value></data>
+  <data name="Text8B1E2CD881FC" xml:space="preserve"><value>Migration failed. Existing data was preserved.</value></data>
+  <data name="Text12615FD00ED9" xml:space="preserve"><value>Vault locked. Use your master password to recover secrets.</value></data>
+  <data name="Text3620ACCCA177" xml:space="preserve"><value>Application vault unlocked — AES-256-GCM.</value></data>
+  <data name="Text2A3EA45A4A6D" xml:space="preserve"><value>Package contains invalid credential links.</value></data>
+  <data name="Text67081CEBF0DE" xml:space="preserve"><value>Could not prepare the temporary MSTSC credential. The connection was preserved; authentication depends on the RDP client.</value></data>
+  <data name="TextD51F336E04D8" xml:space="preserve"><value>Standalone credentials included in the package: {0}.</value></data>
+  <data name="TextC902248FF2F3" xml:space="preserve"><value>Standalone credentials: saved {0}; skipped {1}.</value></data>
+  <data name="TextBFF5D43C2C6B" xml:space="preserve"><value>Automatic password protection</value></data>
+  <data name="TextC914B1CC0E8A" xml:space="preserve"><value>Migrate passwords from the previous format</value></data>
+  <data name="TextE5A663D54490" xml:space="preserve"><value>Passwords are protected automatically for this Windows user. To share, export a package with passwords.</value></data>
+  <data name="TextD9EB1A9AC752" xml:space="preserve"><value>Password protected by another user. Import a backup with passwords or enter a new password.</value></data>
+  <data name="Text40B769FB7C26" xml:space="preserve"><value>Password in the previous format. Migrate using the previous master password or enter a new password.</value></data>
+  <data name="Text51D312A6613B" xml:space="preserve"><value>Could not recover the password: damaged data or Windows protection unavailable. Check diagnostics or enter a new password.</value></data>
+  <data name="TextB3C1AE18C403" xml:space="preserve"><value>Enter the previous master password once to migrate passwords to automatic protection for this Windows user. Canceling preserves the data so you can retry.</value></data>
+  <data name="TextBC44AF1179AF" xml:space="preserve"><value>Migrate passwords</value></data>
+  <data name="Text047A8F409653" xml:space="preserve"><value>Migration failed. Check the previous password. The original data has been preserved.</value></data>
+  <data name="TextDF2EEC810B5C" xml:space="preserve"><value>The remote client will prompt for credentials.</value></data>
+  <data name="TextA0905CF264DA" xml:space="preserve"><value>Select at least one connection.</value></data>
+  <data name="Text57BC7CE01FD7" xml:space="preserve"><value>Enter a protection password with at least 8 characters and confirm the same password.</value></data>
+  <data name="TextA71B70FCF969" xml:space="preserve"><value>The selection changed or contains trashed connections. Review before exporting.</value></data>
+  <data name="Text453CDD43EB06" xml:space="preserve"><value>The selection contains invalid credential links.</value></data>
+  <data name="Text4446538E16D9" xml:space="preserve"><value>Export blocked: {0} selected credential(s) unavailable. No file was generated. Import a backup with passwords, migrate the previous format or enter a new password.</value></data>
+  <data name="Text11B17B2BCDF7" xml:space="preserve"><value>Unsupported package format.</value></data>
+  <data name="Text7B8D9150D632" xml:space="preserve"><value>Package contains invalid connection records.</value></data>
+  <data name="Text9622CFF79788" xml:space="preserve"><value>An unprotected package cannot contain passwords.</value></data>
+  <data name="Text76E528A41DA4" xml:space="preserve"><value>{0} connection(s) selected out of {1}. Filtered results: {2}.</value></data>
+  <data name="Text65253DD1CE28" xml:space="preserve"><value>Transfer / sharing</value></data>
+  <data name="Text7AA295080072" xml:space="preserve"><value>Choose connections. Only selected items and their linked credentials will be included.</value></data>
+  <data name="TextE654125E0B1F" xml:space="preserve"><value>Export all connections</value></data>
+  <data name="Text458E69B2FC40" xml:space="preserve"><value>Select filtered results</value></data>
+  <data name="Text33A042C0FD07" xml:space="preserve"><value>Clear selection</value></data>
+  <data name="Text8F7A859AC182" xml:space="preserve"><value>Review selected only</value></data>
+  <data name="Text6A57618C2593" xml:space="preserve"><value>Select</value></data>
+  <data name="TextA7250A987CAE" xml:space="preserve"><value>Include passwords</value></data>
+  <data name="Text5B442BB766A7" xml:space="preserve"><value>With passwords: AES-256-GCM package protected by the file password. Without passwords: connection records without secrets.</value></data>
+  <data name="Text3177C57C8E3A" xml:space="preserve"><value>File protection password</value></data>
+  <data name="TextD645EB67E5F9" xml:space="preserve"><value>Confirm file password</value></data>
+  <data name="Text8ECB857AC027" xml:space="preserve"><value>Export selection</value></data>
+  <data name="Text562A47B9CA3F" xml:space="preserve"><value>Import transfer package</value></data>
+  <data name="TextADB773884997" xml:space="preserve"><value>Other formats without passwords</value></data>
+  <data name="Text56925AEC3AE6" xml:space="preserve"><value>Package with passwords (*.ctienc)|*.ctienc</value></data>
+  <data name="Text1E1635EE781D" xml:space="preserve"><value>Package without passwords (*.ctishare)|*.ctishare</value></data>
+  <data name="TextE67F1CD13D65" xml:space="preserve"><value>Transfer package exported: {0} connection(s).</value></data>
+  <data name="Text694C4AA2EECD" xml:space="preserve"><value>Export canceled. No package was generated.</value></data>
+  <data name="Text7A78D22A9147" xml:space="preserve"><value>ConectaTI packages|*.ctienc;*.ctishare|All files|*.*</value></data>
+  <data name="Text63E2BBAF1C92" xml:space="preserve"><value>Continue</value></data>
+  <data name="Text15D6622A9329" xml:space="preserve"><value>A local SQLite backup keeps the source user's protection. Restoring does not transfer passwords to another profile. Export a transfer package with passwords for that. Restore verifies integrity and preserves a safety copy.</value></data>
+  <data name="Text6894441B3FA5" xml:space="preserve"><value>Search</value></data>
+</root>

@@ -16,6 +16,7 @@ public partial class ExecutablesSettingsDialog : Window
     private readonly CredentialVaultService _vaultService;
     private readonly MainViewModel? _mainViewModel;
     private bool _suppressThemeEvent;
+    private bool _loadingPreferences = true;
 
     public bool DataModified { get; private set; }
     public bool LockRequested { get; private set; }
@@ -27,6 +28,7 @@ public partial class ExecutablesSettingsDialog : Window
         int initialTabIndex = 0)
     {
         InitializeComponent();
+        LocalizedWindow.Attach(this);
         _settingsService = settingsService;
         _vaultService = vaultService;
         _mainViewModel = mainViewModel;
@@ -37,12 +39,16 @@ public partial class ExecutablesSettingsDialog : Window
         }
 
         LoadCurrentValues();
+        _loadingPreferences = false;
     }
 
     private void LoadCurrentValues()
     {
         var s = _settingsService.Current;
 
+        LanguageCombo.SelectedIndex = (int)s.Language;
+        DensityCombo.SelectedIndex = s.ComfortableMode ? 1 : 0;
+        FontSizeSlider.Value = s.FontSize;
         _suppressThemeEvent = true;
         try
         {
@@ -95,15 +101,15 @@ public partial class ExecutablesSettingsDialog : Window
             var diag = await _mainViewModel.AppDiagnosticService.CollectDiagnosticInfoAsync();
             DiagDbPathText.Text = diag.DatabasePath;
             DiagSchemaVersionText.Text = $"v{diag.SchemaVersion}";
-            DiagWritableText.Text = diag.IsDataDirectoryWritable ? "Gravável (OK)" : "Somente Leitura (Restrito)";
-            DiagCountsText.Text = $"{diag.ActiveConnectionsCount} ativas | {diag.TrashConnectionsCount} na lixeira";
+            DiagWritableText.Text = diag.IsDataDirectoryWritable ? L.Text("Gravável (OK)") : L.Text("Somente Leitura (Restrito)");
+            DiagCountsText.Text = L.Format("{0} ativas | {1} na lixeira", (diag.ActiveConnectionsCount), (diag.TrashConnectionsCount));
             DiagLastErrorText.Text = string.IsNullOrWhiteSpace(diag.LastSanitizedError)
-                ? "Nenhum erro registrado nesta sessão."
+                ? L.Text("Nenhum erro registrado nesta sessão.")
                 : diag.LastSanitizedError;
         }
         catch (Exception ex)
         {
-            DiagDbPathText.Text = "Erro ao coletar diagnóstico";
+            DiagDbPathText.Text = L.Text("Erro ao coletar diagnóstico");
             DiagLastErrorText.Text = ex.Message;
         }
     }
@@ -147,8 +153,29 @@ public partial class ExecutablesSettingsDialog : Window
             var info = await _mainViewModel.AppDiagnosticService.CollectDiagnosticInfoAsync();
             var report = ConectaTI.App.Services.Diagnostics.AppDiagnosticService.FormatReport(info);
             System.Windows.Clipboard.SetText(report);
-            DialogFeedbackText.Text = "Relatório de diagnóstico copiado para a área de transferência!";
+            DialogFeedbackText.Text = L.Text("Relatório de diagnóstico copiado para a área de transferência!");
         }
+    }
+
+    private void LanguageCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_loadingPreferences || LanguageCombo.SelectedIndex < 0) return;
+        _settingsService.Current.Language = (AppLanguage)LanguageCombo.SelectedIndex;
+        _settingsService.Save();
+        LocalizationService.Current.SetLanguage(_settingsService.Current.Language);
+        UpdateMasterPasswordStatus();
+        ValidateAllExecutableBoxes();
+        _ = LoadDiagnosticValuesAsync();
+    }
+    private void FontSizeSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e) => ApplyViewPreferences();
+    private void ViewPreference_Changed(object sender, SelectionChangedEventArgs e) => ApplyViewPreferences();
+    private void ApplyViewPreferences()
+    {
+        if (_loadingPreferences) return;
+        _settingsService.Current.ComfortableMode = DensityCombo.SelectedIndex == 1;
+        _settingsService.Current.FontSize = FontSizeSlider.Value;
+        ViewPreferencesService.Apply(_settingsService.Current);
+        _settingsService.Save();
     }
 
     private void ThemeModeCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -167,13 +194,12 @@ public partial class ExecutablesSettingsDialog : Window
         ThemeService.ApplyTheme(mode);
     }
 
-    private void UpdateMasterPasswordStatus()
+    private async void UpdateMasterPasswordStatus()
     {
-        var hasMaster = _settingsService.Current.HasMasterPassword;
-        MasterPasswordStatusText.Text = hasMaster
-            ? "Existem dados protegidos por senha mestra legada."
-            : "Protegido pela conta do usuário no Windows (DPAPI). Sem bloqueio por senha mestra.";
-        MigrationPanel.Visibility = hasMaster ? Visibility.Visible : Visibility.Collapsed;
+        MasterPasswordStatusText.Text = L.Text("As senhas são protegidas automaticamente para este usuário Windows. Para compartilhar, exporte um pacote com senhas.");
+        try { MigratePreviousPasswordsButton.Visibility=await _vaultService.HasPreviousVaultCredentialsAsync()
+            ? Visibility.Visible : Visibility.Collapsed; }
+        catch(Exception ex){_vaultService.RecordMigrationFailure(ex);}
     }
 
     private void ExecutablePathBox_TextChanged(object sender, TextChangedEventArgs e)
@@ -197,19 +223,19 @@ public partial class ExecutablesSettingsDialog : Window
     {
         if (string.IsNullOrWhiteSpace(rawPath))
         {
-            statusBlock.Text = isRequiredForRdp ? "Caminho não informado" : "Não configurado";
+            statusBlock.Text = isRequiredForRdp ? L.Text("Caminho não informado") : L.Text("Não configurado");
             statusBlock.Foreground = (TryFindResource(isRequiredForRdp ? "WarningBrush" : "SecondaryTextBrush") as Brush) ?? Brushes.Gray;
             return;
         }
 
         if (ExternalClientDetector.IsExecutableValid(rawPath, out var resolved))
         {
-            statusBlock.Text = $"Disponível ({resolved})";
+            statusBlock.Text = L.Format("Disponível ({0})", (resolved));
             statusBlock.Foreground = (TryFindResource("SuccessBrush") as Brush) ?? Brushes.SeaGreen;
         }
         else
         {
-            statusBlock.Text = "Arquivo não encontrado";
+            statusBlock.Text = L.Text("Arquivo não encontrado");
             statusBlock.Foreground = (TryFindResource("DangerBrush") as Brush) ?? Brushes.IndianRed;
         }
     }
@@ -218,7 +244,7 @@ public partial class ExecutablesSettingsDialog : Window
     {
         MstscPathBox.Text = ExternalClientDetector.GetDefaultMstscPath();
         ValidateAllExecutableBoxes();
-        DialogFeedbackText.Text = "Caminho padrão do MSTSC restaurado.";
+        DialogFeedbackText.Text = L.Text("Caminho padrão do MSTSC restaurado.");
     }
 
     private void AutoDetectButton_Click(object sender, RoutedEventArgs e)
@@ -246,20 +272,20 @@ public partial class ExecutablesSettingsDialog : Window
         }
 
         ValidateAllExecutableBoxes();
-        DialogFeedbackText.Text = "Detecção automática concluída.";
+        DialogFeedbackText.Text = L.Text("Detecção automática concluída.");
     }
 
-    private void BrowseMstsc_Click(object sender, RoutedEventArgs e) => BrowseExe(MstscPathBox, "mstsc.exe|mstsc.exe|Executáveis (*.exe)|*.exe");
-    private void BrowsePutty_Click(object sender, RoutedEventArgs e) => BrowseExe(PuttyPathBox, "putty.exe|putty.exe|Executáveis (*.exe)|*.exe");
-    private void BrowseOpenSsh_Click(object sender, RoutedEventArgs e) => BrowseExe(OpenSshPathBox, "ssh.exe|ssh.exe|Executáveis (*.exe)|*.exe");
-    private void BrowseWinScp_Click(object sender, RoutedEventArgs e) => BrowseExe(WinScpPathBox, "WinSCP.exe|WinSCP.exe|Executáveis (*.exe)|*.exe");
+    private void BrowseMstsc_Click(object sender, RoutedEventArgs e) => BrowseExe(MstscPathBox, L.Text("mstsc.exe|mstsc.exe|Executáveis (*.exe)|*.exe"));
+    private void BrowsePutty_Click(object sender, RoutedEventArgs e) => BrowseExe(PuttyPathBox, L.Text("putty.exe|putty.exe|Executáveis (*.exe)|*.exe"));
+    private void BrowseOpenSsh_Click(object sender, RoutedEventArgs e) => BrowseExe(OpenSshPathBox, L.Text("ssh.exe|ssh.exe|Executáveis (*.exe)|*.exe"));
+    private void BrowseWinScp_Click(object sender, RoutedEventArgs e) => BrowseExe(WinScpPathBox, L.Text("WinSCP.exe|WinSCP.exe|Executáveis (*.exe)|*.exe"));
     private void BrowseVnc_Click(object sender, RoutedEventArgs e) => BrowseExe(VncPathBox, "Clientes VNC (*.exe)|*.exe");
 
     private static void BrowseExe(TextBox targetBox, string filter)
     {
         var dlg = new OpenFileDialog
         {
-            Title = "Selecionar Executável",
+            Title = L.Text("Selecionar Executável"),
             Filter = filter,
             CheckFileExists = true
         };
@@ -269,28 +295,10 @@ public partial class ExecutablesSettingsDialog : Window
         }
     }
 
-    private async void MigrateMasterPassword_Click(object sender, RoutedEventArgs e)
+    private void MigrateMasterPassword_Click(object sender, RoutedEventArgs e)
     {
-        try
-        {
-            var ok = await _vaultService.MigrateFromMasterPasswordAsync(CurrentMasterPassBox.Password);
-            if (ok)
-            {
-                CurrentMasterPassBox.Clear();
-                UpdateMasterPasswordStatus();
-                DataModified = true;
-                DialogFeedbackText.Text = "Credenciais migradas para DPAPI com sucesso.";
-                MessageBox.Show(this, "Todas as credenciais foram migradas para proteção nativa DPAPI com sucesso.\nA senha mestra foi desativada.", "Migração Concluída", MessageBoxButton.OK, MessageBoxImage.Information);
-            }
-            else
-            {
-                MessageBox.Show(this, "A senha mestra informada está incorreta.", "Senha Mestra Inválida", MessageBoxButton.OK, MessageBoxImage.Warning);
-            }
-        }
-        catch (Exception ex)
-        {
-            MessageBox.Show(this, ex.Message, "Erro na Migração", MessageBoxButton.OK, MessageBoxImage.Error);
-        }
+        new VaultMigrationDialog(_vaultService) { Owner=this }.ShowDialog();
+        UpdateMasterPasswordStatus();
     }
 
     private void OpenCredentialsDialog_Click(object sender, RoutedEventArgs e)
@@ -304,7 +312,7 @@ public partial class ExecutablesSettingsDialog : Window
         };
         dlg.ShowDialog();
         DataModified = true;
-        DialogFeedbackText.Text = "Credenciais atualizadas.";
+        DialogFeedbackText.Text = L.Text("Credenciais atualizadas.");
     }
 
     private void OpenImportExportDialog_Click(object sender, RoutedEventArgs e)
@@ -312,7 +320,7 @@ public partial class ExecutablesSettingsDialog : Window
         if (_mainViewModel == null)
             return;
 
-        var dlg = new ImportExportDialog(_mainViewModel.Paths, _mainViewModel.Repository, _mainViewModel.ImportExportService)
+        var dlg = new ImportExportDialog(_mainViewModel.Paths, _mainViewModel.Repository, _mainViewModel.ImportExportService, _settingsService)
         {
             Owner = this
         };
@@ -320,7 +328,7 @@ public partial class ExecutablesSettingsDialog : Window
         if (dlg.DataModified)
         {
             DataModified = true;
-            DialogFeedbackText.Text = "Dados atualizados pela importação/restauração.";
+            DialogFeedbackText.Text = L.Text("Dados atualizados pela importação/restauração.");
         }
     }
 
@@ -332,11 +340,11 @@ public partial class ExecutablesSettingsDialog : Window
         try
         {
             var backupPath = await _mainViewModel.Repository.CreateBackupAsync();
-            DialogFeedbackText.Text = $"Backup criado: {System.IO.Path.GetFileName(backupPath)}";
+            DialogFeedbackText.Text = L.Format("Backup criado: {0}", (System.IO.Path.GetFileName(backupPath)));
         }
         catch (Exception ex)
         {
-            MessageBox.Show(this, ex.Message, "Erro ao Criar Backup", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(this, ex.Message, L.Text("Erro ao Criar Backup"), MessageBoxButton.OK, MessageBoxImage.Warning);
         }
     }
 
@@ -347,8 +355,8 @@ public partial class ExecutablesSettingsDialog : Window
         {
             var confirmInvalid = MessageBox.Show(
                 this,
-                $"O caminho informado para o MSTSC ('{resolvedMstsc}') não foi encontrado no disco.\nDeseja salvar mesmo assim?",
-                "Executável MSTSC Não Encontrado",
+                L.Format("O caminho informado para o MSTSC ('{0}') não foi encontrado no disco.\nDeseja salvar mesmo assim?", (resolvedMstsc)),
+                L.Text("Executável MSTSC Não Encontrado"),
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Warning);
 

@@ -1,0 +1,714 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <data name="Text9AE35F54B00F" xml:space="preserve"><value>A pasta do aplicativo ('{0}') não possui permissão de gravação de arquivos.
+
+Deseja selecionar uma pasta com permissão de escrita para armazenar o banco de dados e as configurações?</value></data>
+  <data name="Text6EF90FF9E2E1" xml:space="preserve"><value>ConectaTI — Permissão de Pasta</value></data>
+  <data name="TextBB1B8C3A4F25" xml:space="preserve"><value>Selecione a pasta de dados do ConectaTI</value></data>
+  <data name="Text52DBCB775EA2" xml:space="preserve"><value>Ocorreu um erro inesperado:
+{0}</value></data>
+  <data name="Text3785AD08D718" xml:space="preserve"><value>ConectaTI — Erro</value></data>
+  <data name="TextE4CA9186B0CB" xml:space="preserve"><value>Selecionar Arquivo de Chave Privada SSH</value></data>
+  <data name="Text1761C63E5999" xml:space="preserve"><value>Chaves SSH (*.ppk;*.pem;id_rsa;id_ed25519)|*.ppk;*.pem;*id_rsa*;*id_ed25519*|Todos os arquivos (*.*)|*.*</value></data>
+  <data name="Text5032B8582897" xml:space="preserve"><value>Migração de Credenciais — ConectaTI</value></data>
+  <data name="Text61A07DA467DF" xml:space="preserve"><value>O aplicativo foi atualizado para remover o bloqueio por senha mestra.
+Digite sua senha mestra anterior para migrar as credenciais com segurança para a proteção nativa do Windows (DPAPI):</value></data>
+  <data name="Text0E920A38F068" xml:space="preserve"><value>Migrar</value></data>
+  <data name="TextBB9DBB406DCB" xml:space="preserve"><value>Cancelar</value></data>
+  <data name="TextC28470978608" xml:space="preserve"><value>O nome da conexão é obrigatório.</value></data>
+  <data name="Text5282C8900A70" xml:space="preserve"><value>O nome da conexão não pode conter quebras de linha.</value></data>
+  <data name="TextCB544ECFBAC8" xml:space="preserve"><value>O cliente não pode conter quebras de linha.</value></data>
+  <data name="Text71AC3D58B5B0" xml:space="preserve"><value>O endereço / hostname (DNS, IPv4 ou IPv6) é inválido ou está vazio.</value></data>
+  <data name="TextD96011D9BB27" xml:space="preserve"><value>A porta deve estar entre 1 e 65535.</value></data>
+  <data name="Text3BA4DE6C7039" xml:space="preserve"><value>O usuário não pode conter quebras de linha ou caracteres de controle.</value></data>
+  <data name="Text397C84F59F7C" xml:space="preserve"><value>O domínio não pode conter quebras de linha ou caracteres de controle.</value></data>
+  <data name="TextED2C4ED8F582" xml:space="preserve"><value>O caminho da chave privada contém caracteres inválidos.</value></data>
+  <data name="Text8CBA62DA3DE5" xml:space="preserve"><value>A resolução da Área de Trabalho Remota deve estar entre 640x480 e 7680x4320.</value></data>
+  <data name="Text1C94CD05A275" xml:space="preserve"><value>O endereço/hostname não pode ficar em branco.</value></data>
+  <data name="Text670E04FBFF15" xml:space="preserve"><value>Endereço IPv6 com colchete de fechamento ausente.</value></data>
+  <data name="Text1BF2CD07A724" xml:space="preserve"><value>Porta inválida '{0}'. A porta deve estar entre 1 e 65535.</value></data>
+  <data name="TextF287C834C6FF" xml:space="preserve"><value>Formato de endereço inválido após o colchete: '{0}'.</value></data>
+  <data name="TextC1D8EA96B180" xml:space="preserve"><value>Para especificar porta em endereços IPv6, utilize a notação [endereço]:porta.</value></data>
+  <data name="Text74BBC50E9163" xml:space="preserve"><value>● Configurada</value></data>
+  <data name="Text01AF1ECB8056" xml:space="preserve"><value>Não informado</value></data>
+  <data name="TextAD72F59B04A9" xml:space="preserve"><value>Nunca acessado</value></data>
+  <data name="TextCCB244688314" xml:space="preserve"><value>Produção</value></data>
+  <data name="Text4EA947CEAF9E" xml:space="preserve"><value>Homologação</value></data>
+  <data name="Text89F308210C7C" xml:space="preserve"><value>Teste</value></data>
+  <data name="TextF094D2273F29" xml:space="preserve"><value>Área de Trabalho Remota (MSTSC)</value></data>
+  <data name="Text5063CE4ECB9E" xml:space="preserve"><value>Padrão configurado</value></data>
+  <data name="TextF2F565782838" xml:space="preserve"><value>1 acesso selecionado</value></data>
+  <data name="TextD88D8334B422" xml:space="preserve"><value>{0} acessos selecionados</value></data>
+  <data name="Text57AB79A37083" xml:space="preserve"><value>Edição em lote concluída: {0} acessos atualizados.</value></data>
+  <data name="TextB219A9081980" xml:space="preserve"><value>Endereço copiado</value></data>
+  <data name="Text92A42EAF0DC0" xml:space="preserve"><value>Usuário copiado</value></data>
+  <data name="Text7368658C96C4" xml:space="preserve"><value>Salvar alterações</value></data>
+  <data name="TextAEF7CD5B2081" xml:space="preserve"><value>Salvar</value></data>
+  <data name="TextD159352B720A" xml:space="preserve"><value>Alterações não salvas. Salve antes de fechar.</value></data>
+  <data name="Text7462F80878DE" xml:space="preserve"><value>Há rascunhos não salvos. Salve antes de fechar.</value></data>
+  <data name="Text978F6F967F7D" xml:space="preserve"><value>Troque de acesso pela seleção, usando seu ID.</value></data>
+  <data name="Text45A489C52210" xml:space="preserve"><value>Pronto.</value></data>
+  <data name="TextD6D6FEFCEA99" xml:space="preserve"><value>Remoção pendente — salvar</value></data>
+  <data name="Text1A0B1475E31A" xml:space="preserve"><value>Senha alterada — salvar</value></data>
+  <data name="Text96B9123C8EE5" xml:space="preserve"><value>Falha ao recuperar credencial</value></data>
+  <data name="Text2A7921A17C12" xml:space="preserve"><value>Senha salva</value></data>
+  <data name="Text89BCE06167B7" xml:space="preserve"><value>Sem senha salva</value></data>
+  <data name="Text167F89BE0895" xml:space="preserve"><value>Mudar para tema claro</value></data>
+  <data name="Text7384EFDBB7B1" xml:space="preserve"><value>Mudar para tema escuro</value></data>
+  <data name="Text32F9C37CFC7D" xml:space="preserve"><value>Alterar senha</value></data>
+  <data name="TextD482C10B3D4D" xml:space="preserve"><value>Senha</value></data>
+  <data name="TextCEDFBE0CD013" xml:space="preserve"><value>Dados fictícios carregados para teste.</value></data>
+  <data name="TextA121CC15F379" xml:space="preserve"><value>Senha mestra incorreta. Credenciais aguardando migração.</value></data>
+  <data name="Text50225B1043A5" xml:space="preserve"><value>(Nenhuma senha salva)</value></data>
+  <data name="Text28182B20536F" xml:space="preserve"><value>Não foi possível atualizar a lista. Os dados já carregados foram mantidos.</value></data>
+  <data name="Text484AFB43F310" xml:space="preserve"><value>trocar o modo de visualização</value></data>
+  <data name="Text09A5528A3880" xml:space="preserve"><value>Todas as Conexões</value></data>
+  <data name="TextAD2C8BA9AC94" xml:space="preserve"><value>Favoritos</value></data>
+  <data name="Text3068EBA03D59" xml:space="preserve"><value>Recentes</value></data>
+  <data name="Text06494C771DFB" xml:space="preserve"><value>Novo rascunho. Preencha os campos e clique em Salvar.</value></data>
+  <data name="TextAECFB0D972CE" xml:space="preserve"><value>Corrija o endereço/porta: {0}</value></data>
+  <data name="Text6B04C0BDE20E" xml:space="preserve"><value>Corrija os campos: {0}</value></data>
+  <data name="TextC5C0F744EE20" xml:space="preserve"><value>Conexão salva. Limpeza do cofre pendente; será tentada novamente.</value></data>
+  <data name="TextD5BD97D74237" xml:space="preserve"><value>Conexão '{0}' salva.</value></data>
+  <data name="TextEE55D67E143B" xml:space="preserve"><value>Não foi possível salvar. Suas alterações foram mantidas; tente novamente.</value></data>
+  <data name="Text983CCBC2B9FC" xml:space="preserve"><value>Alterações descartadas.</value></data>
+  <data name="TextA74F877CF388" xml:space="preserve"><value>Cópia criada como rascunho. Clique em Salvar para gravar.</value></data>
+  <data name="TextDB42AF0C2D2A" xml:space="preserve"><value>Selecione uma conexão para excluir.</value></data>
+  <data name="Text37045D507711" xml:space="preserve"><value>Excluir Definitivamente</value></data>
+  <data name="Text198C279A5E0C" xml:space="preserve"><value>Deseja realmente excluir permanentemente a conexão '{0}'?
+Esta ação não poderá ser desfeita.</value></data>
+  <data name="TextF2AAA616AA7D" xml:space="preserve"><value>Conexão '{0}' excluída definitivamente.</value></data>
+  <data name="Text45CA62F6F26B" xml:space="preserve"><value>Mover para a Lixeira</value></data>
+  <data name="Text337DF60F88D3" xml:space="preserve"><value>Deseja mover a conexão '{0}' para a lixeira?</value></data>
+  <data name="TextDACA3EE8C5D7" xml:space="preserve"><value>Conexão '{0}' movida para a Lixeira.</value></data>
+  <data name="Text2A98DC098DBD" xml:space="preserve"><value>Selecione uma conexão na lixeira para restaurar.</value></data>
+  <data name="Text69CF11CF7548" xml:space="preserve"><value>Já existe uma conexão ativa com o nome '{0}'.
+Deseja restaurar renomeando automaticamente para '{1} (Restaurada)'?</value></data>
+  <data name="TextA4E9DF69CA47" xml:space="preserve"><value>Restauração cancelada.</value></data>
+  <data name="Text784AD8B24DC5" xml:space="preserve"><value>Conexão '{0}' restaurada com sucesso.</value></data>
+  <data name="Text8AD4A6075F48" xml:space="preserve"><value>A lixeira já está vazia.</value></data>
+  <data name="Text1CE7CE01F161" xml:space="preserve"><value>Esvaziar Lixeira</value></data>
+  <data name="TextC23930BEB19F" xml:space="preserve"><value>Deseja realmente excluir definitivamente todos os {0} itens da lixeira?
+Esta ação não poderá ser desfeita.</value></data>
+  <data name="TextE6E73DEDD8ED" xml:space="preserve"><value>Lixeira esvaziada com sucesso.</value></data>
+  <data name="Text561E1D26DD1D" xml:space="preserve"><value>Cliente Externo Ausente</value></data>
+  <data name="TextA50195A83C9E" xml:space="preserve"><value>
+
+Use o botão de Configurações (⚙) na barra superior para localizar o programa.</value></data>
+  <data name="TextE84FAE810E79" xml:space="preserve"><value>Não foi possível iniciar o cliente</value></data>
+  <data name="Text3A04ABD7C05E" xml:space="preserve"><value>Favorito alterado no rascunho. Clique em Salvar para gravar.</value></data>
+  <data name="Text20C3955A562E" xml:space="preserve"><value>Nome da conexão copiado</value></data>
+  <data name="Text6CED5B71AE68" xml:space="preserve"><value>Host:porta copiado</value></data>
+  <data name="Text6B88208D437B" xml:space="preserve"><value>Nome da VPN copiado</value></data>
+  <data name="TextA8BB49926B43" xml:space="preserve"><value>Servidor da VPN copiado</value></data>
+  <data name="TextB325D760DD3C" xml:space="preserve"><value>Senha copiada</value></data>
+  <data name="Text696874DAA0C6" xml:space="preserve"><value>Nenhuma senha cadastrada.</value></data>
+  <data name="Text249B801C16EE" xml:space="preserve"><value>Credencial salva ilegível.</value></data>
+  <data name="Text91632B69D521" xml:space="preserve"><value>Não foi possível recuperar a credencial salva. Consulte o diagnóstico ou substitua a senha.</value></data>
+  <data name="TextCE4789FAFFA2" xml:space="preserve"><value>Senha exibida temporariamente por {0} segundos.</value></data>
+  <data name="Text26DC18A38122" xml:space="preserve"><value>Senha ocultada novamente.</value></data>
+  <data name="Text3C20CC397058" xml:space="preserve"><value>Senha Mestra</value></data>
+  <data name="TextD20FE87839EE" xml:space="preserve"><value>A senha mestra informada está incorreta.</value></data>
+  <data name="TextAD65A30531BE" xml:space="preserve"><value>Testando conexão...</value></data>
+  <data name="Text7D519924399C" xml:space="preserve"><value>Teste concluído: {0}</value></data>
+  <data name="Text7FEDB99C6AAE" xml:space="preserve"><value>A edição em lote falhou. As alterações foram desfeitas.</value></data>
+  <data name="TextC7357A8C89AC" xml:space="preserve"><value>Nova conexão — ConectaTI</value></data>
+  <data name="TextB05362A58951" xml:space="preserve"><value>Editar conexão — ConectaTI</value></data>
+  <data name="TextC9DC78D19188" xml:space="preserve"><value>Nova conexão</value></data>
+  <data name="Text5304E831336A" xml:space="preserve"><value>Editar conexão</value></data>
+  <data name="Text36A7AEABB235" xml:space="preserve"><value>Nova credencial (informe a senha acima)</value></data>
+  <data name="Text2FFE82799B79" xml:space="preserve"><value>Senha salva: (nenhuma)</value></data>
+  <data name="TextEF31BC5F6E5E" xml:space="preserve"><value>Senha salva: ••••••••••••</value></data>
+  <data name="TextC032D4D9171D" xml:space="preserve"><value>O cofre está bloqueado.</value></data>
+  <data name="TextEC203DDB0F3E" xml:space="preserve"><value>Informe um nome de identificação para a credencial.</value></data>
+  <data name="TextA2661FF39CE5" xml:space="preserve"><value>Validação</value></data>
+  <data name="Text4F8B12359860" xml:space="preserve"><value>Credencial '{0}' salva com sucesso.</value></data>
+  <data name="TextA3E2AEDD5D0F" xml:space="preserve"><value>Deseja realmente excluir a credencial '{0}'?
+Conexões vinculadas a ela passarão a ficar sem credencial salva.</value></data>
+  <data name="TextD76F94DD0A8A" xml:space="preserve"><value>Confirmar Exclusão</value></data>
+  <data name="Text33DE6D024153" xml:space="preserve"><value>Credencial excluída.</value></data>
+  <data name="TextDD8487358426" xml:space="preserve"><value>Esta credencial não possui senha armazenada.</value></data>
+  <data name="Text0B7D8BDB3762" xml:space="preserve"><value>Desbloqueie o aplicativo para revelar senhas.</value></data>
+  <data name="Text7C774F2BBC00" xml:space="preserve"><value>Senha revelada por 10 segundos.</value></data>
+  <data name="TextDE696E326852" xml:space="preserve"><value>Erro ao Revelar Senha</value></data>
+  <data name="Text9CDC776E44A5" xml:space="preserve"><value>Gravável (OK)</value></data>
+  <data name="TextE66280F75223" xml:space="preserve"><value>{0} ativas | {1} na lixeira</value></data>
+  <data name="TextEE92D933F216" xml:space="preserve"><value>Nenhum erro registrado nesta sessão.</value></data>
+  <data name="Text16EF12A23B4A" xml:space="preserve"><value>Erro ao coletar diagnóstico</value></data>
+  <data name="TextD7F8A0CF19D0" xml:space="preserve"><value>Relatório de diagnóstico copiado para a área de transferência!</value></data>
+  <data name="Text30E0ECD7A8DB" xml:space="preserve"><value>Existem dados protegidos por senha mestra legada.</value></data>
+  <data name="Text24957F903D8A" xml:space="preserve"><value>Protegido pela conta do usuário no Windows (DPAPI). Sem bloqueio por senha mestra.</value></data>
+  <data name="TextEFC51FA27440" xml:space="preserve"><value>Caminho não informado</value></data>
+  <data name="TextC6A53920248C" xml:space="preserve"><value>Não configurado</value></data>
+  <data name="TextE2EAB204AE18" xml:space="preserve"><value>Disponível ({0})</value></data>
+  <data name="Text28B661023613" xml:space="preserve"><value>Arquivo não encontrado</value></data>
+  <data name="Text20DC55788510" xml:space="preserve"><value>Caminho padrão do MSTSC restaurado.</value></data>
+  <data name="Text637FC57B63A3" xml:space="preserve"><value>Detecção automática concluída.</value></data>
+  <data name="Text862251833896" xml:space="preserve"><value>mstsc.exe|mstsc.exe|Executáveis (*.exe)|*.exe</value></data>
+  <data name="TextE74A32744B59" xml:space="preserve"><value>putty.exe|putty.exe|Executáveis (*.exe)|*.exe</value></data>
+  <data name="Text3CC8B57AEA6A" xml:space="preserve"><value>ssh.exe|ssh.exe|Executáveis (*.exe)|*.exe</value></data>
+  <data name="Text6B77AB9DC3C3" xml:space="preserve"><value>WinSCP.exe|WinSCP.exe|Executáveis (*.exe)|*.exe</value></data>
+  <data name="Text1CE5B2038110" xml:space="preserve"><value>Selecionar Executável</value></data>
+  <data name="Text2BFA42E1F246" xml:space="preserve"><value>Credenciais migradas para DPAPI com sucesso.</value></data>
+  <data name="TextF228BCF5941A" xml:space="preserve"><value>Todas as credenciais foram migradas para proteção nativa DPAPI com sucesso.
+A senha mestra foi desativada.</value></data>
+  <data name="Text44DD5925A760" xml:space="preserve"><value>Migração Concluída</value></data>
+  <data name="Text5D488EBE3D7E" xml:space="preserve"><value>Senha Mestra Inválida</value></data>
+  <data name="Text6E59439D8D01" xml:space="preserve"><value>Erro na Migração</value></data>
+  <data name="Text584CFE35FDD9" xml:space="preserve"><value>Credenciais atualizadas.</value></data>
+  <data name="Text0A7EE51734E2" xml:space="preserve"><value>Dados atualizados pela importação/restauração.</value></data>
+  <data name="TextF3AA0B0A919A" xml:space="preserve"><value>Backup criado: {0}</value></data>
+  <data name="Text426EE4CC467E" xml:space="preserve"><value>Erro ao Criar Backup</value></data>
+  <data name="Text850F50CF47B6" xml:space="preserve"><value>O caminho informado para o MSTSC ('{0}') não foi encontrado no disco.
+Deseja salvar mesmo assim?</value></data>
+  <data name="TextA56F47FB4545" xml:space="preserve"><value>Executável MSTSC Não Encontrado</value></data>
+  <data name="TextBCD1823FE217" xml:space="preserve"><value>Validando arquivo</value></data>
+  <data name="Text9B4F7EC99E94" xml:space="preserve"><value>Decodificando {0} acessos</value></data>
+  <data name="Text3F07A69756DD" xml:space="preserve"><value>Preparando credenciais: {0} de {1}</value></data>
+  <data name="TextE77D017A2C52" xml:space="preserve"><value>Criando backup</value></data>
+  <data name="Text91322E100479" xml:space="preserve"><value>Importando {0} de {1} acessos</value></data>
+  <data name="Text8FD4F983B1CB" xml:space="preserve"><value>Confirmando gravação</value></data>
+  <data name="TextDB003659B843" xml:space="preserve"><value>Importação concluída</value></data>
+  <data name="Text3F794AA92AE0" xml:space="preserve"><value>Atualizando lista</value></data>
+  <data name="TextC70D9100D173" xml:space="preserve"><value>Selecionar arquivo de importação</value></data>
+  <data name="Text3F6D06708218" xml:space="preserve"><value>XML, CSV, JSON, AutoPuTTY|*.xml;*.csv;*.json;*.ini|Todos os arquivos|*.*</value></data>
+  <data name="TextA4A33AAC261D" xml:space="preserve"><value>Importação cancelada. Nenhuma alteração foi gravada.</value></data>
+  <data name="Text186BB0A31C05" xml:space="preserve"><value>Concluída. Encontrados: {0}; importados: {1}; atualizados: {2}; ignorados: {3}; duplicados criados: {4}; erros: {5}.</value></data>
+  <data name="TextC889856E26FC" xml:space="preserve"><value> Limpeza do cofre pendente.</value></data>
+  <data name="TextE7568A09EDA6" xml:space="preserve"><value>Importação cancelada. As gravações foram desfeitas.</value></data>
+  <data name="TextAA84D19B0C8F" xml:space="preserve"><value>A operação falhou. Nenhuma importação parcial foi confirmada. Copie o diagnóstico para obter detalhes.</value></data>
+  <data name="Text4788A2D1F6CE" xml:space="preserve"><value>Cancelando operação…</value></data>
+  <data name="Text9242759B46A7" xml:space="preserve"><value>Pasta padrão de backups automáticos: {0}
+</value></data>
+  <data name="TextF745EB916400" xml:space="preserve"><value>A restauração verifica a integridade do arquivo SQLite (PRAGMA integrity_check) e gera um backup de segurança antes de substituir os dados.</value></data>
+  <data name="TextA3A455E4D8EC" xml:space="preserve"><value>Senha do Arquivo AutoPuTTY</value></data>
+  <data name="Text8D22B220A932" xml:space="preserve"><value>O arquivo está protegido por senha mestra. Digite a senha para decodificar as conexões:</value></data>
+  <data name="Text800990D28BC1" xml:space="preserve"><value>Exportar Cadastros para XML (ConectaTI)</value></data>
+  <data name="Text32FE310D7473" xml:space="preserve"><value>Arquivo XML (*.xml)|*.xml</value></data>
+  <data name="TextE68672DB36C0" xml:space="preserve"><value>Exportado {0} conexões para XML do ConectaTI.</value></data>
+  <data name="Text0D04349ED623" xml:space="preserve"><value>Erro ao Exportar XML</value></data>
+  <data name="Text8864D42402D2" xml:space="preserve"><value>Exportar Compatível com AutoPuTTY (XML)</value></data>
+  <data name="TextFA5B321ADAEE" xml:space="preserve"><value>Arquivo AutoPuTTY (*.xml)|*.xml</value></data>
+  <data name="Text4D23BA584281" xml:space="preserve"><value>Exportado {0} conexões no formato compatível com AutoPuTTY.</value></data>
+  <data name="Text538CD483E086" xml:space="preserve"><value>Erro ao Exportar AutoPuTTY XML</value></data>
+  <data name="Text1420EBD7DD50" xml:space="preserve"><value>(Não mapear)</value></data>
+  <data name="Text92BDEA9DE6AB" xml:space="preserve"><value>Exportar Cadastros para CSV (Sem Senhas)</value></data>
+  <data name="Text3DE1E8508081" xml:space="preserve"><value>Arquivo CSV UTF-8 (*.csv)|*.csv</value></data>
+  <data name="TextA91FB892AC26" xml:space="preserve"><value>Exportado {0} conexões para CSV (sem senhas).</value></data>
+  <data name="Text1D706223F47A" xml:space="preserve"><value>Erro ao Exportar CSV</value></data>
+  <data name="Text624E0FCFA2F0" xml:space="preserve"><value>Exportar Cadastros para JSON (Sem Senhas)</value></data>
+  <data name="TextCFB8EF71763C" xml:space="preserve"><value>Arquivo JSON UTF-8 (*.json)|*.json</value></data>
+  <data name="TextF3EAE56CEA73" xml:space="preserve"><value>Exportado {0} conexões para JSON (sem senhas).</value></data>
+  <data name="TextD3640115766C" xml:space="preserve"><value>Erro ao Exportar JSON</value></data>
+  <data name="Text37A8406B298E" xml:space="preserve"><value>Informe uma senha de transporte com pelo menos 6 caracteres.</value></data>
+  <data name="TextE01DEC25D089" xml:space="preserve"><value>Senha de Transporte</value></data>
+  <data name="Text32B5264F624E" xml:space="preserve"><value>Exportar Pacote Criptografado Portátil</value></data>
+  <data name="TextDE1A71994A5E" xml:space="preserve"><value>Pacote criptografado (.ctienc) exportado com sucesso (PBKDF2-SHA256 + AES-256-GCM).</value></data>
+  <data name="TextACAD39670E69" xml:space="preserve"><value>Erro ao Exportar Pacote Criptografado</value></data>
+  <data name="Text4269F4D2D299" xml:space="preserve"><value>Informe a senha de transporte do pacote .ctienc antes de importar.</value></data>
+  <data name="TextDC586A7D9B69" xml:space="preserve"><value>Importar Pacote Criptografado Portátil</value></data>
+  <data name="TextF1E271F74D90" xml:space="preserve"><value>Pacote Criptografado ConectaTI (*.ctienc)|*.ctienc|Todos os arquivos (*.*)|*.*</value></data>
+  <data name="Text49CC4D9624DD" xml:space="preserve"><value>Pacote importado: {0} conexões e {1} credenciais re-protegidas no cofre local.</value></data>
+  <data name="Text17415B498A91" xml:space="preserve"><value>Pacote criptografado importado com sucesso!
+
+</value></data>
+  <data name="TextB787B0AA7BC9" xml:space="preserve"><value>• Conexões importadas/atualizadas: {0}
+</value></data>
+  <data name="Text34195DAD5ACB" xml:space="preserve"><value>• Credenciais importadas e protegidas via DPAPI local: {0}
+
+</value></data>
+  <data name="TextE3478E378979" xml:space="preserve"><value>Backup prévio salvo em:
+{0}</value></data>
+  <data name="TextD85BA9B03278" xml:space="preserve"><value>Importação Concluída</value></data>
+  <data name="Text1876BDD6CFA1" xml:space="preserve"><value>Falha ao Importar Pacote Criptografado</value></data>
+  <data name="Text839EB1F270B6" xml:space="preserve"><value>Salvar Backup Consistente do Banco SQLite</value></data>
+  <data name="TextE9F40085E31D" xml:space="preserve"><value>Backup consistente criado em: {0}</value></data>
+  <data name="TextCC6F97BFACFA" xml:space="preserve"><value>Backup consistente criado com sucesso em:
+{0}</value></data>
+  <data name="Text48C86CFEAA6E" xml:space="preserve"><value>Backup Criado</value></data>
+  <data name="Text7BFAEBF3A238" xml:space="preserve"><value>Falha ao criar backup: {0}</value></data>
+  <data name="Text3CCBAFE5C2B3" xml:space="preserve"><value>Erro no Backup</value></data>
+  <data name="Text0806252D92C9" xml:space="preserve"><value>Selecionar Arquivo de Backup SQLite para Restaurar</value></data>
+  <data name="Text6F86F0DA5491" xml:space="preserve"><value>Banco SQLite ConectaTI (*.db)|*.db|Todos os arquivos (*.*)|*.*</value></data>
+  <data name="TextF22C6B3917DD" xml:space="preserve"><value>Deseja restaurar o banco de dados a partir do arquivo:
+{0}?
+
+</value></data>
+  <data name="Text884417572F45" xml:space="preserve"><value>Um backup de segurança do estado atual será criado automaticamente antes da restauração.</value></data>
+  <data name="Text898D12826BFB" xml:space="preserve"><value>Confirmar Restauração de Backup</value></data>
+  <data name="TextA2387F1AE809" xml:space="preserve"><value>Backup restaurado com sucesso.</value></data>
+  <data name="TextF2822FEEF292" xml:space="preserve"><value>Banco de dados restaurado com sucesso!</value></data>
+  <data name="Text9CC778BF4084" xml:space="preserve"><value>Restauração Concluída</value></data>
+  <data name="Text900869C4D144" xml:space="preserve"><value>A restauração falhou e o banco original foi preservado:
+
+{0}</value></data>
+  <data name="Text485C39CF17B1" xml:space="preserve"><value>Falha na Restauração</value></data>
+  <data name="Text4B9B7BEEFEF4" xml:space="preserve"><value>=== DIAGNÓSTICO DO CONECTATI ===</value></data>
+  <data name="TextD4651015BE50" xml:space="preserve"><value>Data da Coleta: {0:yyyy-MM-dd HH:mm:ss}</value></data>
+  <data name="Text1D5CE3949D20" xml:space="preserve"><value>Versão do Aplicativo: {0}</value></data>
+  <data name="Text13F09EDD39DA" xml:space="preserve"><value>Sistema Operacional: {0} ({1})</value></data>
+  <data name="TextF3023E491A82" xml:space="preserve"><value>Runtime: {0}</value></data>
+  <data name="Text98DF1D090350" xml:space="preserve"><value>Idioma selecionado: {0}</value></data>
+  <data name="Text290AC574F9B1" xml:space="preserve"><value>Idioma efetivo: {0}</value></data>
+  <data name="Text6527EE017A29" xml:space="preserve"><value>Memória do processo no momento da coleta (Working Set): {0} bytes</value></data>
+  <data name="Text0F83F6176A8E" xml:space="preserve"><value>Etapa: {0}</value></data>
+  <data name="Text01B5587B85C0" xml:space="preserve"><value>Data do erro (UTC): {0:O}</value></data>
+  <data name="Text3E01533F8080" xml:space="preserve"><value>Exceção: {0}</value></data>
+  <data name="Text5CECDA9B091F" xml:space="preserve"><value>Mensagem técnica: {0}</value></data>
+  <data name="Text32179074D8C4" xml:space="preserve"><value>Stack trace: {0}</value></data>
+  <data name="TextBC7CA17F1572" xml:space="preserve"><value>Tamanho do arquivo: {0} bytes</value></data>
+  <data name="Text7CF0AB03F669" xml:space="preserve"><value>Registros identificados: {0}</value></data>
+  <data name="TextB9091743F148" xml:space="preserve"><value>Tempo decorrido (ms): {0:F0}</value></data>
+  <data name="Text0A86D7DE3111" xml:space="preserve"><value>Pasta do Executável: {0}</value></data>
+  <data name="TextD71959D53445" xml:space="preserve"><value>Pasta de Dados Efetiva: {0}</value></data>
+  <data name="Text0E8880647654" xml:space="preserve"><value>Permissão na Pasta de Dados: {0}</value></data>
+  <data name="Text427ACB5D2B13" xml:space="preserve"><value>Caminho Efetivo do Banco: {0}</value></data>
+  <data name="Text011CBDBB9A5A" xml:space="preserve"><value>Banco Existe: {0}</value></data>
+  <data name="TextA2982EFE468D" xml:space="preserve"><value>Tamanho do Banco: {0}</value></data>
+  <data name="TextA770B0E13A17" xml:space="preserve"><value>Versão do Esquema SQLite: {0}</value></data>
+  <data name="Text30562378CC00" xml:space="preserve"><value>Conexões Ativas: {0}</value></data>
+  <data name="Text78774A177F64" xml:space="preserve"><value>Conexões na Lixeira: {0}</value></data>
+  <data name="Text6847807B1704" xml:space="preserve"><value>Último Erro Registrado: {0}</value></data>
+  <data name="Text83590516E1D1" xml:space="preserve"><value>(Este relatório é sanitizado e não contém senhas, chaves privadas ou dados confidenciais).</value></data>
+  <data name="TextB578B3BC3696" xml:space="preserve"><value>Host inválido</value></data>
+  <data name="Text5BB460109599" xml:space="preserve"><value>O hostname ou endereço IP informado não possui um formato DNS, IPv4 ou IPv6 válido.</value></data>
+  <data name="TextEFC35E89AAD9" xml:space="preserve"><value>Porta inválida</value></data>
+  <data name="Text247798C87954" xml:space="preserve"><value>Teste cancelado</value></data>
+  <data name="Text341CFE21B015" xml:space="preserve"><value>Timeout na resolução DNS</value></data>
+  <data name="Text1F10ADB84433" xml:space="preserve"><value>O diagnóstico de rede foi cancelado pelo usuário.</value></data>
+  <data name="TextFD2DA1AD872D" xml:space="preserve"><value>A resolução DNS para '{0}' excedeu o tempo limite de {1} ms.</value></data>
+  <data name="Text2F3A2A09B9CB" xml:space="preserve"><value>Falha na resolução DNS</value></data>
+  <data name="TextFC32F543EC32" xml:space="preserve"><value>Não foi possível resolver o endereço '{0}': {1}</value></data>
+  <data name="Text0ABEC6F50CF2" xml:space="preserve"><value>DNS sem registros</value></data>
+  <data name="Text8FCDC3168E33" xml:space="preserve"><value>O host '{0}' não retornou nenhum endereço IPv4 ou IPv6.</value></data>
+  <data name="TextD97F9C85CFD8" xml:space="preserve"><value>Porta TCP {0} acessível ({1} ms)</value></data>
+  <data name="Text0444841889A3" xml:space="preserve"><value>DNS resolvido ({0}) em {1} ms. </value></data>
+  <data name="TextB84420F09614" xml:space="preserve"><value>Conexão TCP na porta {0} estabelecida em {1} ms.
+</value></data>
+  <data name="Text2F28984EB5B9" xml:space="preserve"><value>Nota: Isso confirma apenas que a porta de rede está acessível (handshake TCP), e NÃO significa que o usuário está autenticado no serviço.</value></data>
+  <data name="TextBDD8416DA9FC" xml:space="preserve"><value>Timeout TCP na porta {0}</value></data>
+  <data name="TextDC3B16E9047D" xml:space="preserve"><value>O diagnóstico TCP foi cancelado pelo usuário.</value></data>
+  <data name="Text2D76CDADD347" xml:space="preserve"><value>DNS resolvido ({0}), porém a porta TCP {1} não respondeu dentro de {2} ms (possível firewall, VPN desconectada ou serviço inativo).</value></data>
+  <data name="Text9CB104C43DC6" xml:space="preserve"><value>Porta TCP {0} inacessível</value></data>
+  <data name="Text8738A9666085" xml:space="preserve"><value>DNS resolvido ({0}), mas a conexão TCP na porta {1} falhou: {2}</value></data>
+  <data name="Text51B35C1ADA31" xml:space="preserve"><value>Não foi possível decifrar a lista AutoPuTTY. Verifique a senha do arquivo.</value></data>
+  <data name="TextE0753396680A" xml:space="preserve"><value>Campo AutoPuTTY criptografado ilegível.</value></data>
+  <data name="Text669DD8794BE6" xml:space="preserve"><value>Não foi possível ler o conteúdo do pacote criptografado.</value></data>
+  <data name="Text4171F40DD53E" xml:space="preserve"><value>Pacote Criptografado (.ctienc)</value></data>
+  <data name="Text338B2D164FE9" xml:space="preserve"><value>CSV ({0} linhas)</value></data>
+  <data name="Text8E52B97135D8" xml:space="preserve"><value>JSON Inválido</value></data>
+  <data name="Text61F36F3F8C16" xml:space="preserve"><value>Erro ao analisar arquivo JSON: {0}</value></data>
+  <data name="TextE49A245285A1" xml:space="preserve"><value>JSON Vazio</value></data>
+  <data name="Text6DBA62D62956" xml:space="preserve"><value>Nenhum registro encontrado no arquivo JSON.</value></data>
+  <data name="Text838A55F762DE" xml:space="preserve"><value>JSON ({0} registros)</value></data>
+  <data name="Text3A14E387B6B8" xml:space="preserve"><value>AutoPuTTY (Vazio)</value></data>
+  <data name="TextBF77E75F8825" xml:space="preserve"><value>O arquivo selecionado está vazio.</value></data>
+  <data name="Text4AC03A9AAE2A" xml:space="preserve"><value>AutoPuTTY (Criptografado / Binário)</value></data>
+  <data name="Text16FE7163379C" xml:space="preserve"><value>O arquivo selecionado aparenta estar criptografado ou em formato binário proprietário do AutoPuTTY. </value></data>
+  <data name="Text649725F0D7E8" xml:space="preserve"><value>Por segurança e confiabilidade, o ConectaTI não tenta quebrar arquivos criptografados proprietários. </value></data>
+  <data name="TextE41F45F448A0" xml:space="preserve"><value>AutoPuTTY INI ({0} registros)</value></data>
+  <data name="Text5665370D093B" xml:space="preserve"><value>Formato AutoPuTTY Não Reconhecido</value></data>
+  <data name="Text95A6FE27F2DB" xml:space="preserve"><value>O arquivo não pôde ser reconhecido automaticamente como lista do AutoPuTTY. </value></data>
+  <data name="Text868DF1A6DDBD" xml:space="preserve"><value>Verifique se o arquivo está protegido por senha ou utilize a importação CSV com mapeamento de colunas.</value></data>
+  <data name="Text5A58CD447568" xml:space="preserve"><value>XML Vazio</value></data>
+  <data name="Text193E6ABC162C" xml:space="preserve"><value>O arquivo XML selecionado está vazio.</value></data>
+  <data name="Text68291ECA72E1" xml:space="preserve"><value>ConectaTI XML ({0} conexões)</value></data>
+  <data name="Text140EEB759F34" xml:space="preserve"><value>ConectaTI XML Inválido</value></data>
+  <data name="Text1836C1AAB15F" xml:space="preserve"><value>Erro ao interpretar o arquivo XML: {0}</value></data>
+  <data name="Text6C7C6DF4A6AC" xml:space="preserve"><value>Inválido: {0}</value></data>
+  <data name="Text6FD706C8DA8D" xml:space="preserve"><value>Duplicado (Cliente + Nome + Host:Porta já existe)</value></data>
+  <data name="Text1AE28CCE8B7B" xml:space="preserve"><value>Pronto para importar</value></data>
+  <data name="TextA25B2692F1F4" xml:space="preserve"><value>AutoPuTTY XML reconhecido: {0} conexões | Válidas: {1} | Com senha recuperada: {2}</value></data>
+  <data name="TextCD8796F7AED6" xml:space="preserve"><value>AutoPuTTY XML ({0} conexões)</value></data>
+  <data name="Text0B52C8D05DF5" xml:space="preserve"><value>AutoPuTTY XML Inválido</value></data>
+  <data name="TextA1D2777C5EAF" xml:space="preserve"><value>Não foi possível interpretar o XML AutoPuTTY. Consulte o diagnóstico.</value></data>
+  <data name="Text7D36B6DFE9B3" xml:space="preserve"><value>XML ({0} conexões)</value></data>
+  <data name="TextFA08805D0DD6" xml:space="preserve"><value>XML Inválido</value></data>
+  <data name="Text0A2269EEB15E" xml:space="preserve"><value>Não foi possível interpretar o arquivo XML: {0}</value></data>
+  <data name="Text84DF530E8E5A" xml:space="preserve"><value>XML Não Reconhecido</value></data>
+  <data name="Text9426213DD520" xml:space="preserve"><value>O arquivo XML não contém elementos de conexão reconhecidos ou está protegido por uma senha não informada.</value></data>
+  <data name="Text8B278829DFB3" xml:space="preserve"><value>Total: {0} | Válidos: {1} | Duplicados: {2} | Inválidos: {3}</value></data>
+  <data name="Text8D55D876660F" xml:space="preserve"><value>O arquivo excede o limite de 32 MB.</value></data>
+  <data name="Text10BAECECA4C3" xml:space="preserve"><value>Um campo do arquivo excede o limite permitido.</value></data>
+  <data name="Text3C8F8E3D3122" xml:space="preserve"><value>Já existe uma importação em andamento.</value></data>
+  <data name="Text43E76209F507" xml:space="preserve"><value>O arquivo excede o limite de 20.000 acessos.</value></data>
+  <data name="TextDDD50DB1F991" xml:space="preserve"><value>O XML excede o limite permitido.</value></data>
+  <data name="Text56BD82C0FA86" xml:space="preserve"><value>Protocolo não suportado: {0}</value></data>
+  <data name="Text5D30A43DC2AD" xml:space="preserve"><value>O ConectaTI está bloqueado. Desbloqueie o aplicativo antes de iniciar conexões.</value></data>
+  <data name="TextF44543F236FD" xml:space="preserve"><value>Dados inválidos no cadastro.</value></data>
+  <data name="TextE7C6CE16352F" xml:space="preserve"><value>Erro ao acessar a senha salva.</value></data>
+  <data name="Text68A01A78908C" xml:space="preserve"><value>Não foi possível descriptografar a senha salva para esta conexão. Verifique o bloqueio ou edite a senha.</value></data>
+  <data name="TextAB94A9625860" xml:space="preserve"><value>Executável do cliente não encontrado.</value></data>
+  <data name="TextECC28C5593E8" xml:space="preserve"><value>Erro ao iniciar cliente externo.</value></data>
+  <data name="Text3161E43CDF92" xml:space="preserve"><value>Não foi possível iniciar o executável '{0}': {1}</value></data>
+  <data name="Text1F7451DA4168" xml:space="preserve"><value>(Solicitar no cliente)</value></data>
+  <data name="TextBC6CBBD9C8AF" xml:space="preserve"><value>Nota: Caso uma política de segurança do domínio ou do servidor (como restrição de delegação NTLM/CredSSP) exija autenticação interativa, o Windows solicitará a confirmação na janela do MSTSC.</value></data>
+  <data name="Text1B4708DC8A40" xml:space="preserve"><value>Conexão sem senha salva: o cliente de Área de Trabalho Remota (MSTSC) solicitará a senha ao conectar.</value></data>
+  <data name="Text91C0382AC0E2" xml:space="preserve"><value>Cliente iniciado: Área de Trabalho Remota (MSTSC) para {0} (Usuário: {1}).</value></data>
+  <data name="Text7DE0D31FD42C" xml:space="preserve"><value>O executável configurado para Área de Trabalho Remota ('{0}') não foi encontrado. Verifique o caminho em 'Configurar Executáveis' ou clique em 'Restaurar caminho padrão'.</value></data>
+  <data name="TextC559F66E3B9C" xml:space="preserve"><value>O OpenSSH não recebe senhas por linha de comando por motivos de segurança. Utilize autenticação por chave ou informe a senha no prompt do terminal.</value></data>
+  <data name="Text9914DB517050" xml:space="preserve"><value>Autenticação via chave privada / agente SSH ou solicitação interativa no terminal.</value></data>
+  <data name="TextF7BE88BD41AB" xml:space="preserve"><value>Cliente iniciado: OpenSSH (ssh.exe) para {0}.</value></data>
+  <data name="Text6932562E79EA" xml:space="preserve"><value>O executável do OpenSSH (ssh.exe) não foi encontrado. Configure o caminho em 'Configurar Executáveis'.</value></data>
+  <data name="Text4703773E5387" xml:space="preserve"><value>Por segurança, o ConectaTI não envia senhas em texto puro via argumento '-pw'. Utilize chave privada/Pageant ou o botão 'Copiar Senha' na tela de detalhes.</value></data>
+  <data name="TextF97009E113F3" xml:space="preserve"><value>O PuTTY utilizará chave privada / Pageant ou solicitará a senha no terminal.</value></data>
+  <data name="TextD42E6AC100C9" xml:space="preserve"><value>Cliente iniciado: PuTTY (putty.exe) para {0}.</value></data>
+  <data name="Text044B871AFA0E" xml:space="preserve"><value>O executável do PuTTY (putty.exe) não foi encontrado. Configure o caminho em 'Configurar Executáveis' ou altere o cliente SSH para OpenSSH.</value></data>
+  <data name="Text90CA0692C05A" xml:space="preserve"><value>Por segurança, a senha não é exposta na URL de linha de comando do WinSCP. Utilize chave privada ou o botão 'Copiar Senha'.</value></data>
+  <data name="Text0872B74AE7A2" xml:space="preserve"><value>O WinSCP utilizará chave privada / Pageant ou solicitará a senha ao conectar.</value></data>
+  <data name="Text34D82B929453" xml:space="preserve"><value>Cliente iniciado: WinSCP ({0}) para {1}.</value></data>
+  <data name="Text22589EFC4763" xml:space="preserve"><value>O executável do WinSCP (WinSCP.exe) não foi encontrado. Localize o executável na tela 'Configurar Executáveis'.</value></data>
+  <data name="TextA4D48DAE1125" xml:space="preserve"><value>O cliente VNC solicitará a senha ao abrir (senhas não são passadas em texto puro por argumentos).</value></data>
+  <data name="Text177695AF12B2" xml:space="preserve"><value>O cliente VNC solicitará a senha caso o servidor exija autenticação.</value></data>
+  <data name="Text1B9B5635DAB4" xml:space="preserve"><value>Cliente VNC ({0})</value></data>
+  <data name="Text744D414E54AF" xml:space="preserve"><value>Cliente iniciado: VNC para {0}.</value></data>
+  <data name="TextE5E6B2B83A27" xml:space="preserve"><value>Nenhum cliente VNC foi encontrado. Configure o caminho do executável VNC em 'Configurar Executáveis'.</value></data>
+  <data name="Text1B6D051157D2" xml:space="preserve"><value>O aplicativo está bloqueado. Desbloqueie antes de acessar credenciais.</value></data>
+  <data name="Text8EA31C9A0D2B" xml:space="preserve"><value>A chave da senha mestra não está carregada na sessão.</value></data>
+  <data name="Text59ACF2F5DA10" xml:space="preserve"><value>A senha mestra atual informada está incorreta.</value></data>
+  <data name="Text76B2372BA111" xml:space="preserve"><value>A senha de proteção para exportação deve ter pelo menos 6 caracteres.</value></data>
+  <data name="Text7F214167ED90" xml:space="preserve"><value>Informe a senha do pacote criptografado.</value></data>
+  <data name="TextA087C3AD2C49" xml:space="preserve"><value>O arquivo selecionado não é um pacote criptografado válido do ConectaTI.</value></data>
+  <data name="TextF870843F49BA" xml:space="preserve"><value>Cabeçalho de arquivo criptografado inválido (esperado CTIENC01).</value></data>
+  <data name="TextCF97CA1038EE" xml:space="preserve"><value>Senha incorreta ou pacote criptografado adulterado/corrompido.</value></data>
+  <data name="TextA97B110DDBA9" xml:space="preserve"><value>O cofre de credenciais está bloqueado.</value></data>
+  <data name="Text28E2D2B39A2C" xml:space="preserve"><value>A senha mestra precisa ser validada para acessar os segredos.</value></data>
+  <data name="TextD660C57C5B74" xml:space="preserve"><value>Dados criptografados inválidos.</value></data>
+  <data name="Text4ADDEEC5BF64" xml:space="preserve"><value>Uma credencial preexistente do Windows para '{0}' foi preservada sem substituição silenciosa. A senha do cadastro foi incluída de forma criptografada no arquivo de sessão .rdp.</value></data>
+  <data name="TextC4E0043328CE" xml:space="preserve"><value>Credencial do cadastro disponibilizada ao MSTSC via Gerenciador de Credenciais do Windows (temporária de sessão).</value></data>
+  <data name="Text9BB1328098A8" xml:space="preserve"><value>Cadastrar nova conexão (Ctrl+N)</value></data>
+  <data name="TextBADD8CCF4A67" xml:space="preserve"><value>+ Nova</value></data>
+  <data name="TextA7B73FF6C5D1" xml:space="preserve"><value>Alternar tema</value></data>
+  <data name="Text3B11819721B7" xml:space="preserve"><value>Editar em lote</value></data>
+  <data name="Text76B0FB6AD189" xml:space="preserve"><value>Configurações</value></data>
+  <data name="Text013F5E45ED6C" xml:space="preserve"><value>Buscar conexão (Ctrl+F)</value></data>
+  <data name="Text5F55EDF90089" xml:space="preserve"><value>Buscar</value></data>
+  <data name="Text0160E76C91E7" xml:space="preserve"><value>Buscar...</value></data>
+  <data name="Text9F3EBBDE555A" xml:space="preserve"><value>Limpar busca</value></data>
+  <data name="TextBD02B9A7D71D" xml:space="preserve"><value>Todos</value></data>
+  <data name="TextB3977B864159" xml:space="preserve"><value>Todas as conexões ativas</value></data>
+  <data name="TextFEA0D3D1588C" xml:space="preserve"><value>Conexões marcadas como favoritas</value></data>
+  <data name="Text4E6C1551840F" xml:space="preserve"><value>🕒 Recentes</value></data>
+  <data name="TextC62B898F85F9" xml:space="preserve"><value>Conexões abertas recentemente</value></data>
+  <data name="TextF4A70EAE5B48" xml:space="preserve"><value>Lixeira (conexões excluídas)</value></data>
+  <data name="Text3B0B0FDFE2E3" xml:space="preserve"><value>Conectar</value></data>
+  <data name="Text88F77287CBDB" xml:space="preserve"><value>Duplicar</value></data>
+  <data name="Text8B19518FF49B" xml:space="preserve"><value>Excluir</value></data>
+  <data name="TextD222A8EA2FB8" xml:space="preserve"><value>Restaurar da lixeira</value></data>
+  <data name="Text4164CBC3F186" xml:space="preserve"><value>Excluir definitivamente</value></data>
+  <data name="TextD7017B73BD1E" xml:space="preserve"><value>Esvaziar lixeira</value></data>
+  <data name="TextE5F454CC6361" xml:space="preserve"><value>Testar conexão</value></data>
+  <data name="Text51FC562A8C0A" xml:space="preserve"><value>Copiar hostname/endereço</value></data>
+  <data name="TextF401E192756A" xml:space="preserve"><value>Copiar usuário</value></data>
+  <data name="Text298A26FABB25" xml:space="preserve"><value>Copiar senha</value></data>
+  <data name="TextFA6E89A3EFC8" xml:space="preserve"><value>Arraste para ajustar a largura da lista</value></data>
+  <data name="TextB50E4138B1C1" xml:space="preserve"><value>Novos rascunhos desta sessão</value></data>
+  <data name="TextF82BFA5FF80D" xml:space="preserve"><value>Novos rascunhos</value></data>
+  <data name="TextEC97782257F3" xml:space="preserve"><value>🗑️ Conexão na Lixeira</value></data>
+  <data name="Text010AD8D3A1F4" xml:space="preserve"><value>♻️ Restaurar</value></data>
+  <data name="TextBF09C0A4277F" xml:space="preserve"><value>Nome da conexão</value></data>
+  <data name="TextF32697AC9339" xml:space="preserve"><value>Copiar nome da conexão</value></data>
+  <data name="TextD63850D3A222" xml:space="preserve"><value>Copiar nome</value></data>
+  <data name="Text134E55471D20" xml:space="preserve"><value>Endereço / Hostname[:porta]</value></data>
+  <data name="TextADCA1D03FBAC" xml:space="preserve"><value>Copiar endereço</value></data>
+  <data name="TextB8EFA018467E" xml:space="preserve"><value>Usuário [DOMÍNIO\usuário]</value></data>
+  <data name="TextA3037DC71A43" xml:space="preserve"><value>Remover</value></data>
+  <data name="Text86509F57E908" xml:space="preserve"><value>Remover senha salva desta conexão</value></data>
+  <data name="TextB2236FABE665" xml:space="preserve"><value>Mostrar / ocultar senha</value></data>
+  <data name="Text236F9B72F9D6" xml:space="preserve"><value>Copiar senha (limpa em 30 segundos)</value></data>
+  <data name="TextE6E1B71770FE" xml:space="preserve"><value>Chave privada</value></data>
+  <data name="TextCBC206F5964B" xml:space="preserve"><value>Procurar arquivo de chave privada SSH</value></data>
+  <data name="Text2FC429DB7583" xml:space="preserve"><value>Tipo de conexão</value></data>
+  <data name="Text76D0D8DA1D7C" xml:space="preserve"><value>Conectar ao servidor (Enter na lista)</value></data>
+  <data name="TextCFB546213C60" xml:space="preserve"><value>Salvar alterações desta conexão (Ctrl+S)</value></data>
+  <data name="Text289CA5B692D9" xml:space="preserve"><value>Mais opções (Duplicar, Excluir, Testar)</value></data>
+  <data name="Text38101476AF05" xml:space="preserve"><value>Duplicar conexão</value></data>
+  <data name="Text138CC6F361D2" xml:space="preserve"><value>Excluir conexão</value></data>
+  <data name="Text94B925D07059" xml:space="preserve"><value>Copiar host:porta</value></data>
+  <data name="Text534C4DA81431" xml:space="preserve"><value>Descartar alterações</value></data>
+  <data name="Text5D951376C42F" xml:space="preserve"><value>Mais opções</value></data>
+  <data name="TextF851D9A83AB0" xml:space="preserve"><value>Cliente</value></data>
+  <data name="Text399B037DAB0F" xml:space="preserve"><value>Grupo</value></data>
+  <data name="Text0D2B7CA65666" xml:space="preserve"><value>Ambiente</value></data>
+  <data name="TextE7A2C0C4DBFB" xml:space="preserve"><value>Favorito</value></data>
+  <data name="TextC01DDBEAAB7C" xml:space="preserve"><value>Observações</value></data>
+  <data name="Text8F804E33755B" xml:space="preserve"><value>Opções RDP (MSTSC)</value></data>
+  <data name="TextCDD35DEA1EE3" xml:space="preserve"><value>Tela cheia</value></data>
+  <data name="Text101BBBFD9127" xml:space="preserve"><value>Multimon</value></data>
+  <data name="Text2E55394916E0" xml:space="preserve"><value>Admin (/admin)</value></data>
+  <data name="Text5D6A22D7076B" xml:space="preserve"><value>Largura</value></data>
+  <data name="Text196624F8AC36" xml:space="preserve"><value>Altura</value></data>
+  <data name="TextF2FE19B9DB31" xml:space="preserve"><value>Usar agente de autenticação SSH (Pageant / ssh-agent)</value></data>
+  <data name="Text7B3218B5EEBD" xml:space="preserve"><value>Parâmetros adicionais VNC</value></data>
+  <data name="Text0120E59D18C6" xml:space="preserve"><value>VPN do cliente</value></data>
+  <data name="TextA4A2EF0A67A1" xml:space="preserve"><value>Nome da VPN</value></data>
+  <data name="TextFDADA95F7ABC" xml:space="preserve"><value>Copiar nome da VPN</value></data>
+  <data name="Text23ECCE63EAEA" xml:space="preserve"><value>Aplicativo</value></data>
+  <data name="Text28E4CE98A862" xml:space="preserve"><value>Servidor / IP[:porta]</value></data>
+  <data name="TextD23258F58F26" xml:space="preserve"><value>Copiar servidor da VPN</value></data>
+  <data name="Text46C202C7E457" xml:space="preserve"><value>Edição em lote</value></data>
+  <data name="TextD9A99F9E4EDA" xml:space="preserve"><value>Somente os campos escolhidos serão gravados. Os demais dados e credenciais serão preservados.</value></data>
+  <data name="Text21190A7FCFCB" xml:space="preserve"><value>Não alterar</value></data>
+  <data name="Text828036BF894B" xml:space="preserve"><value>Definir valor</value></data>
+  <data name="Text258ACE67BE6A" xml:space="preserve"><value>Limpar campo</value></data>
+  <data name="Text319A21755771" xml:space="preserve"><value>Alterar ambiente</value></data>
+  <data name="TextE2162AD991BD" xml:space="preserve"><value>Aplicar alterações</value></data>
+  <data name="Text0F2BD88EF0AC" xml:space="preserve"><value>Fechar</value></data>
+  <data name="TextFAA972EC1C89" xml:space="preserve"><value>Conexão — ConectaTI</value></data>
+  <data name="Text80B067419682" xml:space="preserve"><value>Informe os dados principais da conexão.</value></data>
+  <data name="Text5086900635FE" xml:space="preserve"><value>Nome</value></data>
+  <data name="TextEF5E7E12BDAC" xml:space="preserve"><value>Endereço</value></data>
+  <data name="Text0A230B5DD43B" xml:space="preserve"><value>Hostname DNS, endereço IPv4 ou IPv6</value></data>
+  <data name="TextF53BBAA05FAE" xml:space="preserve"><value>Usuário</value></data>
+  <data name="Text138610D10FB9" xml:space="preserve"><value>Usuário local, DOMINIO\usuario ou usuario@dominio</value></data>
+  <data name="TextFF8E2C52F95D" xml:space="preserve"><value>Remover senha salva</value></data>
+  <data name="TextD9DB020133DE" xml:space="preserve"><value>Informe a senha para salvar ou deixe em branco para manter a senha existente</value></data>
+  <data name="TextA2068A0DE3BB" xml:space="preserve"><value>Deixe em branco para preservar a senha existente.</value></data>
+  <data name="TextBD998143DA98" xml:space="preserve"><value>Opções avançadas</value></data>
+  <data name="Text946D1F8153CE" xml:space="preserve"><value>Porta</value></data>
+  <data name="Text356377BA453A" xml:space="preserve"><value>Domínio</value></data>
+  <data name="Text6DD8CF662565" xml:space="preserve"><value>Marcar como favorito</value></data>
+  <data name="TextB9D4506C3B66" xml:space="preserve"><value>Procurar...</value></data>
+  <data name="Text4255EF5ED251" xml:space="preserve"><value>Preferências de tela (MSTSC)</value></data>
+  <data name="Text9C2447A06C8D" xml:space="preserve"><value>Múltiplos monitores</value></data>
+  <data name="Text7A9412FE2BF6" xml:space="preserve"><value>Sessão admin (/admin)</value></data>
+  <data name="TextB11E7CA5545B" xml:space="preserve"><value>Largura (px)</value></data>
+  <data name="TextDE73D011D72D" xml:space="preserve"><value>Altura (px)</value></data>
+  <data name="Text2F06B83E3014" xml:space="preserve"><value>Cliente SSH</value></data>
+  <data name="Text15C4DC7F49C4" xml:space="preserve"><value>Usar agente de autenticação SSH</value></data>
+  <data name="Text514834825DDF" xml:space="preserve"><value>Parâmetros adicionais do VNC</value></data>
+  <data name="Text505B2AD89124" xml:space="preserve"><value>Credenciais Salvas Reutilizáveis</value></data>
+  <data name="Text0EB22940AE07" xml:space="preserve"><value>Cadastre credenciais compartilhadas por vários servidores de um mesmo cliente. As senhas são armazenadas com proteção vinculada ao usuário do Windows.</value></data>
+  <data name="Text9627552FAEAE" xml:space="preserve"><value>+ Nova Credencial</value></data>
+  <data name="TextC6A682B06524" xml:space="preserve"><value>Dados da Credencial</value></data>
+  <data name="Text8A9E5ED513D0" xml:space="preserve"><value>Nome / Identificação (ex: Admin Domínio Alfa):</value></data>
+  <data name="Text57EBFE7D2AF5" xml:space="preserve"><value>Usuário:</value></data>
+  <data name="TextF31F0C0D3463" xml:space="preserve"><value>Domínio (opcional):</value></data>
+  <data name="Text9ED98A224A5A" xml:space="preserve"><value>Senha (deixe em branco ao editar para manter a senha atual):</value></data>
+  <data name="TextDF42F6785A38" xml:space="preserve"><value>👁 Revelar Temporariamente</value></data>
+  <data name="TextEED46B88EF57" xml:space="preserve"><value>Observações:</value></data>
+  <data name="Text6B94E07B7879" xml:space="preserve"><value>Excluir Credencial</value></data>
+  <data name="Text2F06521E1324" xml:space="preserve"><value>Salvar Credencial</value></data>
+  <data name="Text5ADE38599061" xml:space="preserve"><value>Configurações — ConectaTI</value></data>
+  <data name="TextED176FEF9943" xml:space="preserve"><value>Gerencie aparência, programas externos, credenciais e backups.</value></data>
+  <data name="Text2130A3B5E09E" xml:space="preserve"><value>Geral</value></data>
+  <data name="Text7AE9D418353B" xml:space="preserve"><value>Idioma</value></data>
+  <data name="TextA691DB0557A4" xml:space="preserve"><value>Visualização</value></data>
+  <data name="TextA192EB9E9C8A" xml:space="preserve"><value>Modo compacto</value></data>
+  <data name="TextD42A6DC78356" xml:space="preserve"><value>Modo confortável</value></data>
+  <data name="Text5C4B4BD1A56D" xml:space="preserve"><value>Tamanho da fonte (11–18)</value></data>
+  <data name="Text04F9F0A78DBE" xml:space="preserve"><value>Aparência</value></data>
+  <data name="TextEB88B483EA19" xml:space="preserve"><value>Tema do aplicativo</value></data>
+  <data name="TextBBC72DF02AC9" xml:space="preserve"><value>Conforme o Windows</value></data>
+  <data name="Text64B58754485A" xml:space="preserve"><value>Tema claro</value></data>
+  <data name="Text0F1C67EB81A0" xml:space="preserve"><value>Tema escuro</value></data>
+  <data name="Text7A1042B28193" xml:space="preserve"><value>Área de Transferência e Automação</value></data>
+  <data name="TextEDD837F12E8C" xml:space="preserve"><value>Limpar senha copiada (seg)</value></data>
+  <data name="Text85A1D3DF281D" xml:space="preserve"><value>Ocultar senha exibida (seg)</value></data>
+  <data name="Text6B93836F2497" xml:space="preserve"><value>Preencher senha salva automaticamente ao conectar via MSTSC</value></data>
+  <data name="Text8088EDF59986" xml:space="preserve"><value>Segurança das Credenciais</value></data>
+  <data name="Text69FDFD93281A" xml:space="preserve"><value>Protegido pela conta do usuário no Windows (DPAPI).</value></data>
+  <data name="Text4F3A24641E8C" xml:space="preserve"><value>Existe uma senha mestra configurada anteriormente. Deseja migrar suas credenciais para a proteção DPAPI do Windows?</value></data>
+  <data name="Text79478964AC03" xml:space="preserve"><value>Senha mestra anterior</value></data>
+  <data name="TextB94059562C9E" xml:space="preserve"><value>Migrar para DPAPI</value></data>
+  <data name="Text7B637BAB4F9F" xml:space="preserve"><value>Programas</value></data>
+  <data name="Text1113234D991B" xml:space="preserve"><value>Executáveis dos clientes de conexão</value></data>
+  <data name="Text6C1F9EBCC8F7" xml:space="preserve"><value>Detectar automaticamente</value></data>
+  <data name="Text594C3B2E334A" xml:space="preserve"><value>Área de Trabalho Remota — mstsc.exe</value></data>
+  <data name="Text4F67240E9A17" xml:space="preserve"><value>Restaurar caminho padrão</value></data>
+  <data name="Text3B7E4699A24A" xml:space="preserve"><value>Restaura %WINDIR%\System32\mstsc.exe</value></data>
+  <data name="TextD653A7844124" xml:space="preserve"><value>PuTTY</value></data>
+  <data name="TextB34A5D5691AD" xml:space="preserve"><value>OpenSSH</value></data>
+  <data name="Text673FA557D7AA" xml:space="preserve"><value>WinSCP</value></data>
+  <data name="TextE41A2B6503B0" xml:space="preserve"><value>VNC</value></data>
+  <data name="TextF429B5263082" xml:space="preserve"><value>Cliente SSH padrão</value></data>
+  <data name="Text2FFCD6F40E95" xml:space="preserve"><value>OpenSSH do Windows</value></data>
+  <data name="Text5DE6B45BC540" xml:space="preserve"><value>Padrão de parâmetros VNC</value></data>
+  <data name="Text28EE40536291" xml:space="preserve"><value>TigerVNC / RealVNC (host::porta)</value></data>
+  <data name="Text23E564CAAABA" xml:space="preserve"><value>TightVNC (-host=host -port=porta)</value></data>
+  <data name="Text28C0CC7F0976" xml:space="preserve"><value>UltraVNC (host:porta)</value></data>
+  <data name="Text1DA724AB1F99" xml:space="preserve"><value>Personalizado ({host} {port} {user})</value></data>
+  <data name="TextC62CB625D100" xml:space="preserve"><value>Formato personalizado VNC</value></data>
+  <data name="TextADF9E60F4D90" xml:space="preserve"><value>Credenciais</value></data>
+  <data name="TextD1D6DB3BE482" xml:space="preserve"><value>Credenciais salvas</value></data>
+  <data name="Text4BF37FF33AA7" xml:space="preserve"><value>Gerencie as senhas e credenciais salvas no aplicativo, incluindo credenciais reutilizadas entre múltiplos servidores.</value></data>
+  <data name="TextF68E4F381086" xml:space="preserve"><value>Gerenciar credenciais salvas...</value></data>
+  <data name="Text622599F7B801" xml:space="preserve"><value>🔒 Aviso Importante sobre Portabilidade de Credenciais (DPAPI)</value></data>
+  <data name="TextE683DE8248AB" xml:space="preserve"><value>As senhas no ConectaTI são protegidas por padrão pela API nativa do Windows (DPAPI), atrelada exclusivamente ao seu usuário local e a esta máquina física.</value></data>
+  <data name="Text215985FC156E" xml:space="preserve"><value>Ao copiar o executável ou a pasta do ConectaTI para outro computador ou outro usuário do Windows, os cadastros das conexões continuam funcionando, mas as senhas deverão ser digitadas novamente se você não realizar a exportação com a opção 'Pacote Criptografado (.ctienc)' na aba de Importação e Backup.</value></data>
+  <data name="TextEF101CAD23DF" xml:space="preserve"><value>Importação e backup</value></data>
+  <data name="Text4A366C8B3706" xml:space="preserve"><value>Importação, exportação e cópias de segurança</value></data>
+  <data name="Text6285442CFEFD" xml:space="preserve"><value>Importe planilhas CSV, arquivos JSON ou listas do AutoPuTTY, exporte seus cadastros e gerencie backups locais do banco de dados.</value></data>
+  <data name="Text9ECAAA06B087" xml:space="preserve"><value>Abrir importação, exportação e backups...</value></data>
+  <data name="TextD2DF9DBF7DC0" xml:space="preserve"><value>Criar backup agora</value></data>
+  <data name="TextE695EB16E81F" xml:space="preserve"><value>Diagnóstico</value></data>
+  <data name="Text877BC3447067" xml:space="preserve"><value>Diagnóstico do Sistema e Armazenamento</value></data>
+  <data name="Text240CF7238558" xml:space="preserve"><value>Informações sobre banco de dados, localização dos arquivos, integridade e logs.</value></data>
+  <data name="Text4E8983D8D972" xml:space="preserve"><value>Caminho efetivo do banco:</value></data>
+  <data name="Text1258573B225A" xml:space="preserve"><value>Carregando...</value></data>
+  <data name="Text99D46ADA74E4" xml:space="preserve"><value>Versão do schema SQLite:</value></data>
+  <data name="Text393F24C49FCC" xml:space="preserve"><value>Status da pasta de dados:</value></data>
+  <data name="Text0C7669885EC9" xml:space="preserve"><value>Contagem de conexões:</value></data>
+  <data name="Text4E8E952D032B" xml:space="preserve"><value>Último erro sanitizado:</value></data>
+  <data name="Text5B47F14BF7A3" xml:space="preserve"><value>Nenhum erro registrado.</value></data>
+  <data name="TextE093EB410320" xml:space="preserve"><value>📁 Abrir pasta do banco</value></data>
+  <data name="Text425C16F62D4A" xml:space="preserve"><value>📁 Abrir pasta de logs</value></data>
+  <data name="Text75331D5D1612" xml:space="preserve"><value>📋 Copiar relatório de diagnóstico</value></data>
+  <data name="Text73678BF75065" xml:space="preserve"><value>Importação, Exportação e Backups</value></data>
+  <data name="TextB6F0955054E9" xml:space="preserve"><value>Central de Importação, Exportação e Backups</value></data>
+  <data name="Text3B0A5A1E174A" xml:space="preserve"><value>O ConectaTI cria automaticamente um backup consistente do SQLite antes de qualquer importação ou restauração.</value></data>
+  <data name="TextBCA6FB12656B" xml:space="preserve"><value>📥 Importar (CSV, JSON, AutoPuTTY)</value></data>
+  <data name="Text31FDC4DB1E53" xml:space="preserve"><value>📂 Selecionar Arquivo (CSV, JSON ou AutoPuTTY)...</value></data>
+  <data name="Text21BC7F7BEFE6" xml:space="preserve"><value>Nenhum arquivo selecionado.</value></data>
+  <data name="Text97AE53268AEE" xml:space="preserve"><value>Mapeamento de Colunas do CSV (ajuste caso necessário para atualizar a prévia):</value></data>
+  <data name="TextFB7EE8498663" xml:space="preserve"><value>Coluna Nome:</value></data>
+  <data name="Text56585CE08261" xml:space="preserve"><value>Coluna Cliente:</value></data>
+  <data name="Text0E1B7842441A" xml:space="preserve"><value>Coluna Grupo:</value></data>
+  <data name="TextF5AE3AEE593F" xml:space="preserve"><value>Coluna Ambiente:</value></data>
+  <data name="Text82EA994D8FE8" xml:space="preserve"><value>Coluna Protocolo:</value></data>
+  <data name="TextEB01DF50C92A" xml:space="preserve"><value>Coluna Host/IP:</value></data>
+  <data name="Text579F337DA7DA" xml:space="preserve"><value>Coluna Porta:</value></data>
+  <data name="Text190CCBA7A9C2" xml:space="preserve"><value>Coluna Usuário:</value></data>
+  <data name="Text0582689D33DD" xml:space="preserve"><value>Prévia de Importação:</value></data>
+  <data name="TextE7F0E6D956C1" xml:space="preserve"><value>Importar</value></data>
+  <data name="TextFD399BF6BC7B" xml:space="preserve"><value>Protocolo</value></data>
+  <data name="Text7DD05206EDBD" xml:space="preserve"><value>Host:Porta</value></data>
+  <data name="Text1EF3DC410D8F" xml:space="preserve"><value>Campos não recup.</value></data>
+  <data name="Text43C68567BBA3" xml:space="preserve"><value>Status / Validação</value></data>
+  <data name="TextAAE9D86B7B6B" xml:space="preserve"><value>Se encontrar conexão duplicada:</value></data>
+  <data name="Text0805CA9F38F4" xml:space="preserve"><value>Ignorar duplicados</value></data>
+  <data name="TextB5F5FA6CC88C" xml:space="preserve"><value>Atualizar cadastro existente</value></data>
+  <data name="Text584EC3CBC4BC" xml:space="preserve"><value>Criar novo registro</value></data>
+  <data name="TextF49A89363BA1" xml:space="preserve"><value>✅ Confirmar Importação dos Registros Selecionados</value></data>
+  <data name="Text61338C780811" xml:space="preserve"><value>📤 Exportar e Pacote Criptografado</value></data>
+  <data name="Text48A9BE6FBD76" xml:space="preserve"><value>1. Exportação Padrão de Cadastros (Sem Senhas)</value></data>
+  <data name="Text711CB2D61528" xml:space="preserve"><value>Exporta todos os servidores cadastrados em UTF-8. Por segurança, nenhuma senha é incluída nos arquivos XML, CSV ou JSON.</value></data>
+  <data name="Text4301E713A4E5" xml:space="preserve"><value>📄 Exportar para XML (ConectaTI .xml)</value></data>
+  <data name="TextC59FA8B7E3AB" xml:space="preserve"><value>📄 Exportar compatível com AutoPuTTY (.xml)</value></data>
+  <data name="Text5A753154D30E" xml:space="preserve"><value>📄 Exportar para CSV (UTF-8)</value></data>
+  <data name="TextF7ECE35DBD78" xml:space="preserve"><value>📋 Exportar para JSON (UTF-8)</value></data>
+  <data name="Text06BD82FB2C77" xml:space="preserve"><value>2. Transporte Seguro de Cadastros + Credenciais entre Computadores (.ctienc)</value></data>
+  <data name="Text2D461C488DBE" xml:space="preserve"><value>Como os dados protegidos por DPAPI são vinculados à conta e máquina Windows locais, utilize este pacote criptografado com senha própria (PBKDF2-SHA256 210.000 iterações + AES-256-GCM) para transportar conexões e credenciais com segurança para outro computador.</value></data>
+  <data name="TextB0D14565314E" xml:space="preserve"><value>Senha de transporte (mínimo 6 caracteres):</value></data>
+  <data name="TextE39E8062429C" xml:space="preserve"><value>🔐 Exportar Pacote Criptografado (.ctienc)</value></data>
+  <data name="Text97AC69B93DB9" xml:space="preserve"><value>🔓 Importar Pacote Criptografado (.ctienc)</value></data>
+  <data name="TextF63B8E3B6C6F" xml:space="preserve"><value>💾 Backups do Banco SQLite</value></data>
+  <data name="Text9FFB8C775A69" xml:space="preserve"><value>Backup e Restauração Consistentes (SQLite Online Backup API)</value></data>
+  <data name="Text0FEFDA3881D7" xml:space="preserve"><value>💾 Criar Backup Agora...</value></data>
+  <data name="TextDDDE69B0B9C9" xml:space="preserve"><value>♻️ Restaurar a partir de Backup...</value></data>
+  <data name="TextD4B7CE2E6AE1" xml:space="preserve"><value>Cancelar operação</value></data>
+  <data name="TextE453736CF3D0" xml:space="preserve"><value>Copiar detalhes dos erros</value></data>
+  <data name="Text5F36969B7D29" xml:space="preserve"><value>Todos os Clientes</value></data>
+  <data name="Text104F2BFBA365" xml:space="preserve"><value>Todos os Ambientes</value></data>
+  <data name="Text9E35F81E203A" xml:space="preserve"><value>Todos os Tipos</value></data>
+  <data name="Text240E2AE4AF08" xml:space="preserve"><value>Senha:</value></data>
+  <data name="Text03FD14DD52A8" xml:space="preserve"><value>Salvando...</value></data>
+  <data name="TextCCD0BFF0D229" xml:space="preserve"><value>Somente Leitura (Restrito)</value></data>
+  <data name="Text9A15D6F3857A" xml:space="preserve"><value>Somente Leitura (Restrita)</value></data>
+  <data name="TextC4CE9279FB77" xml:space="preserve"><value>Nenhum erro registrado</value></data>
+  <data name="Text811C1B0F7210" xml:space="preserve"><value>Credencial não recuperada</value></data>
+  <data name="Text1434BC9421E7" xml:space="preserve"><value>Registro inválido</value></data>
+  <data name="Text5C4C248158A7" xml:space="preserve"><value>Linha {0}: {1}</value></data>
+  <data name="Text875A5546CE3C" xml:space="preserve"><value>(nenhuma)</value></data>
+  <data name="Text2995B0BC2068" xml:space="preserve"><value>Não foi possível interpretar o arquivo JSON. Consulte o diagnóstico.</value></data>
+  <data name="Text2F581253357B" xml:space="preserve"><value>Informe um valor ou escolha Limpar campo.</value></data>
+  <data name="TextF0C1775C92FF" xml:space="preserve"><value>Decodificando {0} acesso</value></data>
+  <data name="Text3F63B599B494" xml:space="preserve"><value>Importando {0} de {1} acesso</value></data>
+  <data name="Text9313455E45AA" xml:space="preserve"><value>Sim</value></data>
+  <data name="Text9BC947E58B62" xml:space="preserve"><value>Não</value></data>
+  <data name="Text6FE77F9C8861" xml:space="preserve"><value>Nova Conexão (Cópia)</value></data>
+  <data name="Text9B3308DD0BDF" xml:space="preserve"><value>{0} (Cópia)</value></data>
+  <data name="Text6914A8839859" xml:space="preserve"><value>★ Favoritos ({0})</value></data>
+  <data name="TextA211FC504F52" xml:space="preserve"><value>🗑️ Lixeira ({0})</value></data>
+  <data name="Text3B3B0F54ADCD" xml:space="preserve"><value>HML</value></data>
+  <data name="Text9AED541153E3" xml:space="preserve"><value>TESTE</value></data>
+  <data name="TextE7F8A41F58ED" xml:space="preserve"><value>Informe uma pasta após --data-dir.</value></data>
+  <data name="Text8AB20554C843" xml:space="preserve"><value>A estrutura do XML excede os limites permitidos.</value></data>
+  <data name="Text21C53C7EB9E5" xml:space="preserve"><value>API nativa: {0}</value></data>
+  <data name="Text1B1E81CEDA6B" xml:space="preserve"><value>Código de erro nativo Win32: {0}</value></data>
+  <data name="TextE02AB9DA6477" xml:space="preserve"><value>Índice do registro (base 1): {0}</value></data>
+  <data name="TextD79DDA8DB255" xml:space="preserve"><value>Linha de origem: {0}</value></data>
+  <data name="TextEBAB52436ECC" xml:space="preserve"><value>Índice da credencial (base 1): {0}</value></data>
+  <data name="TextC737A6B823BA" xml:space="preserve"><value>Credencial preparada para o MSTSC (credencial preexistente em '{0}' preservada).</value></data>
+  <data name="Text36901B8CA742" xml:space="preserve"><value>Verificando {0}:{1} (timeout: 4s)...</value></data>
+  <data name="Text98A4FEEBE11E" xml:space="preserve"><value>Cofre</value></data>
+  <data name="TextAD764FEC6F8C" xml:space="preserve"><value>Bloquear cofre</value></data>
+  <data name="TextDD1C21F6E983" xml:space="preserve"><value>Cofre próprio</value></data>
+  <data name="TextDD4F0FBA06B3" xml:space="preserve"><value>Gerenciar cofre</value></data>
+  <data name="Text2B6DA0F09E71" xml:space="preserve"><value>Windows Credential Manager (legado)</value></data>
+  <data name="Text4BAAAF1463DB" xml:space="preserve"><value>SQLite — DPAPI do usuário Windows</value></data>
+  <data name="Text49C289CCA183" xml:space="preserve"><value>Cofre próprio — AES-256-GCM</value></data>
+  <data name="TextB811316D9495" xml:space="preserve"><value>Desbloqueie o cofre para continuar.</value></data>
+  <data name="Text3884853E626A" xml:space="preserve"><value>Use uma senha mestra com pelo menos 8 caracteres.</value></data>
+  <data name="TextBCB11334DCD7" xml:space="preserve"><value>A confirmação da senha mestra não confere.</value></data>
+  <data name="Text215B81D50DD3" xml:space="preserve"><value>O cofre já existe.</value></data>
+  <data name="TextF276B607D4B3" xml:space="preserve"><value>Crie o cofre antes de desbloquear.</value></data>
+  <data name="Text35A3BE486BAA" xml:space="preserve"><value>A senha mestra é necessária para recuperar os segredos.</value></data>
+  <data name="Text5D447CEEDBB5" xml:space="preserve"><value>A senha mestra é necessária para recuperar os segredos. Não há recuperação por chave de emergência.</value></data>
+  <data name="Text7363C6CAF8B8" xml:space="preserve"><value>Senha mestra atual</value></data>
+  <data name="TextFCF3112F9FAF" xml:space="preserve"><value>Nova senha mestra</value></data>
+  <data name="TextCC1E487CE067" xml:space="preserve"><value>Confirmar senha mestra</value></data>
+  <data name="TextDE2D3E8B6709" xml:space="preserve"><value>Senha mestra legada (somente se utilizada anteriormente)</value></data>
+  <data name="TextA58260D66D45" xml:space="preserve"><value>Migrar credenciais legadas</value></data>
+  <data name="Text996824A24F60" xml:space="preserve"><value>Cofre bloqueado.</value></data>
+  <data name="Text6B390533B9D8" xml:space="preserve"><value>Cofre desbloqueado nesta sessão.</value></data>
+  <data name="Text2AB2366ADD14" xml:space="preserve"><value>Crie uma senha mestra para começar a utilizar o cofre próprio.</value></data>
+  <data name="TextFD8D179D6B93" xml:space="preserve"><value>Criar cofre</value></data>
+  <data name="Text14B55B0E1E40" xml:space="preserve"><value>Desbloquear cofre</value></data>
+  <data name="TextD124364F4E04" xml:space="preserve"><value>Alterar senha mestra</value></data>
+  <data name="Text4DB82907D6F4" xml:space="preserve"><value>Processando o cofre...</value></data>
+  <data name="Text54387B7DCBA2" xml:space="preserve"><value>Senha mestra incorreta ou cofre adulterado. Os dados foram preservados.</value></data>
+  <data name="Text3558FE3051F5" xml:space="preserve"><value>Não foi possível concluir a operação do cofre. Os dados foram preservados.</value></data>
+  <data name="TextCC74EAD12306" xml:space="preserve"><value>Credenciais migradas: {0}; pendentes: {1}. Os originais Windows foram preservados.</value></data>
+  <data name="TextBBFE4AEE9E47" xml:space="preserve"><value>Pendente: {0} ({1})</value></data>
+  <data name="Text8B1E2CD881FC" xml:space="preserve"><value>A migração falhou. Os dados existentes foram preservados.</value></data>
+  <data name="Text12615FD00ED9" xml:space="preserve"><value>Cofre bloqueado. Use sua senha mestra para recuperar os segredos.</value></data>
+  <data name="Text3620ACCCA177" xml:space="preserve"><value>Cofre próprio desbloqueado — AES-256-GCM.</value></data>
+  <data name="Text2A3EA45A4A6D" xml:space="preserve"><value>Pacote com vínculos de credenciais inválidos.</value></data>
+  <data name="Text67081CEBF0DE" xml:space="preserve"><value>Não foi possível preparar a credencial temporária do MSTSC. O acesso foi preservado; a autenticação depende do cliente RDP.</value></data>
+  <data name="TextD51F336E04D8" xml:space="preserve"><value>Credenciais avulsas incluídas no pacote: {0}.</value></data>
+  <data name="TextC902248FF2F3" xml:space="preserve"><value>Credenciais avulsas: gravadas {0}; ignoradas {1}.</value></data>
+  <data name="TextBFF5D43C2C6B" xml:space="preserve"><value>Proteção automática de senhas</value></data>
+  <data name="TextC914B1CC0E8A" xml:space="preserve"><value>Migrar senhas do formato anterior</value></data>
+  <data name="TextE5A663D54490" xml:space="preserve"><value>As senhas são protegidas automaticamente para este usuário Windows. Para compartilhar, exporte um pacote com senhas.</value></data>
+  <data name="TextD9EB1A9AC752" xml:space="preserve"><value>Senha protegida por outro usuário. Importe um backup com senhas ou informe uma nova senha.</value></data>
+  <data name="Text40B769FB7C26" xml:space="preserve"><value>Senha no formato anterior. Migre usando a senha mestra anterior ou informe uma nova senha.</value></data>
+  <data name="Text51D312A6613B" xml:space="preserve"><value>Não foi possível recuperar a senha: dados corrompidos ou proteção do Windows indisponível. Consulte o diagnóstico ou informe uma nova senha.</value></data>
+  <data name="TextB3C1AE18C403" xml:space="preserve"><value>Informe a senha mestra anterior uma única vez para migrar as senhas para a proteção automática deste usuário Windows. Cancelar preserva os dados e permite tentar novamente.</value></data>
+  <data name="TextBC44AF1179AF" xml:space="preserve"><value>Migrar senhas</value></data>
+  <data name="Text047A8F409653" xml:space="preserve"><value>Não foi possível migrar. Confira a senha anterior. Os dados originais foram preservados.</value></data>
+  <data name="TextDF2EEC810B5C" xml:space="preserve"><value>O cliente remoto solicitará as credenciais manualmente.</value></data>
+  <data name="TextA0905CF264DA" xml:space="preserve"><value>Selecione pelo menos um acesso.</value></data>
+  <data name="Text57BC7CE01FD7" xml:space="preserve"><value>Informe uma senha de proteção com pelo menos 8 caracteres e confirme a mesma senha.</value></data>
+  <data name="TextA71B70FCF969" xml:space="preserve"><value>A seleção mudou ou contém acessos da lixeira. Revise antes de exportar.</value></data>
+  <data name="Text453CDD43EB06" xml:space="preserve"><value>A seleção contém vínculos de credenciais inválidos.</value></data>
+  <data name="Text4446538E16D9" xml:space="preserve"><value>Exportação impedida: {0} credencial(is) selecionada(s) indisponível(is). Nenhum arquivo foi gerado. Importe um backup com senhas, migre o formato anterior ou informe uma nova senha.</value></data>
+  <data name="Text11B17B2BCDF7" xml:space="preserve"><value>Formato de pacote não suportado.</value></data>
+  <data name="Text7B8D9150D632" xml:space="preserve"><value>Pacote com cadastros inválidos.</value></data>
+  <data name="Text9622CFF79788" xml:space="preserve"><value>Pacote sem proteção não pode conter senhas.</value></data>
+  <data name="Text76E528A41DA4" xml:space="preserve"><value>{0} acesso(s) selecionado(s) de {1}. Resultados filtrados: {2}.</value></data>
+  <data name="Text65253DD1CE28" xml:space="preserve"><value>Transferência / compartilhamento</value></data>
+  <data name="Text7AA295080072" xml:space="preserve"><value>Escolha os acessos. Somente os itens selecionados e suas credenciais vinculadas serão incluídos.</value></data>
+  <data name="TextE654125E0B1F" xml:space="preserve"><value>Exportar todos os acessos</value></data>
+  <data name="Text458E69B2FC40" xml:space="preserve"><value>Selecionar resultados filtrados</value></data>
+  <data name="Text33A042C0FD07" xml:space="preserve"><value>Limpar seleção</value></data>
+  <data name="Text8F7A859AC182" xml:space="preserve"><value>Revisar somente selecionados</value></data>
+  <data name="Text6A57618C2593" xml:space="preserve"><value>Selecionar</value></data>
+  <data name="TextA7250A987CAE" xml:space="preserve"><value>Incluir senhas</value></data>
+  <data name="Text5B442BB766A7" xml:space="preserve"><value>Com senhas: pacote AES-256-GCM protegido por senha do arquivo. Sem senhas: pacote de cadastros sem segredos.</value></data>
+  <data name="Text3177C57C8E3A" xml:space="preserve"><value>Senha de proteção do arquivo</value></data>
+  <data name="TextD645EB67E5F9" xml:space="preserve"><value>Confirme a senha do arquivo</value></data>
+  <data name="Text8ECB857AC027" xml:space="preserve"><value>Exportar seleção</value></data>
+  <data name="Text562A47B9CA3F" xml:space="preserve"><value>Importar pacote de transferência</value></data>
+  <data name="TextADB773884997" xml:space="preserve"><value>Outros formatos sem senhas</value></data>
+  <data name="Text56925AEC3AE6" xml:space="preserve"><value>Pacote com senhas (*.ctienc)|*.ctienc</value></data>
+  <data name="Text1E1635EE781D" xml:space="preserve"><value>Pacote sem senhas (*.ctishare)|*.ctishare</value></data>
+  <data name="TextE67F1CD13D65" xml:space="preserve"><value>Pacote de transferência exportado: {0} acesso(s).</value></data>
+  <data name="Text694C4AA2EECD" xml:space="preserve"><value>Exportação cancelada. Nenhum pacote foi gerado.</value></data>
+  <data name="Text7A78D22A9147" xml:space="preserve"><value>Pacotes ConectaTI|*.ctienc;*.ctishare|Todos os arquivos|*.*</value></data>
+  <data name="Text63E2BBAF1C92" xml:space="preserve"><value>Continuar</value></data>
+  <data name="Text15D6622A9329" xml:space="preserve"><value>Backup local do SQLite mantém a proteção do usuário de origem. Restaurar não transfere senhas para outro perfil. Para isso, exporte um pacote de transferência com senhas. A restauração verifica a integridade e preserva uma cópia de segurança.</value></data>
+  <data name="Text6894441B3FA5" xml:space="preserve"><value>Busca</value></data>
+</root>

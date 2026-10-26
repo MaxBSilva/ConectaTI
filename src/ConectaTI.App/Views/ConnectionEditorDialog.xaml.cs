@@ -11,16 +11,19 @@ namespace ConectaTI.App.Views;
 public partial class ConnectionEditorDialog : Window
 {
     private readonly MainViewModel _vm;
+    private bool _syncingVaultPassword;
+    private PropertyChangedEventHandler? _vaultDisplayHandler;
 
     public ConnectionEditorDialog(MainViewModel viewModel)
     {
         InitializeComponent();
+        LocalizedWindow.Attach(this);
         _vm = viewModel;
         DataContext = _vm;
 
         var isNew = _vm.IsNewRecord;
-        Title = isNew ? "Nova conexão — ConectaTI" : "Editar conexão — ConectaTI";
-        DialogTitleText.Text = isNew ? "Nova conexão" : "Editar conexão";
+        Title = isNew ? L.Text("Nova conexão — ConectaTI") : L.Text("Editar conexão — ConectaTI");
+        DialogTitleText.Text = isNew ? L.Text("Nova conexão") : L.Text("Editar conexão");
 
         if (!string.IsNullOrWhiteSpace(_vm.EditingEntry.Notes))
         {
@@ -34,6 +37,15 @@ public partial class ConnectionEditorDialog : Window
             AdvancedExpander.IsExpanded = true;
         }
 
+        _vaultDisplayHandler=(_,args)=>
+        {
+            if(args.PropertyName!=nameof(MainViewModel.IsLocked)) return;
+            _syncingVaultPassword=true;
+            try { InlinePasswordBox.Password=_vm.IsLocked ? "" : _vm.InlinePasswordInput; }
+            finally { _syncingVaultPassword=false; }
+        };
+        _vm.PropertyChanged+=_vaultDisplayHandler;
+        Closed+=(_,_)=>_vm.PropertyChanged-=_vaultDisplayHandler;
         Loaded += (_, _) => NameInputBox.Focus();
         Closing += OnWindowClosing;
     }
@@ -66,7 +78,7 @@ public partial class ConnectionEditorDialog : Window
 
     private void InlinePasswordBox_PasswordChanged(object sender, RoutedEventArgs e)
     {
-        if (_vm != null && _vm.IsEditing)
+        if (_vm != null && _vm.IsEditing && !_syncingVaultPassword)
         {
             _vm.InlinePasswordInput = InlinePasswordBox.Password;
         }
@@ -83,8 +95,8 @@ public partial class ConnectionEditorDialog : Window
     {
         var dlg = new OpenFileDialog
         {
-            Title = "Selecionar Arquivo de Chave Privada SSH",
-            Filter = "Chaves SSH (*.ppk;*.pem;id_rsa;id_ed25519)|*.ppk;*.pem;*id_rsa*;*id_ed25519*|Todos os arquivos (*.*)|*.*",
+            Title = L.Text("Selecionar Arquivo de Chave Privada SSH"),
+            Filter = L.Text("Chaves SSH (*.ppk;*.pem;id_rsa;id_ed25519)|*.ppk;*.pem;*id_rsa*;*id_ed25519*|Todos os arquivos (*.*)|*.*"),
             CheckFileExists = true
         };
 

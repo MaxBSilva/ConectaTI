@@ -6,8 +6,9 @@ using Microsoft.Data.Sqlite;
 
 namespace ConectaTI.App.Data;
 
-public class SqliteRepository
+public partial class SqliteRepository
 {
+    internal SemaphoreSlim CredentialOperationGate { get; } = new(1, 1);
     private readonly AppPaths _paths;
     private readonly AppLogger _logger;
     private readonly string _connectionString;
@@ -54,7 +55,7 @@ public class SqliteRepository
         }
 
         var currentVersion = GetCurrentSchemaVersion(conn);
-        const int targetSchemaVersion = 5;
+        const int targetSchemaVersion = 8;
 
         if (currentVersion > 0 && currentVersion < targetSchemaVersion)
         {
@@ -104,6 +105,64 @@ public class SqliteRepository
                 VALUES (5, 'Recuperação de operações do cofre', $now);
                 """;
             cmd.Parameters.AddWithValue("$now", DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture));
+            cmd.ExecuteNonQuery();
+            tx.Commit();
+        }
+        if (currentVersion < 6)
+        {
+            using var tx = conn.BeginTransaction();
+            using var cmd = conn.CreateCommand();
+            cmd.Transaction = tx;
+            cmd.CommandText = """
+                ALTER TABLE Credentials ADD COLUMN SecretStorage INTEGER NOT NULL DEFAULT 1 CHECK(SecretStorage IN (0,1));
+                UPDATE Credentials SET SecretStorage = CASE WHEN trim(ProtectedSecretBase64) = '' THEN 0 ELSE 1 END;
+                ALTER TABLE PendingVaultCleanup ADD COLUMN VerifiedSqliteCopy INTEGER NOT NULL DEFAULT 0;
+                INSERT INTO SchemaMigrations (Version, Description, AppliedAtUtc)
+                VALUES (6, 'Origem explícita dos segredos DPAPI no SQLite e compatibilidade Windows', $now);
+                """;
+            cmd.Parameters.AddWithValue("$now", DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture));
+            cmd.ExecuteNonQuery();
+            tx.Commit();
+        }
+        if (currentVersion < 7)
+        {
+            using var tx = conn.BeginTransaction();
+            using var cmd = conn.CreateCommand();
+            cmd.Transaction = tx;
+            cmd.CommandText = """
+                CREATE TABLE CredentialsVaultV7 (
+                    Id TEXT PRIMARY KEY NOT NULL, Name TEXT NOT NULL, Username TEXT NOT NULL DEFAULT '',
+                    Domain TEXT NOT NULL DEFAULT '', Notes TEXT NOT NULL DEFAULT '',
+                    ProtectedSecretBase64 TEXT NOT NULL DEFAULT '', CreatedAtUtc TEXT NOT NULL, UpdatedAtUtc TEXT NOT NULL,
+                    SecretStorage INTEGER NOT NULL DEFAULT 2 CHECK(SecretStorage IN (0,1,2)),
+                    LegacyProtectedSecretBase64 TEXT NOT NULL DEFAULT '', LegacySecretStorage INTEGER NULL);
+                INSERT INTO CredentialsVaultV7
+                    (Id,Name,Username,Domain,Notes,ProtectedSecretBase64,CreatedAtUtc,UpdatedAtUtc,SecretStorage)
+                SELECT Id,Name,Username,Domain,Notes,ProtectedSecretBase64,CreatedAtUtc,UpdatedAtUtc,SecretStorage FROM Credentials;
+                DROP TABLE Credentials;
+                ALTER TABLE CredentialsVaultV7 RENAME TO Credentials;
+                CREATE TABLE AppVaultMetadata (Singleton INTEGER PRIMARY KEY CHECK(Singleton=1), MetadataJson TEXT NOT NULL);
+                CREATE TABLE AppVaultNonces (VaultId TEXT NOT NULL, Nonce TEXT NOT NULL, PRIMARY KEY(VaultId,Nonce));
+                INSERT INTO SchemaMigrations(Version,Description,AppliedAtUtc)
+                VALUES(7,'Cofre próprio AES-GCM e chave de dados protegida por senha mestra',$now);
+                """;
+            cmd.Parameters.AddWithValue("$now", DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture));
+            cmd.ExecuteNonQuery();
+            tx.Commit();
+        }
+        if (currentVersion < 8)
+        {
+            using var tx = conn.BeginTransaction();
+            using var cmd = conn.CreateCommand();
+            cmd.Transaction=tx;
+            cmd.CommandText="""
+                CREATE TABLE CredentialProtectionHistory(
+                    CredentialId TEXT NOT NULL, SecretStorage INTEGER NOT NULL, ProtectedSecretBase64 TEXT NOT NULL,
+                    PRIMARY KEY(CredentialId,SecretStorage,ProtectedSecretBase64));
+                INSERT INTO SchemaMigrations(Version,Description,AppliedAtUtc)
+                VALUES(8,'Proteção automática CurrentUser e histórico de migração',$now);
+                """;
+            cmd.Parameters.AddWithValue("$now",DateTime.UtcNow.ToString("O",CultureInfo.InvariantCulture));
             cmd.ExecuteNonQuery();
             tx.Commit();
         }
@@ -679,8 +738,8 @@ public class SqliteRepository
 
         cmd.Parameters.AddWithValue("$id", entry.Id);
         cmd.Parameters.AddWithValue("$name", entry.Name.Trim());
-        cmd.Parameters.AddWithValue("$client", entry.ClientName.Trim());
-        cmd.Parameters.AddWithValue("$group", string.IsNullOrWhiteSpace(entry.GroupName) ? "Geral" : entry.GroupName.Trim());
+        cmd.Parameters.AddWithValue("$client", entry.ClientName?.Trim() ?? string.Empty);
+        cmd.Parameters.AddWithValue("$group", entry.GroupName?.Trim() ?? string.Empty);
         cmd.Parameters.AddWithValue("$env", (int)entry.Environment);
         cmd.Parameters.AddWithValue("$proto", (int)entry.Protocol);
         cmd.Parameters.AddWithValue("$host", entry.Host.Trim());
@@ -768,7 +827,7 @@ public class SqliteRepository
             using var conn = CreateConnection();
             using var cmd = conn.CreateCommand();
             cmd.CommandText = """
-                SELECT Id, Name, Username, Domain, Notes, ProtectedSecretBase64, CreatedAtUtc, UpdatedAtUtc
+                SELECT Id, Name, Username, Domain, Notes, ProtectedSecretBase64, CreatedAtUtc, UpdatedAtUtc, SecretStorage, LegacyProtectedSecretBase64, LegacySecretStorage
                 FROM Credentials
                 ORDER BY Name COLLATE NOCASE ASC;
                 """;
@@ -785,7 +844,10 @@ public class SqliteRepository
                     Notes = reader.GetString(4),
                     ProtectedSecretBase64 = reader.GetString(5),
                     CreatedAtUtc = ParseDateTimeUtc(reader.GetString(6)),
-                    UpdatedAtUtc = ParseDateTimeUtc(reader.GetString(7))
+                    UpdatedAtUtc = ParseDateTimeUtc(reader.GetString(7)),
+                    SecretStorage = (CredentialSecretStorage)reader.GetInt32(8),
+                    LegacyProtectedSecretBase64 = reader.GetString(9),
+                    LegacySecretStorage = reader.IsDBNull(10) ? null : (CredentialSecretStorage)reader.GetInt32(10)
                 });
             }
             return list;
@@ -802,7 +864,7 @@ public class SqliteRepository
             using var conn = CreateConnection();
             using var cmd = conn.CreateCommand();
             cmd.CommandText = """
-                SELECT Id, Name, Username, Domain, Notes, ProtectedSecretBase64, CreatedAtUtc, UpdatedAtUtc
+                SELECT Id, Name, Username, Domain, Notes, ProtectedSecretBase64, CreatedAtUtc, UpdatedAtUtc, SecretStorage, LegacyProtectedSecretBase64, LegacySecretStorage
                 FROM Credentials
                 WHERE Id = $id;
                 """;
@@ -820,7 +882,10 @@ public class SqliteRepository
                 Notes = reader.GetString(4),
                 ProtectedSecretBase64 = reader.GetString(5),
                 CreatedAtUtc = ParseDateTimeUtc(reader.GetString(6)),
-                UpdatedAtUtc = ParseDateTimeUtc(reader.GetString(7))
+                UpdatedAtUtc = ParseDateTimeUtc(reader.GetString(7)),
+                    SecretStorage = (CredentialSecretStorage)reader.GetInt32(8),
+                    LegacyProtectedSecretBase64 = reader.GetString(9),
+                    LegacySecretStorage = reader.IsDBNull(10) ? null : (CredentialSecretStorage)reader.GetInt32(10)
             };
         });
     }
@@ -840,7 +905,7 @@ public class SqliteRepository
             catch (Exception ex)
             {
                 tx.Rollback();
-                _logger.Error("Database", $"Erro ao salvar credencial '{cred.Name}'.", ex);
+                _logger.RecordFailure("Credentials.SQLite.Save", ex);
                 throw;
             }
         });
@@ -852,9 +917,9 @@ public class SqliteRepository
                 cmd.Transaction = tx;
                 cmd.CommandText = """
                     INSERT INTO Credentials (
-                        Id, Name, Username, Domain, Notes, ProtectedSecretBase64, CreatedAtUtc, UpdatedAtUtc
+                        Id, Name, Username, Domain, Notes, ProtectedSecretBase64, CreatedAtUtc, UpdatedAtUtc, SecretStorage, LegacyProtectedSecretBase64, LegacySecretStorage
                     ) VALUES (
-                        $id, $name, $user, $domain, $notes, $secret, $created, $updated
+                        $id, $name, $user, $domain, $notes, $secret, $created, $updated, $storage, $legacySecret, $legacyStorage
                     )
                     ON CONFLICT(Id) DO UPDATE SET
                         Name = excluded.Name,
@@ -862,6 +927,9 @@ public class SqliteRepository
                         Domain = excluded.Domain,
                         Notes = excluded.Notes,
                         ProtectedSecretBase64 = excluded.ProtectedSecretBase64,
+                        SecretStorage = excluded.SecretStorage,
+                        LegacyProtectedSecretBase64 = excluded.LegacyProtectedSecretBase64,
+                        LegacySecretStorage = excluded.LegacySecretStorage,
                         UpdatedAtUtc = excluded.UpdatedAtUtc;
                     """;
 
@@ -871,6 +939,9 @@ public class SqliteRepository
                 cmd.Parameters.AddWithValue("$domain", cred.Domain?.Trim() ?? string.Empty);
                 cmd.Parameters.AddWithValue("$notes", cred.Notes ?? string.Empty);
                 cmd.Parameters.AddWithValue("$secret", cred.ProtectedSecretBase64 ?? string.Empty);
+                cmd.Parameters.AddWithValue("$storage", (int)cred.SecretStorage);
+                cmd.Parameters.AddWithValue("$legacySecret", cred.LegacyProtectedSecretBase64);
+                cmd.Parameters.AddWithValue("$legacyStorage", cred.LegacySecretStorage.HasValue ? (object)(int)cred.LegacySecretStorage.Value : DBNull.Value);
                 cmd.Parameters.AddWithValue("$created", cred.CreatedAtUtc.ToString("O", CultureInfo.InvariantCulture));
                 cmd.Parameters.AddWithValue("$updated", cred.UpdatedAtUtc.ToString("O", CultureInfo.InvariantCulture));
                 cmd.ExecuteNonQuery();
@@ -915,8 +986,6 @@ public class SqliteRepository
                 cleanup.Transaction = tx;
                 // Include trash references. Never unlink any other access.
                 cleanup.CommandText = """
-                    INSERT OR IGNORE INTO PendingVaultCleanup (CredentialId)
-                    SELECT $id WHERE NOT EXISTS (SELECT 1 FROM Connections WHERE CredentialId = $id);
                     DELETE FROM Credentials WHERE Id = $id
                     AND NOT EXISTS (SELECT 1 FROM Connections WHERE CredentialId = $id);
                     """;
@@ -941,8 +1010,11 @@ public class SqliteRepository
         using var cmd = conn.CreateCommand();
         cmd.CommandText = """
             SELECT CredentialId FROM PendingVaultCleanup
-            WHERE NOT EXISTS (SELECT 1 FROM Credentials WHERE Id = CredentialId)
-            AND NOT EXISTS (SELECT 1 FROM Connections WHERE Connections.CredentialId = PendingVaultCleanup.CredentialId);
+            WHERE (NOT EXISTS (SELECT 1 FROM Credentials WHERE Id = PendingVaultCleanup.CredentialId)
+                AND NOT EXISTS (SELECT 1 FROM Connections WHERE Connections.CredentialId = PendingVaultCleanup.CredentialId))
+            OR (VerifiedSqliteCopy = 1 AND EXISTS (
+                SELECT 1 FROM Credentials WHERE Id = PendingVaultCleanup.CredentialId
+                AND SecretStorage = 1 AND ProtectedSecretBase64 <> ''));
             """;
         using var reader = cmd.ExecuteReader();
         var result = new List<string>();
@@ -988,7 +1060,7 @@ public class SqliteRepository
             catch (Exception ex)
             {
                 tx.Rollback();
-                _logger.Error("Database", $"Erro ao excluir credencial ({id}).", ex);
+                _logger.RecordFailure("Credentials.SQLite.Delete", ex);
                 throw;
             }
         });

@@ -19,7 +19,15 @@ public record AppDiagnosticInfo(
     int SchemaVersion,
     int ActiveConnectionsCount,
     int TrashConnectionsCount,
-    string? LastSanitizedError);
+    string? LastSanitizedError)
+{
+    public string Runtime { get; init; } = string.Empty;
+    public string SelectedLanguage { get; init; } = string.Empty;
+    public string EffectiveLanguage { get; init; } = string.Empty;
+    public long ProcessWorkingSetBytes { get; init; }
+    public DateTime CollectedAtUtc { get; init; }
+    public OperationFailure? Failure { get; init; }
+}
 
 public class AppDiagnosticService
 {
@@ -71,7 +79,7 @@ public class AppDiagnosticService
         }
 
         return new AppDiagnosticInfo(
-            AppVersion: "ConectaTI v1.2.1 (Compacto)",
+            AppVersion: "ConectaTI " + typeof(AppDiagnosticService).Assembly.GetName().Version,
             OperatingSystem: Environment.OSVersion.ToString(),
             Architecture: RuntimeInformation.ProcessArchitecture.ToString(),
             BaseDirectory: AppContext.BaseDirectory,
@@ -83,32 +91,67 @@ public class AppDiagnosticService
             SchemaVersion: schemaVersion,
             ActiveConnectionsCount: activeCount,
             TrashConnectionsCount: trashCount,
-            LastSanitizedError: _logger.LastSanitizedError);
+            LastSanitizedError: _logger.LastSanitizedError)
+        {
+            Runtime = RuntimeInformation.FrameworkDescription,
+            SelectedLanguage = LocalizationService.Current.SelectedLanguage.ToString(),
+            EffectiveLanguage = LocalizationService.Current.EffectiveCulture.Name,
+            ProcessWorkingSetBytes = System.Diagnostics.Process.GetCurrentProcess().WorkingSet64,
+            CollectedAtUtc = DateTime.UtcNow,
+            Failure = _logger.LastFailure
+        };
     }
 
     public static string FormatReport(AppDiagnosticInfo info)
     {
         var sb = new StringBuilder();
-        sb.AppendLine("=== DIAGNÓSTICO DO CONECTATI ===");
-        sb.AppendLine($"Data da Coleta: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
-        sb.AppendLine($"Versão do Aplicativo: {info.AppVersion}");
-        sb.AppendLine($"Sistema Operacional: {info.OperatingSystem} ({info.Architecture})");
-        sb.AppendLine($"Pasta do Executável: {info.BaseDirectory}");
-        sb.AppendLine($"Pasta de Dados Efetiva: {info.DataDirectory}");
-        sb.AppendLine($"Permissão na Pasta de Dados: {(info.IsDataDirectoryWritable ? "Gravável (OK)" : "Somente Leitura (Restrita)")}");
-        sb.AppendLine($"Caminho Efetivo do Banco: {info.DatabasePath}");
-        sb.AppendLine($"Banco Existe: {(info.DatabaseExists ? "Sim" : "Não")}");
+        sb.AppendLine(L.Text("=== DIAGNÓSTICO DO CONECTATI ==="));
+        sb.AppendLine(L.Format("Data da Coleta: {0:yyyy-MM-dd HH:mm:ss}", ((info.CollectedAtUtc == default ? DateTime.UtcNow : info.CollectedAtUtc).ToLocalTime())));
+        sb.AppendLine(L.Format("Versão do Aplicativo: {0}", (info.AppVersion)));
+        sb.AppendLine(L.Format("Sistema Operacional: {0} ({1})", (info.OperatingSystem), (info.Architecture)));
+        sb.AppendLine(L.Format("Runtime: {0}", (info.Runtime)));
+        sb.AppendLine(L.Format("Idioma selecionado: {0}", (info.SelectedLanguage)));
+        sb.AppendLine(L.Format("Idioma efetivo: {0}", (info.EffectiveLanguage)));
+        sb.AppendLine(L.Format("Memória do processo no momento da coleta (Working Set): {0} bytes", (info.ProcessWorkingSetBytes)));
+        if (info.Failure is { } failure)
+        {
+            sb.Append(FormatFailure(info.Failure));
+        }
+        sb.AppendLine(L.Format("Pasta do Executável: {0}", (info.BaseDirectory)));
+        sb.AppendLine(L.Format("Pasta de Dados Efetiva: {0}", (info.DataDirectory)));
+        sb.AppendLine(L.Format("Permissão na Pasta de Dados: {0}", ((info.IsDataDirectoryWritable ? L.Text("Gravável (OK)") : L.Text("Somente Leitura (Restrita)")))));
+        sb.AppendLine(L.Format("Caminho Efetivo do Banco: {0}", (info.DatabasePath)));
+        sb.AppendLine(L.Format("Banco Existe: {0}", ((info.DatabaseExists ? L.Text("Sim") : L.Text("Não")))));
         if (info.DatabaseExists)
         {
-            sb.AppendLine($"Tamanho do Banco: {FormatFileSize(info.DatabaseSizeBytes)}");
+            sb.AppendLine(L.Format("Tamanho do Banco: {0}", (FormatFileSize(info.DatabaseSizeBytes))));
         }
-        sb.AppendLine($"Versão do Esquema SQLite: {info.SchemaVersion}");
-        sb.AppendLine($"Conexões Ativas: {info.ActiveConnectionsCount}");
-        sb.AppendLine($"Conexões na Lixeira: {info.TrashConnectionsCount}");
-        sb.AppendLine($"Último Erro Registrado: {(string.IsNullOrWhiteSpace(info.LastSanitizedError) ? "Nenhum erro registrado" : info.LastSanitizedError)}");
+        sb.AppendLine(L.Format("Versão do Esquema SQLite: {0}", (info.SchemaVersion)));
+        sb.AppendLine(L.Format("Conexões Ativas: {0}", (info.ActiveConnectionsCount)));
+        sb.AppendLine(L.Format("Conexões na Lixeira: {0}", (info.TrashConnectionsCount)));
+        sb.AppendLine(L.Format("Último Erro Registrado: {0}", ((string.IsNullOrWhiteSpace(info.LastSanitizedError) ? L.Text("Nenhum erro registrado") : info.LastSanitizedError))));
         sb.AppendLine("================================");
-        sb.AppendLine("(Este relatório é sanitizado e não contém senhas, chaves privadas ou dados confidenciais).");
-        return sb.ToString();
+        sb.AppendLine(L.Text("(Este relatório é sanitizado e não contém senhas, chaves privadas ou dados confidenciais)."));
+        return AppLogger.SanitizeMessage(sb.ToString());
+    }
+
+    public static string FormatFailure(OperationFailure failure)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine(L.Format("Etapa: {0}", (failure.Stage)));
+        sb.AppendLine(L.Format("Data do erro (UTC): {0:O}", (failure.AtUtc)));
+        sb.AppendLine(L.Format("Exceção: {0}", (failure.ExceptionType)));
+        sb.AppendLine(L.Format("Mensagem técnica: {0}", (failure.Message)));
+        sb.AppendLine(L.Format("Stack trace: {0}", (failure.StackTrace)));
+        if (failure.FileSize.HasValue) sb.AppendLine(L.Format("Tamanho do arquivo: {0} bytes", (failure.FileSize)));
+        if (failure.IdentifiedCount.HasValue) sb.AppendLine(L.Format("Registros identificados: {0}", (failure.IdentifiedCount)));
+        if (failure.Elapsed.HasValue) sb.AppendLine(L.Format("Tempo decorrido (ms): {0:F0}", (failure.Elapsed.Value.TotalMilliseconds)));
+        if (failure.NativeApi != null) sb.AppendLine(L.Format("API nativa: {0}", failure.NativeApi));
+        if (failure.NativeErrorCode.HasValue) sb.AppendLine(L.Format("Código de erro nativo Win32: {0}", failure.NativeErrorCode));
+        if (failure.RecordIndex.HasValue) sb.AppendLine(L.Format("Índice do registro (base 1): {0}", failure.RecordIndex));
+        if (failure.SourceRowNumber.HasValue) sb.AppendLine(L.Format("Linha de origem: {0}", failure.SourceRowNumber));
+        if (failure.CredentialIndex.HasValue) sb.AppendLine(L.Format("Índice da credencial (base 1): {0}", failure.CredentialIndex));
+        return AppLogger.SanitizeMessage(sb.ToString());
     }
 
     private static string FormatFileSize(long bytes)

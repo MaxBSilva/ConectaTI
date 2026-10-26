@@ -29,5 +29,6 @@ public partial class NavigationNodeViewModel : ObservableObject
 
     public ObservableCollection<NavigationNodeViewModel> Children { get; } = new();
 
-    public string DisplayWithCount => $"{Title} ({Count})";
+    public string DisplayWithCount => $"{(Kind is NavigationNodeKind.All or NavigationNodeKind.Favorites or NavigationNodeKind.Recent ? L.Text(Title) : Title)} ({Count})";
+    public void RefreshDisplayProperties() => OnPropertyChanged(nameof(DisplayWithCount));
 }

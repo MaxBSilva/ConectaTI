@@ -23,6 +23,7 @@ public partial class MainWindow : Window
     public MainWindow(MainViewModel viewModel)
     {
         InitializeComponent();
+        LocalizedWindow.Attach(this);
         _vm = viewModel;
         DataContext = _vm;
 
@@ -54,15 +55,21 @@ public partial class MainWindow : Window
         };
 
         _vm.OpenExecutableSettingsCallback = () => OpenSettingsDialog(initialTabIndex: 1);
-        _vm.RequestMasterPasswordMigrationCallback = PromptForMigrationPasswordAsync;
+        _vm.VaultService.RequestMigrationAsync = async () => await Dispatcher.InvokeAsync(() =>
+        {
+            var owner = Application.Current?.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive) ?? this;
+            return new VaultMigrationDialog(_vm.VaultService) { Owner=owner }.ShowDialog() == true;
+        });
 
         RestoreWindowGeometry();
 
-        Loaded += (_, _) =>
+        Loaded += async (_, _) =>
         {
             _vm.NotifySelectedSummaryProperties();
+            SyncPasswordControls();
             UpdatePasswordPlaceholderVisibility();
             SearchTextBox.Focus();
+            await _vm.VaultService.TryMigratePreviousVaultAsync();
         };
 
         _vm.PropertyChanged += (_, args) =>
@@ -70,7 +77,8 @@ public partial class MainWindow : Window
             if (args.PropertyName is nameof(MainViewModel.InlinePasswordInput)
                 or nameof(MainViewModel.RevealedPasswordText)
                 or nameof(MainViewModel.IsPasswordRevealed)
-                or nameof(MainViewModel.HasSavedPassword))
+                or nameof(MainViewModel.HasSavedPassword)
+                or nameof(MainViewModel.IsLocked))
                 SyncPasswordControls();
         };
     }
@@ -81,8 +89,9 @@ public partial class MainWindow : Window
         _isUpdatingPasswordInternally = true;
         try
         {
-            if (InlinePasswordBox.Password != _vm.InlinePasswordInput)
-                InlinePasswordBox.Password = _vm.InlinePasswordInput;
+            var editorPassword = _vm.InlinePasswordInput;
+            InlinePasswordBox.IsEnabled = true;
+            if (InlinePasswordBox.Password != editorPassword) InlinePasswordBox.Password = editorPassword;
             var visible = _vm.IsPasswordRevealed ? _vm.RevealedPasswordText : string.Empty;
             if (RevealedPasswordTextBox.Text != visible) RevealedPasswordTextBox.Text = visible;
         }
@@ -126,7 +135,7 @@ public partial class MainWindow : Window
         }
 
         var savedLeftWidth = s.LeftPaneWidth >= 130 ? s.LeftPaneWidth : 220;
-        LeftColumnDef.Width = new GridLength(savedLeftWidth, GridUnitType.Pixel);
+        LeftColumnDef.Width = new GridLength(Math.Min(savedLeftWidth, Math.Max(130, Width - 280)), GridUnitType.Pixel);
     }
 
     private void SaveWindowGeometry()
@@ -353,8 +362,8 @@ public partial class MainWindow : Window
     {
         var dlg = new OpenFileDialog
         {
-            Title = "Selecionar Arquivo de Chave Privada SSH",
-            Filter = "Chaves SSH (*.ppk;*.pem;id_rsa;id_ed25519)|*.ppk;*.pem;*id_rsa*;*id_ed25519*|Todos os arquivos (*.*)|*.*",
+            Title = L.Text("Selecionar Arquivo de Chave Privada SSH"),
+            Filter = L.Text("Chaves SSH (*.ppk;*.pem;id_rsa;id_ed25519)|*.ppk;*.pem;*id_rsa*;*id_ed25519*|Todos os arquivos (*.*)|*.*"),
             CheckFileExists = true
         };
 
@@ -401,6 +410,29 @@ public partial class MainWindow : Window
         await _vm.RunDiagnosticAsync();
     }
 
+    private void ConnectionsListBox_RightClick(object sender, MouseButtonEventArgs e)
+    {
+        if (ItemsControl.ContainerFromElement(ConnectionsListBox, e.OriginalSource as DependencyObject) is ListBoxItem item)
+        {
+            if (!item.IsSelected) ConnectionsListBox.SelectedItem = item.DataContext;
+            if (item.DataContext is ConnectionEntry entry) _vm.SelectedConnection = entry;
+        }
+    }
+    private async void MenuCopyAddressOnly_Click(object sender, RoutedEventArgs e) => await _vm.CopySelectedAddressOnlyAsync();
+    private async void MenuCopyPersistedUser_Click(object sender, RoutedEventArgs e) => await _vm.CopyPersistedUsernameAsync();
+    private void ConnectionsListBox_SelectionChanged(object sender, SelectionChangedEventArgs e) => _vm.UpdateMultipleSelection(ConnectionsListBox.SelectedItems.Count);
+    private void BatchEdit_Click(object sender, RoutedEventArgs e)
+    {
+        var ids = ConnectionsListBox.SelectedItems.Cast<ConnectionEntry>().Select(c => c.Id).ToArray();
+        if (ids.Length > 0 && new BatchEditDialog(_vm, ids) { Owner = this }.ShowDialog() == true)
+        {
+            var selectedId = _vm.SelectedConnection?.Id;
+            foreach (var entry in _vm.FilteredConnections.Where(c => ids.Contains(c.Id)))
+                if (!ConnectionsListBox.SelectedItems.Contains(entry)) ConnectionsListBox.SelectedItems.Add(entry);
+            if (selectedId != null) _vm.SelectedConnection = _vm.FilteredConnections.FirstOrDefault(c => c.Id == selectedId);
+        }
+    }
+
     private async void MenuCopyHostPort_Click(object sender, RoutedEventArgs e)
     {
         await _vm.CopyHostAndPortAsync();
@@ -432,54 +464,6 @@ public partial class MainWindow : Window
         {
             await _vm.ReloadAllDataAsync(_vm.SelectedConnection?.Id);
         }
-    }
-
-    private Task<string?> PromptForMigrationPasswordAsync()
-    {
-        var tcs = new TaskCompletionSource<string?>();
-        Dispatcher.Invoke(() =>
-        {
-            var win = new Window
-            {
-                Title = "Migração de Credenciais — ConectaTI",
-                Width = 430,
-                Height = 220,
-                WindowStartupLocation = WindowStartupLocation.CenterOwner,
-                Owner = this,
-                ResizeMode = ResizeMode.NoResize,
-                Background = TryFindResource("AppBackgroundBrush") as Brush ?? Brushes.White,
-                Foreground = TryFindResource("PrimaryTextBrush") as Brush ?? Brushes.Black
-            };
-
-            var stack = new StackPanel { Margin = new Thickness(18) };
-            stack.Children.Add(new TextBlock
-            {
-                Text = "O aplicativo foi atualizado para remover o bloqueio por senha mestra.\nDigite sua senha mestra anterior para migrar as credenciais com segurança para a proteção nativa do Windows (DPAPI):",
-                TextWrapping = TextWrapping.Wrap,
-                Margin = new Thickness(0, 0, 0, 12),
-                FontSize = 12
-            });
-
-            var pwdBox = new PasswordBox { Margin = new Thickness(0, 0, 0, 14), Padding = new Thickness(6, 4, 6, 4) };
-            stack.Children.Add(pwdBox);
-
-            var btnPanel = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
-            var okBtn = new Button { Content = "Migrar", Width = 80, Padding = new Thickness(0, 5, 0, 5), Margin = new Thickness(0, 0, 8, 0), IsDefault = true };
-            var cancelBtn = new Button { Content = "Cancelar", Width = 80, Padding = new Thickness(0, 5, 0, 5), IsCancel = true };
-
-            string? result = null;
-            okBtn.Click += (_, _) => { result = pwdBox.Password; win.DialogResult = true; win.Close(); };
-            cancelBtn.Click += (_, _) => { win.DialogResult = false; win.Close(); };
-
-            btnPanel.Children.Add(okBtn);
-            btnPanel.Children.Add(cancelBtn);
-            stack.Children.Add(btnPanel);
-
-            win.Content = stack;
-            var dlgRes = win.ShowDialog();
-            tcs.SetResult(dlgRes == true ? result : null);
-        });
-        return tcs.Task;
     }
 
     private async void MenuRestore_Click(object sender, RoutedEventArgs e)

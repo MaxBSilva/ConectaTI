@@ -133,33 +133,31 @@ public static partial class ConnectionValidator
         var errors = new List<string>();
 
         if (string.IsNullOrWhiteSpace(entry.Name))
-            errors.Add("O nome da conexão é obrigatório.");
+            errors.Add(L.Text("O nome da conexão é obrigatório."));
         else if (ContainsLineBreakOrControlChars(entry.Name))
-            errors.Add("O nome da conexão não pode conter quebras de linha.");
+            errors.Add(L.Text("O nome da conexão não pode conter quebras de linha."));
 
-        if (string.IsNullOrWhiteSpace(entry.ClientName))
-            entry.ClientName = "Geral";
-        else if (ContainsLineBreakOrControlChars(entry.ClientName))
-            errors.Add("O cliente não pode conter quebras de linha.");
+        if (ContainsLineBreakOrControlChars(entry.ClientName))
+            errors.Add(L.Text("O cliente não pode conter quebras de linha."));
 
         if (!IsValidHost(entry.Host, out _, out _))
-            errors.Add("O endereço / hostname (DNS, IPv4 ou IPv6) é inválido ou está vazio.");
+            errors.Add(L.Text("O endereço / hostname (DNS, IPv4 ou IPv6) é inválido ou está vazio."));
 
         if (!IsValidPort(entry.Port))
-            errors.Add("A porta deve estar entre 1 e 65535.");
+            errors.Add(L.Text("A porta deve estar entre 1 e 65535."));
 
         if (ContainsLineBreakOrControlChars(entry.Username))
-            errors.Add("O usuário não pode conter quebras de linha ou caracteres de controle.");
+            errors.Add(L.Text("O usuário não pode conter quebras de linha ou caracteres de controle."));
 
         if (ContainsLineBreakOrControlChars(entry.Domain))
-            errors.Add("O domínio não pode conter quebras de linha ou caracteres de controle.");
+            errors.Add(L.Text("O domínio não pode conter quebras de linha ou caracteres de controle."));
 
         if (!string.IsNullOrWhiteSpace(entry.PrivateKeyPath))
         {
             var keyPath = entry.PrivateKeyPath.Trim();
             if (ContainsLineBreakOrControlChars(keyPath) || keyPath.IndexOfAny(Path.GetInvalidPathChars()) >= 0)
             {
-                errors.Add("O caminho da chave privada contém caracteres inválidos.");
+                errors.Add(L.Text("O caminho da chave privada contém caracteres inválidos."));
             }
         }
 
@@ -167,7 +165,7 @@ public static partial class ConnectionValidator
         {
             if (entry.RdpWidth < 640 || entry.RdpWidth > 7680 || entry.RdpHeight < 480 || entry.RdpHeight > 4320)
             {
-                errors.Add("A resolução da Área de Trabalho Remota deve estar entre 640x480 e 7680x4320.");
+                errors.Add(L.Text("A resolução da Área de Trabalho Remota deve estar entre 640x480 e 7680x4320."));
             }
         }
 

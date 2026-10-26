@@ -1,8 +1,10 @@
 <Window x:Class="ConectaTI.App.Views.ConnectionEditorDialog"
+        FontSize="{DynamicResource AppFontSize}"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:loc="clr-namespace:ConectaTI.App.Localization"
         xmlns:helpers="clr-namespace:ConectaTI.App.Helpers"
-        Title="Conexão — ConectaTI"
+        Title="{loc:Loc TextFAA972EC1C89}"
         Icon="pack://application:,,,/ConectaTI;component/Assets/conectati.ico"
         Width="540" Height="640"
         MinWidth="460" MinHeight="500"
@@ -31,8 +33,8 @@
         <!-- Cabeçalho -->
         <Border Grid.Row="0" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" Padding="20,14">
             <StackPanel>
-                <TextBlock x:Name="DialogTitleText" Text="Nova conexão" FontSize="17" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextBrush}"/>
-                <TextBlock Text="Informe os dados principais da conexão." FontSize="12.5" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,2,0,0"/>
+                <TextBlock x:Name="DialogTitleText" Text="{loc:Loc TextC9DC78D19188}" FontSize="{DynamicResource Font17}" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextBrush}"/>
+                <TextBlock Text="{loc:Loc Text80B067419682}" FontSize="{DynamicResource Font12_5}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,2,0,0"/>
             </StackPanel>
         </Border>
 
@@ -43,18 +45,18 @@
                 <Border Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="6" Padding="16">
                     <StackPanel>
                         <!-- 1. Nome -->
-                        <TextBlock Text="Nome" FontSize="12.5" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4"/>
+                        <TextBlock Text="{loc:Loc Text5086900635FE}" FontSize="{DynamicResource Font12_5}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4"/>
                         <TextBox x:Name="NameInputBox"
                                  Text="{Binding EditingEntry.Name, UpdateSourceTrigger=PropertyChanged}"
                                  Margin="0,0,0,12"/>
 
                         <!-- 2. Cliente -->
-                        <TextBlock Text="Cliente" FontSize="12.5" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4"/>
+                        <TextBlock Text="{loc:Loc TextF851D9A83AB0}" FontSize="{DynamicResource Font12_5}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4"/>
                         <TextBox Text="{Binding EditingEntry.ClientName, UpdateSourceTrigger=PropertyChanged}"
                                  Margin="0,0,0,12"/>
 
                         <!-- 3. Tipo de conexão -->
-                        <TextBlock Text="Tipo de conexão" FontSize="12.5" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4"/>
+                        <TextBlock Text="{loc:Loc Text2FC429DB7583}" FontSize="{DynamicResource Font12_5}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4"/>
                         <ComboBox x:Name="ProtocolEditCombo"
                                   ItemsSource="{Binding ProtocolSelectorOptions}"
                                   DisplayMemberPath="DisplayName"
@@ -64,48 +66,48 @@
                                   Margin="0,0,0,12"/>
 
                         <!-- 4. Endereço -->
-                        <TextBlock Text="Endereço" FontSize="12.5" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4"/>
+                        <TextBlock Text="{loc:Loc TextEF5E7E12BDAC}" FontSize="{DynamicResource Font12_5}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4"/>
                         <TextBox Text="{Binding EditingEntry.Host, UpdateSourceTrigger=PropertyChanged}"
                                  FontFamily="Consolas"
-                                 ToolTip="Hostname DNS, endereço IPv4 ou IPv6"
+                                 ToolTip="{loc:Loc Text0A230B5DD43B}"
                                  Margin="0,0,0,12"/>
 
                         <!-- 5. Usuário -->
-                        <TextBlock Text="Usuário" FontSize="12.5" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4"/>
+                        <TextBlock Text="{loc:Loc TextF53BBAA05FAE}" FontSize="{DynamicResource Font12_5}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4"/>
                         <TextBox Text="{Binding EditingEntry.Username, UpdateSourceTrigger=PropertyChanged}"
-                                 ToolTip="Usuário local, DOMINIO\usuario ou usuario@dominio"
+                                 ToolTip="{loc:Loc Text138610D10FB9}"
                                  Margin="0,0,0,12"/>
 
                         <!-- 6. Senha -->
                         <DockPanel Margin="0,0,0,4">
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                <TextBlock Text="{Binding PasswordFieldLabel}" FontSize="12.5" Foreground="{DynamicResource SecondaryTextBrush}"/>
-                                <TextBlock Text=" — " FontSize="12.5" Foreground="{DynamicResource MutedTextBrush}"/>
-                                <TextBlock Text="{Binding PasswordStatusText}" FontSize="12.5" Foreground="{DynamicResource SecondaryTextBrush}"/>
+                                <TextBlock Text="{Binding PasswordFieldLabel}" FontSize="{DynamicResource Font12_5}" Foreground="{DynamicResource SecondaryTextBrush}"/>
+                                <TextBlock Text=" — " FontSize="{DynamicResource Font12_5}" Foreground="{DynamicResource MutedTextBrush}"/>
+                                <TextBlock Text="{Binding PasswordStatusText}" FontSize="{DynamicResource Font12_5}" Foreground="{DynamicResource SecondaryTextBrush}"/>
                             </StackPanel>
 
                             <Button DockPanel.Dock="Right"
-                                    Content="Remover senha salva"
+                                    Content="{loc:Loc TextFF8E2C52F95D}"
                                     Command="{Binding MarkPasswordForRemovalCommand}"
                                     Visibility="{Binding CanRemoveSavedPassword, Converter={StaticResource BoolToVis}}"
                                     HorizontalAlignment="Right"
-                                    Padding="8,3" FontSize="11.5"
+                                    Padding="8,3" FontSize="{DynamicResource Font11_5}"
                                     Click="RemovePasswordButton_Click"/>
                         </DockPanel>
 
                         <PasswordBox x:Name="InlinePasswordBox"
                                      PasswordChanged="InlinePasswordBox_PasswordChanged"
-                                     ToolTip="Informe a senha para salvar ou deixe em branco para manter a senha existente"/>
+                                     ToolTip="{loc:Loc TextD9DB020133DE}"/>
 
-                        <TextBlock Text="Deixe em branco para preservar a senha existente."
-                                   FontSize="11.5" Foreground="{DynamicResource MutedTextBrush}" Margin="0,4,0,0"
+                        <TextBlock Text="{loc:Loc TextA2068A0DE3BB}"
+                                   FontSize="{DynamicResource Font11_5}" Foreground="{DynamicResource MutedTextBrush}" Margin="0,4,0,0"
                                    Visibility="{Binding HasSavedPassword, Converter={StaticResource BoolToVis}}"/>
                     </StackPanel>
                 </Border>
 
                 <!-- Opções Avançadas: Porta, Domínio, Grupo, Ambiente, Chave privada, Preferências do protocolo -->
                 <Expander x:Name="AdvancedExpander"
-                          Header="Opções avançadas"
+                          Header="{loc:Loc TextBD998143DA98}"
                           IsExpanded="False"
                           Foreground="{DynamicResource PrimaryTextBrush}"
                           Margin="0,12,0,0">
@@ -118,13 +120,13 @@
                                     <ColumnDefinition Width="1.6*"/>
                                 </Grid.ColumnDefinitions>
                                 <StackPanel Grid.Column="0" Margin="0,0,6,0">
-                                    <TextBlock Text="Porta" FontSize="12.5" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4"/>
+                                    <TextBlock Text="{loc:Loc Text946D1F8153CE}" FontSize="{DynamicResource Font12_5}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4"/>
                                     <TextBox Text="{Binding EditingEntry.Port, UpdateSourceTrigger=PropertyChanged}"
                                              FontFamily="Consolas"/>
                                 </StackPanel>
                                 <StackPanel Grid.Column="1" Margin="6,0,0,0"
                                             Visibility="{Binding IsDomainApplicable, Converter={StaticResource BoolToVis}}">
-                                    <TextBlock Text="Domínio" FontSize="12.5" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4"/>
+                                    <TextBlock Text="{loc:Loc Text356377BA453A}" FontSize="{DynamicResource Font12_5}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4"/>
                                     <TextBox Text="{Binding EditingEntry.Domain, UpdateSourceTrigger=PropertyChanged}"/>
                                 </StackPanel>
                             </Grid>
@@ -136,11 +138,11 @@
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
                                 <StackPanel Grid.Column="0" Margin="0,0,6,0">
-                                    <TextBlock Text="Grupo" FontSize="12.5" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4"/>
+                                    <TextBlock Text="{loc:Loc Text399B037DAB0F}" FontSize="{DynamicResource Font12_5}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4"/>
                                     <TextBox Text="{Binding EditingEntry.GroupName, UpdateSourceTrigger=PropertyChanged}"/>
                                 </StackPanel>
                                 <StackPanel Grid.Column="1" Margin="6,0,0,0">
-                                    <TextBlock Text="Ambiente" FontSize="12.5" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4"/>
+                                    <TextBlock Text="{loc:Loc Text0D2B7CA65666}" FontSize="{DynamicResource Font12_5}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4"/>
                                     <ComboBox ItemsSource="{Binding EnvironmentSelectorOptions}"
                                               DisplayMemberPath="DisplayName"
                                               SelectedValuePath="Value"
@@ -148,30 +150,30 @@
                                 </StackPanel>
                             </Grid>
 
-                            <CheckBox Content="Marcar como favorito"
+                            <CheckBox Content="{loc:Loc Text6DD8CF662565}"
                                       IsChecked="{Binding EditingEntry.IsFavorite, UpdateSourceTrigger=PropertyChanged}"
                                       Margin="0,0,0,12"/>
 
                             <!-- Chave Privada (apenas SSH / WinSCP) -->
                             <StackPanel Visibility="{Binding SupportsPrivateKey, Converter={StaticResource BoolToVis}}" Margin="0,0,0,12">
-                                <TextBlock Text="Chave privada" FontSize="12.5" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4"/>
+                                <TextBlock Text="{loc:Loc TextE6E1B71770FE}" FontSize="{DynamicResource Font12_5}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4"/>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <TextBox Grid.Column="0" Text="{Binding EditingEntry.PrivateKeyPath, UpdateSourceTrigger=PropertyChanged}"/>
-                                    <Button Grid.Column="1" Content="Procurar..." Click="BrowsePrivateKey_Click" Margin="8,0,0,0"/>
+                                    <Button Grid.Column="1" Content="{loc:Loc TextB9D4506C3B66}" Click="BrowsePrivateKey_Click" Margin="8,0,0,0"/>
                                 </Grid>
                             </StackPanel>
 
                             <!-- Preferências Específicas de RDP (MSTSC) -->
                             <StackPanel Visibility="{Binding IsRdpSelected, Converter={StaticResource BoolToVis}}">
-                                <TextBlock Text="Preferências de tela (MSTSC)" FontSize="12.5" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,6"/>
+                                <TextBlock Text="{loc:Loc Text4255EF5ED251}" FontSize="{DynamicResource Font12_5}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,6"/>
                                 <WrapPanel Margin="0,0,0,8">
-                                    <CheckBox Content="Tela cheia" IsChecked="{Binding EditingEntry.RdpFullScreen, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,14,6"/>
-                                    <CheckBox Content="Múltiplos monitores" IsChecked="{Binding EditingEntry.RdpUseMultimon, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,14,6"/>
-                                    <CheckBox Content="Sessão admin (/admin)" IsChecked="{Binding EditingEntry.RdpAdminSession, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,6"/>
+                                    <CheckBox Content="{loc:Loc TextCDD35DEA1EE3}" IsChecked="{Binding EditingEntry.RdpFullScreen, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,14,6"/>
+                                    <CheckBox Content="{loc:Loc Text9C2447A06C8D}" IsChecked="{Binding EditingEntry.RdpUseMultimon, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,14,6"/>
+                                    <CheckBox Content="{loc:Loc Text7A9412FE2BF6}" IsChecked="{Binding EditingEntry.RdpAdminSession, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,6"/>
                                 </WrapPanel>
                                 <Grid IsEnabled="{Binding EditingEntry.RdpFullScreen, Converter={StaticResource InverseBool}}">
                                     <Grid.ColumnDefinitions>
@@ -179,11 +181,11 @@
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
                                     <StackPanel Grid.Column="0" Margin="0,0,6,0">
-                                        <TextBlock Text="Largura (px)" FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,3"/>
+                                        <TextBlock Text="{loc:Loc TextB11E7CA5545B}" FontSize="{DynamicResource Font12}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,3"/>
                                         <TextBox Text="{Binding EditingEntry.RdpWidth, UpdateSourceTrigger=PropertyChanged}"/>
                                     </StackPanel>
                                     <StackPanel Grid.Column="1" Margin="6,0,0,0">
-                                        <TextBlock Text="Altura (px)" FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,3"/>
+                                        <TextBlock Text="{loc:Loc TextDE73D011D72D}" FontSize="{DynamicResource Font12}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,3"/>
                                         <TextBox Text="{Binding EditingEntry.RdpHeight, UpdateSourceTrigger=PropertyChanged}"/>
                                     </StackPanel>
                                 </Grid>
@@ -191,19 +193,19 @@
 
                             <!-- Preferências Específicas de SSH -->
                             <StackPanel Visibility="{Binding IsSshSelected, Converter={StaticResource BoolToVis}}">
-                                <TextBlock Text="Cliente SSH" FontSize="12.5" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4"/>
+                                <TextBlock Text="{loc:Loc Text2F06B83E3014}" FontSize="{DynamicResource Font12_5}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4"/>
                                 <ComboBox ItemsSource="{Binding SshClientSelectorOptions}"
                                           DisplayMemberPath="DisplayName"
                                           SelectedValuePath="Value"
                                           SelectedValue="{Binding EditingEntry.SshClient, UpdateSourceTrigger=PropertyChanged}"
                                           Margin="0,0,0,8"/>
-                                <CheckBox Content="Usar agente de autenticação SSH"
+                                <CheckBox Content="{loc:Loc Text15C4DC7F49C4}"
                                           IsChecked="{Binding EditingEntry.SshUseAgent, UpdateSourceTrigger=PropertyChanged}"/>
                             </StackPanel>
 
                             <!-- Preferências Específicas de VNC -->
                             <StackPanel Visibility="{Binding IsVncSelected, Converter={StaticResource BoolToVis}}">
-                                <TextBlock Text="Parâmetros adicionais do VNC" FontSize="12.5" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4"/>
+                                <TextBlock Text="{loc:Loc Text514834825DDF}" FontSize="{DynamicResource Font12_5}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4"/>
                                 <TextBox Text="{Binding EditingEntry.VncParameters, UpdateSourceTrigger=PropertyChanged}"/>
                             </StackPanel>
                         </StackPanel>
@@ -212,7 +214,7 @@
 
                 <!-- Observações em área opcional -->
                 <Expander x:Name="NotesExpander"
-                          Header="Observações"
+                          Header="{loc:Loc TextC01DDBEAAB7C}"
                           IsExpanded="False"
                           Foreground="{DynamicResource PrimaryTextBrush}"
                           Margin="0,10,0,4">
@@ -231,8 +233,8 @@
         <!-- Rodapé: Cancelar e Salvar -->
         <Border Grid.Row="2" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0" Padding="20,12">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                <Button Content="Cancelar" Click="CancelButton_Click" Padding="16,7" Margin="0,0,10,0"/>
-                <Button Content="Salvar" Click="SaveButton_Click" Style="{DynamicResource PrimaryButtonStyle}" Padding="20,7"/>
+                <Button Content="{loc:Loc TextBB9DBB406DCB}" Click="CancelButton_Click" Padding="16,7" Margin="0,0,10,0"/>
+                <Button Content="{loc:Loc TextAEF7CD5B2081}" Click="SaveButton_Click" Style="{DynamicResource PrimaryButtonStyle}" Padding="20,7"/>
             </StackPanel>
         </Border>
     </Grid>

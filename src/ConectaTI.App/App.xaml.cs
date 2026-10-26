@@ -11,16 +11,31 @@ namespace ConectaTI.App;
 
 public partial class App : Application
 {
+    private CredentialVaultService? _sessionVault;
+    public bool IsIsolatedHost { get; set; }
     protected override async void OnStartup(StartupEventArgs e)
     {
+        if (IsIsolatedHost) return;
         base.OnStartup(e);
 
-        var paths = new AppPaths();
+        string? explicitDataDirectory = null;
+        var directoryIndex = Array.IndexOf(e.Args, "--data-dir");
+        if (directoryIndex >= 0)
+        {
+            if (directoryIndex + 1 >= e.Args.Length || string.IsNullOrWhiteSpace(e.Args[directoryIndex + 1]))
+            {
+                MessageBox.Show(L.Text("Informe uma pasta após --data-dir."), "ConectaTI", MessageBoxButton.OK, MessageBoxImage.Warning);
+                Shutdown(1);
+                return;
+            }
+            explicitDataDirectory = Path.GetFullPath(e.Args[directoryIndex + 1]);
+        }
+        var paths = new AppPaths(explicitDataDirectory);
         if (!paths.IsDataDirectoryWritable)
         {
             var res = MessageBox.Show(
-                $"A pasta do aplicativo ('{paths.RootDirectory}') não possui permissão de gravação de arquivos.\n\nDeseja selecionar uma pasta com permissão de escrita para armazenar o banco de dados e as configurações?",
-                "ConectaTI — Permissão de Pasta",
+                L.Format("A pasta do aplicativo ('{0}') não possui permissão de gravação de arquivos.\n\nDeseja selecionar uma pasta com permissão de escrita para armazenar o banco de dados e as configurações?", (paths.RootDirectory)),
+                L.Text("ConectaTI — Permissão de Pasta"),
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Warning);
 
@@ -28,7 +43,7 @@ public partial class App : Application
             {
                 var dialog = new Microsoft.Win32.OpenFolderDialog
                 {
-                    Title = "Selecione a pasta de dados do ConectaTI"
+                    Title = L.Text("Selecione a pasta de dados do ConectaTI")
                 };
                 if (dialog.ShowDialog() == true && !string.IsNullOrWhiteSpace(dialog.FolderName))
                 {
@@ -39,17 +54,17 @@ public partial class App : Application
         }
 
         var logger = new AppLogger(paths);
-        logger.Info("Startup", "Iniciando ConectaTI v1.2.1...");
+        logger.Info("Startup", "Iniciando ConectaTI v1.5.0...");
 
         // Migração segura e consistente de bases legadas (%LOCALAPPDATA%\ConectaTI\conectati.db)
-        DatabaseMigrationManager.EnsureDatabaseMigrated(paths, logger);
+        if (explicitDataDirectory == null) DatabaseMigrationManager.EnsureDatabaseMigrated(paths, logger);
 
         DispatcherUnhandledException += (_, args) =>
         {
             logger.Error("Unhandled", "Exceção não tratada na interface WPF.", args.Exception);
             MessageBox.Show(
-                $"Ocorreu um erro inesperado:\n{args.Exception.Message}",
-                "ConectaTI — Erro",
+                L.Format("Ocorreu um erro inesperado:\n{0}", (args.Exception.Message)),
+                L.Text("ConectaTI — Erro"),
                 MessageBoxButton.OK,
                 MessageBoxImage.Error);
             args.Handled = true;
@@ -60,10 +75,13 @@ public partial class App : Application
         ExternalClientDetector.AutoPopulateMissingPaths(settings);
         settingsService.Save();
 
+        LocalizationService.Current.SetLanguage(settings.Language);
+        ViewPreferencesService.Apply(settings);
         ThemeService.ApplyTheme(settings.Theme);
 
         var repository = new SqliteRepository(paths, logger);
         var vaultService = new CredentialVaultService(settingsService, repository, logger);
+        _sessionVault=vaultService;
         var clipboardService = new ClipboardService(logger);
         var launcherService = new ConnectionLauncherService(paths, settingsService, repository, vaultService, clipboardService, logger);
         var importExportService = new ImportExportService(repository, vaultService, logger);
@@ -90,6 +108,7 @@ public partial class App : Application
 
     protected override void OnExit(ExitEventArgs e)
     {
+        _sessionVault?.Lock();
         try
         {
             WindowsCredentialVaultInterop.CleanupAllManagedRdpCredentials();
