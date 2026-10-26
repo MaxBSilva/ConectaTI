@@ -1374,6 +1374,7 @@ public class ConectaTITests : IDisposable
                     }
                 }
 
+                await ResponsiveUiScenarios.VerifyAsync(mainWin, vm);
                 await ImprovementsUiScenarios.VerifyAsync(mainWin, vm);
                 vm.NewConnection();
                 var editorDlg = new ConectaTI.App.Views.ConnectionEditorDialog(vm);

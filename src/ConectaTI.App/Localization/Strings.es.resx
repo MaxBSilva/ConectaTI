@@ -711,4 +711,7 @@ Se desactivó la contraseña maestra.</value></data>
   <data name="Text63E2BBAF1C92" xml:space="preserve"><value>Continuar</value></data>
   <data name="Text15D6622A9329" xml:space="preserve"><value>Una copia local de SQLite conserva la protección del usuario de origen. Restaurar no transfiere contraseñas a otro perfil. Para ello, exporte un paquete de transferencia con contraseñas. La restauración verifica la integridad y conserva una copia de seguridad.</value></data>
   <data name="Text6894441B3FA5" xml:space="preserve"><value>Búsqueda</value></data>
+  <data name="CopyCompleteAccess" xml:space="preserve"><value>Copiar acceso completo</value></data>
+  <data name="Text90F12F03968A" xml:space="preserve"><value>Datos del acceso copiados</value></data>
+  <data name="TextD778EC87C370" xml:space="preserve"><value>No se pudo copiar al portapapeles.</value></data>
 </root>

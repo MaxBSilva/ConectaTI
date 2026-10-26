@@ -26,6 +26,12 @@ O aplicativo utiliza MSTSC, PuTTY/OpenSSH, WinSCP ou o visualizador VNC configur
 
 Navegar entre acessos e conectar não salva alterações do formulário. Os rascunhos permanecem em memória até o aplicativo ser fechado.
 
+**Copiar acesso completo**, abaixo de Conectar e Salvar, copia nome, endereço, usuário e senha em quatro linhas de texto simples. A ação segue os valores em edição dos botões individuais, inclusive uma senha substituta ainda não salva, e recupera a senha protegida quando ela está oculta. Uma remoção de senha pendente produz a linha `Senha:` vazia; uma falha na recuperação impede a cópia do conjunto. Nenhuma dessas ações salva ou conecta.
+
+O endereço copiado acompanha o campo exibido: mantém hostname/IP e porta explícita, sem duplicá-la; ao carregar o cadastro, a porta padrão continua omitida e a personalizada é exibida. Sem um acesso selecionado, a cópia completa fica desabilitada. Mudar de acesso ou editar os dados durante uma leitura/tentativa de cópia cancela o resultado antigo. O conteúdo completo segue a limpeza automática da cópia de senha, conforme o intervalo configurado (30 segundos por padrão), sem apagar uma cópia posterior do usuário.
+
+O cabeçalho interno utiliza o espaço para os comandos, mantendo nome e ícone na barra de título. Os comandos quebram linha conforme a largura. Abaixo de 680 unidades lógicas WPF, a lista fica acima dos detalhes, com divisória horizontal; em janelas maiores, os painéis ficam lado a lado. Os detalhes mantêm rolagem vertical, e a largura anterior da lista é preservada ao alternar a disposição.
+
 ## Dados e credenciais
 
 Por padrão, `sqlite.db`, `settings.json`, backups e logs ficam na pasta do aplicativo. Ao atualizar uma instalação, feche o ConectaTI e substitua somente os arquivos do programa, preservando os dados locais.

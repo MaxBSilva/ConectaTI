@@ -33,18 +33,16 @@ public class ClipboardService
         _clearClipboardAction = customClearClipboard ?? DefaultClearClipboard;
     }
 
-    public async Task<bool> CopyTextWithRetryAsync(string text, bool isSecret = false, int autoClearSeconds = 0)
+    public async Task<bool> CopyTextWithRetryAsync(string text, bool isSecret = false, int autoClearSeconds = 0,
+        Func<bool>? canCopy = null)
     {
         if (string.IsNullOrEmpty(text))
             return false;
 
-        _autoClearCts?.Cancel();
-        _autoClearCts?.Dispose();
-        _autoClearCts = null;
-
         var copied = false;
         for (var attempt = 1; attempt <= 6; attempt++)
         {
+            if (canCopy?.Invoke() == false) return false;
             try
             {
                 if (_setClipboardAction(text))
@@ -70,6 +68,10 @@ public class ClipboardService
             _logger.Warn("Clipboard", "Não foi possível copiar para a área de transferência após várias tentativas.");
             return false;
         }
+
+        _autoClearCts?.Cancel();
+        _autoClearCts?.Dispose();
+        _autoClearCts = null;
 
         if (isSecret)
         {

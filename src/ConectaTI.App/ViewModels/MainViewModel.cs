@@ -706,6 +706,7 @@ public partial class MainViewModel : ObservableObject
 
     public void NotifySelectedSummaryProperties()
     {
+        CopyCompleteAccessCommand.NotifyCanExecuteChanged();
         OnPropertyChanged(nameof(CanCopySelectedAddress));
         OnPropertyChanged(nameof(CanCopyPersistedUser));
         OnPropertyChanged(nameof(HasSelectedConnection));
@@ -1353,64 +1354,16 @@ public partial class MainViewModel : ObservableObject
     // =========================================================================
 
     [RelayCommand]
-    public async Task CopyConnectionNameAsync()
-    {
-        var name = !string.IsNullOrWhiteSpace(EditingEntry?.Name) ? EditingEntry.Name : SelectedConnection?.Name;
-        if (string.IsNullOrWhiteSpace(name))
-            return;
-
-        if (await _clipboardService.CopyTextWithRetryAsync(name))
-            StatusMessage = L.Text("Nome da conexão copiado");
-    }
+    public Task CopyConnectionNameAsync() => CopyAccessFieldAsync(AccessCopyField.Name);
 
     [RelayCommand]
-    public async Task CopyHostAsync()
-    {
-        var textToCopy = !string.IsNullOrWhiteSpace(InlineHostAndPort)
-            ? InlineHostAndPort
-            : HostPortParser.FormatDisplay(EditingEntry?.Host ?? SelectedConnection?.Host, EditingEntry?.Port ?? SelectedConnection?.Port ?? 0, EditingEntry?.Protocol ?? SelectedConnection?.Protocol ?? ConnectionProtocol.Rdp);
-
-        if (string.IsNullOrWhiteSpace(textToCopy))
-            return;
-
-        if (await _clipboardService.CopyTextWithRetryAsync(textToCopy))
-            StatusMessage = L.Text("Endereço copiado");
-    }
+    public Task CopyHostAsync() => CopyAccessFieldAsync(AccessCopyField.Address);
 
     [RelayCommand]
-    public async Task CopyHostAndPortAsync()
-    {
-        var textToCopy = !string.IsNullOrWhiteSpace(InlineHostAndPort)
-            ? InlineHostAndPort
-            : HostPortParser.FormatDisplay(EditingEntry?.Host ?? SelectedConnection?.Host, EditingEntry?.Port ?? SelectedConnection?.Port ?? 0, EditingEntry?.Protocol ?? SelectedConnection?.Protocol ?? ConnectionProtocol.Rdp);
-
-        if (string.IsNullOrWhiteSpace(textToCopy))
-            return;
-
-        if (await _clipboardService.CopyTextWithRetryAsync(textToCopy))
-            StatusMessage = L.Text("Host:porta copiado");
-    }
+    public Task CopyHostAndPortAsync() => CopyAccessFieldAsync(AccessCopyField.AddressWithPort);
 
     [RelayCommand]
-    public async Task CopyUsernameAsync()
-    {
-        var textToCopy = !string.IsNullOrWhiteSpace(InlineUserWithDomain)
-            ? InlineUserWithDomain
-            : UserIdentityFormatter.FormatDisplay(EditingEntry?.Username ?? SelectedConnection?.Username, EditingEntry?.Domain ?? SelectedConnection?.Domain);
-
-        var credId = EditingEntry?.CredentialId ?? SelectedConnection?.CredentialId;
-        if (string.IsNullOrWhiteSpace(textToCopy) && !string.IsNullOrWhiteSpace(credId))
-        {
-            var cred = await _repository.GetCredentialByIdAsync(credId);
-            textToCopy = cred?.EffectiveUserDisplay ?? string.Empty;
-        }
-
-        if (string.IsNullOrWhiteSpace(textToCopy))
-            return;
-
-        if (await _clipboardService.CopyTextWithRetryAsync(textToCopy))
-            StatusMessage = L.Text("Usuário copiado");
-    }
+    public Task CopyUsernameAsync() => CopyAccessFieldAsync(AccessCopyField.User);
 
     [RelayCommand]
     public async Task CopyVpnNameAsync()
@@ -1441,50 +1394,13 @@ public partial class MainViewModel : ObservableObject
     }
 
     [RelayCommand]
-    public async Task CopyPasswordAsync()
-    {
-        var clearSec = _settingsService.Current.ClipboardClearSeconds > 0
-            ? _settingsService.Current.ClipboardClearSeconds
-            : 30;
-
-        if (!string.IsNullOrEmpty(InlinePasswordInput))
-        {
-            if (await _clipboardService.CopyTextWithRetryAsync(InlinePasswordInput, isSecret: true, autoClearSeconds: clearSec))
-            {
-                StatusMessage = L.Text("Senha copiada");
-            }
-            return;
-        }
-
-        var credId = EditingEntry?.CredentialId ?? SelectedConnection?.CredentialId;
-        if (string.IsNullOrWhiteSpace(credId))
-        {
-            StatusMessage = L.Text("Nenhuma senha cadastrada.");
-            return;
-        }
-
-
-        var cred = await _repository.GetCredentialByIdAsync(credId);
-        if (cred == null)
-        {
-            if (_activeSession != null) _activeSession.CredentialRecoveryFailed = true;
-            StatusMessage = L.Text("Falha ao recuperar credencial");
-            NotifyPasswordStatusProperties();
-            return;
-        }
-
-        var secret = await RecoverPasswordAsync(cred);
-        if (string.IsNullOrEmpty(secret)) return;
-
-        if (await _clipboardService.CopyTextWithRetryAsync(secret, isSecret: true, autoClearSeconds: clearSec))
-        {
-            StatusMessage = L.Text("Senha copiada");
-        }
-    }
+    public Task CopyPasswordAsync() => CopyAccessFieldAsync(AccessCopyField.Password);
 
     private async Task<string?> RecoverPasswordAsync(SavedCredential credential)
+        => await RecoverPasswordAsync(credential, _activeSession);
+
+    private async Task<string?> RecoverPasswordAsync(SavedCredential credential, ConnectionEditSession? session)
     {
-        var session = _activeSession;
         try
         {
             var secret = await _vaultService.ReadSecretAsync(credential);

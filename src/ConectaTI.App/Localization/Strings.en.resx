@@ -711,4 +711,7 @@ Save anyway?</value></data>
   <data name="Text63E2BBAF1C92" xml:space="preserve"><value>Continue</value></data>
   <data name="Text15D6622A9329" xml:space="preserve"><value>A local SQLite backup keeps the source user's protection. Restoring does not transfer passwords to another profile. Export a transfer package with passwords for that. Restore verifies integrity and preserves a safety copy.</value></data>
   <data name="Text6894441B3FA5" xml:space="preserve"><value>Search</value></data>
+  <data name="CopyCompleteAccess" xml:space="preserve"><value>Copy complete access</value></data>
+  <data name="Text90F12F03968A" xml:space="preserve"><value>Access details copied</value></data>
+  <data name="TextD778EC87C370" xml:space="preserve"><value>Could not copy to the clipboard.</value></data>
 </root>

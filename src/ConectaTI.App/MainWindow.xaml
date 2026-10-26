@@ -48,26 +48,12 @@
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,0,0,1"
                 Padding="12,6">
-            <DockPanel LastChildFill="False">
-                <!-- Identidade Visual -->
-                <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Image Source="pack://application:,,,/ConectaTI;component/Assets/conectati.png"
-                           Width="20" Height="20" Margin="0,0,8,0"
-                           RenderOptions.BitmapScalingMode="HighQuality"
-                           VerticalAlignment="Center"/>
-                    <TextBlock Text="ConectaTI"
-                               Foreground="#F8FAFC"
-                               FontSize="{DynamicResource Font14}"
-                               FontWeight="SemiBold"
-                               VerticalAlignment="Center"/>
-                </StackPanel>
-
-                <!-- Ações da Barra Superior: Nova Conexão, Alternar Tema (Sol/Lua), Configurações (Engrenagem) -->
-                <WrapPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                <!-- Toda a largura fica disponível para comandos, com quebra natural. -->
+                <WrapPanel x:Name="HeaderActions" Orientation="Horizontal" VerticalAlignment="Center">
                     <Button Click="NewConnectionButton_Click"
                             Style="{DynamicResource PrimaryButtonStyle}"
                             Padding="10,4"
-                            Margin="0,0,6,0"
+                            Margin="0,2,6,2"
                             ToolTip="{loc:Loc Text9BB1328098A8}"
                             AutomationProperties.Name="{loc:Loc TextC9DC78D19188}">
                         <TextBlock TextWrapping="Wrap" Text="{loc:Loc TextBADD8CCF4A67}" FontSize="{DynamicResource Font12_5}"/>
@@ -75,7 +61,7 @@
 
                     <Button Command="{Binding ToggleThemeCommand}"
                             Padding="7,4"
-                            Margin="0,0,6,0"
+                            Margin="0,2,6,2"
                             Background="#1E293B"
                             Foreground="#F8FAFC"
                             BorderBrush="#334155"
@@ -84,10 +70,13 @@
                         <TextBlock Text="{Binding ThemeToggleIcon}" FontSize="{DynamicResource Font12_5}"/>
                     </Button>
 
-                    <Button Content="{loc:Loc Text3B11819721B7}" Click="BatchEdit_Click" IsEnabled="{Binding CanBatchEdit}" Margin="0,0,6,0" Padding="8,4"/>
-                    <TextBlock Text="{Binding SelectedAccessCountText}" VerticalAlignment="Center" Foreground="#F8FAFC" Margin="0,0,8,0"/>
+                    <Button Click="BatchEdit_Click" IsEnabled="{Binding CanBatchEdit}" Margin="0,2,6,2" Padding="8,4">
+                        <TextBlock Text="{loc:Loc Text3B11819721B7}" TextWrapping="Wrap"/>
+                    </Button>
+                    <TextBlock Text="{Binding SelectedAccessCountText}" VerticalAlignment="Center" Foreground="#F8FAFC" Margin="0,2,8,2" TextWrapping="Wrap"/>
                     <Button x:Name="SettingsGearButton"
                             Click="OpenSettingsButton_Click"
+                            Margin="0,2,0,2"
                             Padding="8,4"
                             Background="#1E293B"
                             Foreground="#F8FAFC"
@@ -97,23 +86,27 @@
                         <TextBlock Text="⚙" FontSize="{DynamicResource Font13}"/>
                     </Button>
                 </WrapPanel>
-            </DockPanel>
         </Border>
 
         <!-- ========================================================================= -->
         <!-- ÁREA CENTRAL COM 2 PAINÉIS (LISTA À ESQUERDA / FORMULÁRIO À DIREITA)       -->
         <!-- ========================================================================= -->
-        <Grid Grid.Row="1">
+        <Grid x:Name="MainWorkspace" Grid.Row="1" SizeChanged="MainWorkspace_SizeChanged">
+            <Grid.RowDefinitions>
+                <RowDefinition x:Name="AccessListRowDef" Height="*"/>
+                <RowDefinition x:Name="PaneSplitterRowDef" Height="0"/>
+                <RowDefinition x:Name="DetailsRowDef" Height="0"/>
+            </Grid.RowDefinitions>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition x:Name="LeftColumnDef" Width="220" MinWidth="130"/>
-                <ColumnDefinition Width="4"/>
+                <ColumnDefinition x:Name="PaneSplitterColumnDef" Width="4"/>
                 <ColumnDefinition x:Name="RightColumnDef" Width="*" MinWidth="260"/>
             </Grid.ColumnDefinitions>
 
             <!-- ===================================================================== -->
             <!-- PAINEL ESQUERDO: Campo "Buscar..." + Lista Compacta de Conexões        -->
             <!-- ===================================================================== -->
-            <Grid Grid.Column="0" Background="{DynamicResource SurfaceBrush}">
+            <Grid x:Name="AccessListPane" Grid.Column="0" Background="{DynamicResource SurfaceBrush}">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
@@ -175,7 +168,7 @@
                         BorderBrush="{DynamicResource BorderBrush}"
                         BorderThickness="0,0,0,1"
                         Padding="4,3">
-                    <UniformGrid Columns="2">
+                    <UniformGrid x:Name="ViewModeButtons" Columns="2">
                         <UniformGrid.Resources>
                             <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
                                 <Setter Property="ContentTemplate"><Setter.Value><DataTemplate><TextBlock Text="{Binding}" TextWrapping="Wrap" TextAlignment="Center"/></DataTemplate></Setter.Value></Setter>
@@ -282,23 +275,25 @@
             </Grid>
 
             <!-- Divisória Redimensionável -->
-            <GridSplitter Grid.Column="1"
+            <GridSplitter x:Name="PaneSplitter" Grid.Column="1"
                           Width="4"
                           HorizontalAlignment="Stretch"
                           VerticalAlignment="Stretch"
                           Background="{DynamicResource BorderBrush}"
                           ShowsPreview="True"
+                          ResizeBehavior="PreviousAndNext"
+                          DragCompleted="PaneSplitter_DragCompleted"
                           Cursor="SizeWE"
                           ToolTip="{loc:Loc TextFA6E89A3EFC8}"/>
 
             <!-- ===================================================================== -->
             <!-- PAINEL DIREITO: Formulário Fixo com Edição Direta                     -->
             <!-- ===================================================================== -->
-            <Border Grid.Column="2"
+            <Border x:Name="AccessDetailsPane" Grid.Column="2"
                     Background="{DynamicResource SurfaceBrush}"
                     BorderBrush="{DynamicResource BorderBrush}"
                     BorderThickness="1,0,0,0">
-                <ScrollViewer VerticalScrollBarVisibility="Auto"
+                <ScrollViewer x:Name="DetailsScrollViewer" VerticalScrollBarVisibility="Auto"
                               HorizontalScrollBarVisibility="Disabled"
                               Padding="14,12"
                               Focusable="False">
@@ -340,21 +335,21 @@
                                 CornerRadius="4"
                                 Padding="10,8"
                                 Margin="0,0,0,12">
-                            <DockPanel LastChildFill="False">
-                                <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center">
+                            <StackPanel>
+                                <StackPanel VerticalAlignment="Center">
                                     <TextBlock TextWrapping="Wrap" Text="{loc:Loc TextEC97782257F3}" FontWeight="SemiBold" Foreground="#FDE68A" FontSize="{DynamicResource Font12_5}"/>
                                     <TextBlock Text="{Binding SelectedConnection.DeletedAtDisplay}" Foreground="#FDE68A" FontSize="{DynamicResource Font11}" Margin="0,2,0,0"/>
                                 </StackPanel>
-                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                                <WrapPanel VerticalAlignment="Center" Margin="0,6,0,0">
                                     <Button Content="{loc:Loc Text010AD8D3A1F4}"
                                             Command="{Binding RestoreSelectedConnectionCommand}"
-                                            Padding="10,4" Margin="0,0,6,0" FontSize="{DynamicResource Font11_5}"/>
+                                            Padding="10,4" Margin="0,0,6,4" FontSize="{DynamicResource Font11_5}"/>
                                     <Button Content="{loc:Loc Text37045D507711}"
                                             Command="{Binding DeleteConnectionCommand}"
                                             Background="#7F1D1D" Foreground="#FEE2E2" BorderBrush="#EF4444"
-                                            Padding="10,4" FontSize="{DynamicResource Font11_5}"/>
-                                </StackPanel>
-                            </DockPanel>
+                                            Padding="10,4" Margin="0,0,0,4" FontSize="{DynamicResource Font11_5}"/>
+                                </WrapPanel>
+                            </StackPanel>
                         </Border>
 
                         <!-- 1. Nome da Conexão + Copiar -->
@@ -528,12 +523,13 @@
                                   Margin="0,0,0,12"/>
 
                         <!-- 7. Ações Principais: Conectar, Salvar e Menu discreto (•••) -->
-                        <WrapPanel Margin="0,0,0,12">
+                        <WrapPanel x:Name="DetailActions" Margin="0,0,0,2">
                             <!-- Conectar (Botão Principal em Destaque) -->
                             <Button DockPanel.Dock="Left"
                                     Command="{Binding ConnectCommand}"
                                     Style="{DynamicResource PrimaryButtonStyle}"
                                     Padding="18,6"
+                                    Margin="0,0,8,6"
                                     ToolTip="{loc:Loc Text76D0D8DA1D7C}"
                                     AutomationProperties.Name="{loc:Loc Text3B0B0FDFE2E3}">
                                 <TextBlock TextWrapping="Wrap" Text="{loc:Loc Text3B0B0FDFE2E3}" FontSize="{DynamicResource Font13}" FontWeight="SemiBold"/>
@@ -544,7 +540,7 @@
                                     Click="SaveButton_Click"
                                     IsEnabled="{Binding CanSave}"
                                     Padding="14,6"
-                                    Margin="8,0,0,0"
+                                    Margin="0,0,8,6"
                                     ToolTip="{loc:Loc TextCFB546213C60}"
                                     AutomationProperties.Name="{loc:Loc TextAEF7CD5B2081}">
                                 <Button.Style>
@@ -558,7 +554,7 @@
                                         </Style.Triggers>
                                     </Style>
                                 </Button.Style>
-                                <TextBlock Text="{Binding SaveButtonText}" FontSize="{DynamicResource Font12_5}"/>
+                                <TextBlock Text="{Binding SaveButtonText}" TextWrapping="Wrap" FontSize="{DynamicResource Font12_5}"/>
                             </Button>
 
                             <!-- Menu Discreto para Duplicar, Excluir e Testar Conexão -->
@@ -566,7 +562,7 @@
                                     DockPanel.Dock="Left"
                                     Click="MoreActionsButton_Click"
                                     Padding="10,6"
-                                    Margin="8,0,0,0"
+                                    Margin="0,0,0,6"
                                     ToolTip="{loc:Loc Text289CA5B692D9}">
                                 <TextBlock Text="•••" FontSize="{DynamicResource Font12}" FontWeight="Bold"/>
                                 <Button.ContextMenu>
@@ -580,6 +576,12 @@
                                 </Button.ContextMenu>
                             </Button>
                         </WrapPanel>
+
+                        <Button x:Name="CopyCompleteAccessButton" Command="{Binding CopyCompleteAccessCommand}"
+                                Padding="10,6" Margin="0,0,0,12" HorizontalContentAlignment="Center"
+                                AutomationProperties.Name="{loc:Loc CopyCompleteAccess}">
+                            <TextBlock Text="{loc:Loc CopyCompleteAccess}" TextWrapping="Wrap" TextAlignment="Center"/>
+                        </Button>
 
                         <TextBlock Text="{Binding PendingChangesText}" TextWrapping="Wrap"
                                    Foreground="{DynamicResource SecondaryTextBrush}" FontSize="{DynamicResource Font11}" Margin="0,0,0,6"/>

@@ -711,4 +711,7 @@ Deseja salvar mesmo assim?</value></data>
   <data name="Text63E2BBAF1C92" xml:space="preserve"><value>Continuar</value></data>
   <data name="Text15D6622A9329" xml:space="preserve"><value>Backup local do SQLite mantém a proteção do usuário de origem. Restaurar não transfere senhas para outro perfil. Para isso, exporte um pacote de transferência com senhas. A restauração verifica a integridade e preserva uma cópia de segurança.</value></data>
   <data name="Text6894441B3FA5" xml:space="preserve"><value>Busca</value></data>
+  <data name="CopyCompleteAccess" xml:space="preserve"><value>Copiar acesso completo</value></data>
+  <data name="Text90F12F03968A" xml:space="preserve"><value>Dados do acesso copiados</value></data>
+  <data name="TextD778EC87C370" xml:space="preserve"><value>Não foi possível copiar para a área de transferência.</value></data>
 </root>

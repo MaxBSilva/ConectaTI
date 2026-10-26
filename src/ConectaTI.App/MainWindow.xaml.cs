@@ -19,6 +19,8 @@ public partial class MainWindow : Window
     private readonly DispatcherTimer _incrementalSearchTimer;
     private string _incrementalSearchBuffer = string.Empty;
     private bool _isUpdatingPasswordInternally;
+    private bool? _isStackedLayout;
+    private double _preferredLeftPaneWidth = 220;
 
     public MainWindow(MainViewModel viewModel)
     {
@@ -65,6 +67,7 @@ public partial class MainWindow : Window
 
         Loaded += async (_, _) =>
         {
+            UpdateResponsiveLayout();
             _vm.NotifySelectedSummaryProperties();
             SyncPasswordControls();
             UpdatePasswordPlaceholderVisibility();
@@ -135,6 +138,7 @@ public partial class MainWindow : Window
         }
 
         var savedLeftWidth = s.LeftPaneWidth >= 130 ? s.LeftPaneWidth : 220;
+        _preferredLeftPaneWidth = savedLeftWidth;
         LeftColumnDef.Width = new GridLength(Math.Min(savedLeftWidth, Math.Max(130, Width - 280)), GridUnitType.Pixel);
     }
 
@@ -157,12 +161,52 @@ public partial class MainWindow : Window
             s.WindowHeight = RestoreBounds.Height;
         }
 
-        if (LeftColumnDef.ActualWidth >= 130)
+        if (_isStackedLayout != true && LeftColumnDef.ActualWidth >= 130)
         {
             s.LeftPaneWidth = LeftColumnDef.ActualWidth;
         }
+        else s.LeftPaneWidth = _preferredLeftPaneWidth;
 
         _vm.SettingsService.Save();
+    }
+
+    private void MainWorkspace_SizeChanged(object sender, SizeChangedEventArgs e) => UpdateResponsiveLayout();
+
+    private void PaneSplitter_DragCompleted(object sender, DragCompletedEventArgs e)
+    {
+        if (_isStackedLayout != true) _preferredLeftPaneWidth = LeftColumnDef.ActualWidth;
+    }
+
+    private void UpdateResponsiveLayout()
+    {
+        var width = MainWorkspace.ActualWidth;
+        if (width <= 0) return;
+        var stacked = width < 680;
+        if (_isStackedLayout != stacked)
+        {
+            if (_isStackedLayout == false) _preferredLeftPaneWidth = LeftColumnDef.ActualWidth;
+            _isStackedLayout = stacked;
+            Grid.SetColumn(AccessDetailsPane, stacked ? 0 : 2);
+            Grid.SetRow(AccessDetailsPane, stacked ? 2 : 0);
+            Grid.SetColumn(PaneSplitter, stacked ? 0 : 1);
+            Grid.SetRow(PaneSplitter, stacked ? 1 : 0);
+            PaneSplitterRowDef.Height = new GridLength(stacked ? 4 : 0);
+            DetailsRowDef.Height = stacked ? new GridLength(1.5, GridUnitType.Star) : new GridLength(0);
+            LeftColumnDef.MinWidth = stacked ? 0 : 130;
+            RightColumnDef.MinWidth = stacked ? 0 : 300;
+            PaneSplitterColumnDef.Width = new GridLength(stacked ? 0 : 4);
+            RightColumnDef.Width = stacked ? new GridLength(0) : new GridLength(1, GridUnitType.Star);
+            PaneSplitter.ResizeDirection = stacked ? GridResizeDirection.Rows : GridResizeDirection.Columns;
+            PaneSplitter.Width = stacked ? double.NaN : 4;
+            PaneSplitter.Height = stacked ? 4 : double.NaN;
+            PaneSplitter.Cursor = stacked ? Cursors.SizeNS : Cursors.SizeWE;
+            ViewModeButtons.Columns = stacked ? 4 : 2;
+        }
+        LeftColumnDef.Width = stacked ? new GridLength(1, GridUnitType.Star)
+            : new GridLength(Math.Clamp(_preferredLeftPaneWidth, 130, Math.Max(130, width - 304)));
+        AccessListRowDef.Height = new GridLength(stacked && FontSize >= 16 ? 1.5 : 1, GridUnitType.Star);
+        AccessListRowDef.MinHeight = stacked ? Math.Min(110, MainWorkspace.ActualHeight * .4) : 0;
+        DetailsRowDef.MinHeight = stacked ? Math.Min(140, MainWorkspace.ActualHeight * .45) : 0;
     }
 
     // =========================================================================
