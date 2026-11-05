@@ -43,18 +43,18 @@ public record ConnectionLaunchResult(
 /// </summary>
 public class ConnectionLauncherService
 {
-    private record ActiveRdpHandshake(string ConnectionId, string EffectiveUser, DateTime StartedAtUtc);
+    private record RdpCredentialHandoff(string EffectiveUser, DateTime StartedAtUtc);
 
     private readonly AppPaths _paths;
     private readonly SettingsService _settingsService;
     private readonly SqliteRepository _repository;
-    private readonly CredentialVaultService _vaultService;
-    private readonly ClipboardService _clipboardService;
+    private readonly ICredentialSecretReader _vaultService;
     private readonly AppLogger _logger;
-    private readonly Func<ProcessStartInfo, int?>? _customProcessStarter;
+    private readonly IProcessRunner _processRunner;
+    private readonly ConnectionPlanBuilder _planBuilder;
 
     private readonly ConcurrentDictionary<string, SemaphoreSlim> _hostLocks = new(StringComparer.OrdinalIgnoreCase);
-    private readonly ConcurrentDictionary<string, ActiveRdpHandshake> _activeRdpHandshakes = new(StringComparer.OrdinalIgnoreCase);
+    private readonly ConcurrentDictionary<string, RdpCredentialHandoff> _rdpCredentialHandoffs = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// Janela mínima para evitar que duas conexões simultâneas para o mesmo servidor com usuários diferentes
@@ -72,52 +72,47 @@ public class ConnectionLauncherService
         ClipboardService clipboardService,
         AppLogger logger,
         Func<ProcessStartInfo, int?>? customProcessStarter = null)
+        : this(paths, settingsService, repository, vaultService, logger,
+            customProcessStarter == null ? null : new DelegateProcessRunner(customProcessStarter)) { }
+
+    public ConnectionLauncherService(AppPaths paths, SettingsService settingsService, SqliteRepository repository,
+        ICredentialSecretReader vaultService, AppLogger logger, IProcessRunner? processRunner = null)
     {
         _paths = paths;
         _settingsService = settingsService;
         _repository = repository;
         _vaultService = vaultService;
-        _clipboardService = clipboardService;
         _logger = logger;
-        _customProcessStarter = customProcessStarter;
+        _processRunner = processRunner ?? new SystemProcessRunner();
+        _planBuilder = new ConnectionPlanBuilder(paths);
     }
 
-    public ConnectionLaunchPlan BuildLaunchPlan(
-        ConnectionEntry entry,
-        SavedCredential? credential = null,
-        string? decryptedPassword = null)
+    public ConnectionLaunchPlan BuildLaunchPlan(ConnectionEntry entry, SavedCredential? credential = null, string? decryptedPassword = null)
+        => _planBuilder.Build(entry, _settingsService.Current, credential, decryptedPassword);
+
+    public ConnectionLaunchPlan BuildLaunchPlan(ConnectionEntry entry, SavedCredential? credential, bool hasDecryptedPassword)
+        => _planBuilder.Build(entry, _settingsService.Current, credential, hasDecryptedPassword);
+
+    public async Task<string> BuildSafeRdpPreviewAsync(ConnectionEntry snapshot)
     {
-        var settings = _settingsService.Current;
-
-        var rawUser = !string.IsNullOrWhiteSpace(entry.Username) ? entry.Username : credential?.Username ?? string.Empty;
-        var rawDomain = !string.IsNullOrWhiteSpace(entry.Domain) ? entry.Domain : credential?.Domain ?? string.Empty;
-        var userIdentity = UserIdentityFormatter.Normalize(
-            ConnectionValidator.SanitizeSingleLineForRdp(rawUser),
-            ConnectionValidator.SanitizeSingleLineForRdp(rawDomain));
-
-        return entry.Protocol switch
+        SavedCredential? credential = null;
+        var hasPassword = false;
+        if (!string.IsNullOrWhiteSpace(snapshot.CredentialId))
         {
-            ConnectionProtocol.Rdp => BuildRdpPlan(entry, userIdentity, settings, decryptedPassword),
-            ConnectionProtocol.Ssh => BuildSshPlan(entry, userIdentity, settings, !string.IsNullOrEmpty(decryptedPassword)),
-            ConnectionProtocol.Sftp or ConnectionProtocol.Scp => BuildWinScpPlan(entry, userIdentity, settings, !string.IsNullOrEmpty(decryptedPassword)),
-            ConnectionProtocol.Vnc => BuildVncPlan(entry, userIdentity, settings, !string.IsNullOrEmpty(decryptedPassword)),
-            _ => throw new NotSupportedException(L.Format("Protocolo não suportado: {0}", (entry.Protocol)))
-        };
+            credential = await _repository.GetCredentialByIdAsync(snapshot.CredentialId);
+            if (credential != null)
+            {
+                try { hasPassword = !string.IsNullOrEmpty(await _vaultService.ReadSecretAsync(credential)); }
+                catch { credential = null; }
+            }
+        }
+        // The placeholder follows the same property generation, without emitting a password blob.
+        var plan = BuildLaunchPlan(snapshot, credential, hasPassword);
+        return RdpFileService.Sanitize(plan.TempRdpContent ?? "");
     }
-
-    public ConnectionLaunchPlan BuildLaunchPlan(
-        ConnectionEntry entry,
-        SavedCredential? credential,
-        bool hasDecryptedPassword)
-    {
-        return BuildLaunchPlan(entry, credential, hasDecryptedPassword ? "__PROTECTED_PLACEHOLDER__" : null);
-    }
-
     public async Task<ConnectionLaunchResult> LaunchAsync(ConnectionEntry entry)
     {
-        // Request the session only when this connection actually uses a saved secret.
-
-        // 2. Validação completa do cadastro (incluindo proteção contra quebras de linha)
+        // Validate persisted connection data before reading a linked secret.
         var errors = ConnectionValidator.ValidateConnection(entry);
         if (errors.Count > 0)
         {
@@ -134,7 +129,7 @@ public class ConnectionLauncherService
                 false);
         }
 
-        // 3. Obtém credencial salva vinculada ao cadastro (se houver)
+        // Resolve the saved credential independently of the editing form.
         SavedCredential? credential = null;
         var decryptedPassword = string.Empty;
         var unavailableSecretNotice = string.Empty;
@@ -183,7 +178,6 @@ public class ConnectionLauncherService
         var hostSemaphore = _hostLocks.GetOrAdd(cleanHostKey, _ => new SemaphoreSlim(1, 1));
 
         await hostSemaphore.WaitAsync();
-        FileStream? rdpSessionLease = null;
         try
         {
             var securityNotice = plan.SecurityNotice;
@@ -191,7 +185,7 @@ public class ConnectionLauncherService
             if (entry.Protocol == ConnectionProtocol.Rdp)
             {
                 // Trata abertura concorrente para o mesmo servidor com usuários diferentes
-                if (_activeRdpHandshakes.TryGetValue(cleanHostKey, out var activeHandshake))
+                if (_rdpCredentialHandoffs.TryGetValue(cleanHostKey, out var activeHandshake))
                 {
                     var elapsed = DateTime.UtcNow - activeHandshake.StartedAtUtc;
                     if (elapsed < SameHostConflictWindow &&
@@ -220,14 +214,14 @@ public class ConnectionLauncherService
                         securityNotice = provResult.NoticeMessage + " " + plan.SecurityNotice;
                     }
 
-                    _activeRdpHandshakes[cleanHostKey] = new ActiveRdpHandshake(entry.Id, plan.EffectiveUser, DateTime.UtcNow);
+                    _rdpCredentialHandoffs[cleanHostKey] = new RdpCredentialHandoff(plan.EffectiveUser, DateTime.UtcNow);
                 }
                 else
                 {
                     // Conexão SEM senha salva: remove qualquer credencial TERMSRV anterior criada pelo ConectaTI
                     // para este host, evitando que o MSTSC utilize silenciosamente a senha de outro cadastro!
                     WindowsCredentialVaultInterop.ClearManagedRdpCredentialsForHost(entry.Host, entry.Port);
-                    _activeRdpHandshakes[cleanHostKey] = new ActiveRdpHandshake(entry.Id, plan.EffectiveUser, DateTime.UtcNow);
+                    _rdpCredentialHandoffs[cleanHostKey] = new RdpCredentialHandoff(plan.EffectiveUser, DateTime.UtcNow);
                 }
 
                 // Grava o arquivo .rdp individual da conexão
@@ -235,7 +229,7 @@ public class ConnectionLauncherService
                 {
                     _paths.EnsureDirectories();
                     _paths.CleanupTempRdpFiles();
-                    rdpSessionLease = RdpSessionFiles.AcquireLease(plan.TempRdpFilePath);
+                    Directory.CreateDirectory(Path.GetDirectoryName(plan.TempRdpFilePath)!);
                     await File.WriteAllTextAsync(plan.TempRdpFilePath, plan.TempRdpContent, new UTF8Encoding(true));
                 }
             }
@@ -252,26 +246,7 @@ public class ConnectionLauncherService
                 psi.ArgumentList.Add(arg);
             }
 
-            int? processId;
-            if (_customProcessStarter is not null)
-            {
-                processId = _customProcessStarter(psi);
-            }
-            else
-            {
-                var process = Process.Start(psi);
-                processId = process?.Id;
-                if (process is not null && rdpSessionLease is not null)
-                {
-                    // Conserva o arquivo até o fim deste processo exato, sem buscar janelas/PIDs.
-                    _ = RdpSessionFiles.CleanupOnExitAsync(process, rdpSessionLease, plan.TempRdpFilePath!);
-                    rdpSessionLease = null; // A tarefa passa a ser dona do lease e do Process.
-                }
-                else
-                {
-                    process?.Dispose();
-                }
-            }
+            var processId = _processRunner.Start(psi);
 
             var openedAt = DateTime.UtcNow;
             entry.LastOpenedAtUtc = openedAt;
@@ -317,7 +292,6 @@ public class ConnectionLauncherService
         }
         finally
         {
-            rdpSessionLease?.Dispose();
             hostSemaphore.Release();
         }
     }
@@ -338,353 +312,6 @@ public class ConnectionLauncherService
         }
     }
 
-    private ConnectionLaunchPlan BuildRdpPlan(
-        ConnectionEntry entry,
-        NormalizedUserIdentity identity,
-        AppSettings settings,
-        string? decryptedPassword)
-    {
-        var configuredExe = string.IsNullOrWhiteSpace(settings.MstscExecutablePath)
-            ? ExternalClientDetector.GetDefaultMstscPath()
-            : settings.MstscExecutablePath;
-
-        var available = ExternalClientDetector.IsExecutableValid(configuredExe, out var resolvedExe);
-        var fullAddress = ConnectionValidator.FormatRdpFullAddress(entry.Host, entry.Port);
-        var endpointDisplay = ConnectionValidator.FormatHostAndPort(entry.Host, entry.Port);
-        var hasPassword = !string.IsNullOrEmpty(decryptedPassword);
-
-        var sb = new StringBuilder();
-        sb.AppendLine($"full address:s:{fullAddress}");
-        sb.AppendLine($"server port:i:{entry.Port}");
-        sb.AppendLine($"screen mode id:i:{(entry.RdpFullScreen ? 2 : 1)}");
-        if (!entry.RdpFullScreen)
-        {
-            sb.AppendLine($"desktopwidth:i:{entry.RdpWidth}");
-            sb.AppendLine($"desktopheight:i:{entry.RdpHeight}");
-        }
-        sb.AppendLine($"use multimon:i:{(entry.RdpUseMultimon ? 1 : 0)}");
-
-        if (!string.IsNullOrWhiteSpace(identity.EffectiveDownLevelLogonName))
-        {
-            if (identity.IsUpn)
-            {
-                sb.AppendLine($"username:s:{ConnectionValidator.SanitizeSingleLineForRdp(identity.RawUsername)}");
-            }
-            else
-            {
-                sb.AppendLine($"username:s:{ConnectionValidator.SanitizeSingleLineForRdp(identity.CleanUsername)}");
-                if (!string.IsNullOrWhiteSpace(identity.Domain))
-                {
-                    sb.AppendLine($"domain:s:{ConnectionValidator.SanitizeSingleLineForRdp(identity.Domain)}");
-                }
-            }
-        }
-
-        if (hasPassword && decryptedPassword != "__PROTECTED_PLACEHOLDER__")
-        {
-            var dpapiHex = WindowsCredentialVaultInterop.EncryptRdpPassword51Hex(decryptedPassword!);
-            if (!string.IsNullOrEmpty(dpapiHex))
-            {
-                sb.AppendLine($"password 51:b:{dpapiHex}");
-            }
-        }
-
-        // Mantém NLA e validação de certificado ativos
-        sb.AppendLine("authentication level:i:2");
-        sb.AppendLine("enablecredsspsupport:i:1");
-        sb.AppendLine($"prompt for credentials:i:{(hasPassword ? 0 : 1)}");
-        sb.AppendLine($"prompt for credentials on client:i:{(hasPassword ? 0 : 1)}");
-
-        if (entry.RdpAdminSession)
-        {
-            sb.AppendLine("administrative session:i:1");
-        }
-
-        var rdpFilePath = RdpSessionFiles.CreatePath(_paths.TempRdpDirectory, entry.Name, entry.ClientName);
-
-        var args = new List<string> { rdpFilePath };
-        if (entry.RdpAdminSession)
-        {
-            args.Add("/admin");
-        }
-
-        var userDisplay = string.IsNullOrWhiteSpace(identity.EffectiveDownLevelLogonName)
-            ? L.Text("(Solicitar no cliente)")
-            : identity.EffectiveDownLevelLogonName;
-
-        var notice = hasPassword
-            ? L.Text("Nota: Caso uma política de segurança do domínio ou do servidor (como restrição de delegação NTLM/CredSSP) exija autenticação interativa, o Windows solicitará a confirmação na janela do MSTSC.")
-            : L.Text("Conexão sem senha salva: o cliente de Área de Trabalho Remota (MSTSC) solicitará a senha ao conectar.");
-
-        return new ConnectionLaunchPlan(
-            available,
-            resolvedExe,
-            L.Text("Área de Trabalho Remota (MSTSC)"),
-            args,
-            rdpFilePath,
-            sb.ToString(),
-            endpointDisplay,
-            identity.EffectiveDownLevelLogonName,
-            L.Format("Cliente iniciado: Área de Trabalho Remota (MSTSC) para {0} (Usuário: {1}).", (endpointDisplay), (userDisplay)),
-            notice,
-            L.Format("O executável configurado para Área de Trabalho Remota ('{0}') não foi encontrado. Verifique o caminho em 'Configurar Executáveis' ou clique em 'Restaurar caminho padrão'.", (resolvedExe)));
-    }
-
-    private static ConnectionLaunchPlan BuildSshPlan(
-        ConnectionEntry entry,
-        NormalizedUserIdentity identity,
-        AppSettings settings,
-        bool hasPassword)
-    {
-        var effectivePref = entry.SshClient == SshClientPreference.Default
-            ? settings.PreferredSshClient
-            : entry.SshClient;
-
-        var useOpenSsh = effectivePref == SshClientPreference.OpenSsh;
-        if (!useOpenSsh &&
-            entry.SshClient == SshClientPreference.Default &&
-            !ExternalClientDetector.IsExecutableValid(settings.PuttyExecutablePath, out _) &&
-            ExternalClientDetector.IsExecutableValid(settings.OpenSshExecutablePath, out _))
-        {
-            useOpenSsh = true;
-        }
-
-        var cleanHost = ConnectionValidator.StripIpv6Brackets(entry.Host);
-        var endpoint = ConnectionValidator.FormatHostAndPort(entry.Host, entry.Port);
-        var args = new List<string>();
-
-        if (useOpenSsh)
-        {
-            var available = ExternalClientDetector.IsExecutableValid(settings.OpenSshExecutablePath, out var sshExe);
-
-            args.Add("-p");
-            args.Add(entry.Port.ToString());
-
-            if (!string.IsNullOrWhiteSpace(identity.EffectiveSshUsername))
-            {
-                args.Add("-l");
-                args.Add(identity.EffectiveSshUsername);
-            }
-
-            if (!string.IsNullOrWhiteSpace(entry.PrivateKeyPath))
-            {
-                args.Add("-i");
-                args.Add(entry.PrivateKeyPath.Trim());
-            }
-
-            args.Add("-o");
-            args.Add($"ForwardAgent={(entry.SshUseAgent ? "yes" : "no")}");
-            args.Add(cleanHost);
-
-            var notice = hasPassword
-                ? L.Text("O OpenSSH não recebe senhas por linha de comando por motivos de segurança. Utilize autenticação por chave ou informe a senha no prompt do terminal.")
-                : L.Text("Autenticação via chave privada / agente SSH ou solicitação interativa no terminal.");
-
-            return new ConnectionLaunchPlan(
-                available,
-                sshExe,
-                "OpenSSH (ssh.exe)",
-                args,
-                null,
-                null,
-                endpoint,
-                identity.EffectiveSshUsername,
-                L.Format("Cliente iniciado: OpenSSH (ssh.exe) para {0}.", (endpoint)),
-                notice,
-                L.Text("O executável do OpenSSH (ssh.exe) não foi encontrado. Configure o caminho em 'Configurar Executáveis'."));
-        }
-        else
-        {
-            var available = ExternalClientDetector.IsExecutableValid(settings.PuttyExecutablePath, out var puttyExe);
-
-            args.Add("-ssh");
-            args.Add("-P");
-            args.Add(entry.Port.ToString());
-
-            if (!string.IsNullOrWhiteSpace(identity.EffectiveSshUsername))
-            {
-                args.Add("-l");
-                args.Add(identity.EffectiveSshUsername);
-            }
-
-            if (!string.IsNullOrWhiteSpace(entry.PrivateKeyPath))
-            {
-                args.Add("-i");
-                args.Add(entry.PrivateKeyPath.Trim());
-            }
-
-            args.Add(entry.SshUseAgent ? "-agent" : "-noagent");
-            args.Add(cleanHost);
-
-            var notice = hasPassword
-                ? L.Text("Por segurança, o ConectaTI não envia senhas em texto puro via argumento '-pw'. Utilize chave privada/Pageant ou o botão 'Copiar Senha' na tela de detalhes.")
-                : L.Text("O PuTTY utilizará chave privada / Pageant ou solicitará a senha no terminal.");
-
-            return new ConnectionLaunchPlan(
-                available,
-                puttyExe,
-                "PuTTY (putty.exe)",
-                args,
-                null,
-                null,
-                endpoint,
-                identity.EffectiveSshUsername,
-                L.Format("Cliente iniciado: PuTTY (putty.exe) para {0}.", (endpoint)),
-                notice,
-                L.Text("O executável do PuTTY (putty.exe) não foi encontrado. Configure o caminho em 'Configurar Executáveis' ou altere o cliente SSH para OpenSSH."));
-        }
-    }
-
-    private static ConnectionLaunchPlan BuildWinScpPlan(
-        ConnectionEntry entry,
-        NormalizedUserIdentity identity,
-        AppSettings settings,
-        bool hasPassword)
-    {
-        var available = ExternalClientDetector.IsExecutableValid(settings.WinScpExecutablePath, out var exe);
-
-        var scheme = entry.Protocol == ConnectionProtocol.Scp ? "scp" : "sftp";
-        var formattedHostPort = ConnectionValidator.FormatHostAndPort(entry.Host, entry.Port);
-        var userPrefix = !string.IsNullOrWhiteSpace(identity.EffectiveSshUsername)
-            ? $"{Uri.EscapeDataString(identity.EffectiveSshUsername)}@"
-            : string.Empty;
-
-        var sessionUrl = $"{scheme}://{userPrefix}{formattedHostPort}/";
-        var args = new List<string> { sessionUrl };
-
-        if (!string.IsNullOrWhiteSpace(entry.PrivateKeyPath))
-        {
-            args.Add($"/privatekey={entry.PrivateKeyPath.Trim()}");
-        }
-
-        var notice = hasPassword
-            ? L.Text("Por segurança, a senha não é exposta na URL de linha de comando do WinSCP. Utilize chave privada ou o botão 'Copiar Senha'.")
-            : L.Text("O WinSCP utilizará chave privada / Pageant ou solicitará a senha ao conectar.");
-
-        return new ConnectionLaunchPlan(
-            available,
-            exe,
-            $"WinSCP ({scheme.ToUpperInvariant()})",
-            args,
-            null,
-            null,
-            formattedHostPort,
-            identity.EffectiveSshUsername,
-            L.Format("Cliente iniciado: WinSCP ({0}) para {1}.", (scheme.ToUpperInvariant()), (formattedHostPort)),
-            notice,
-            L.Text("O executável do WinSCP (WinSCP.exe) não foi encontrado. Localize o executável na tela 'Configurar Executáveis'."));
-    }
-
-    private static ConnectionLaunchPlan BuildVncPlan(
-        ConnectionEntry entry,
-        NormalizedUserIdentity identity,
-        AppSettings settings,
-        bool hasPassword)
-    {
-        var available = ExternalClientDetector.IsExecutableValid(settings.VncExecutablePath, out var exe);
-
-        var cleanHost = ConnectionValidator.StripIpv6Brackets(entry.Host);
-        var isIpv6 = cleanHost.Contains(':');
-        var hostForColonFormat = isIpv6 ? $"[{cleanHost}]" : cleanHost;
-        var endpoint = ConnectionValidator.FormatHostAndPort(entry.Host, entry.Port);
-
-        var args = new List<string>();
-        switch (settings.VncFlavor)
-        {
-            case VncViewerFlavor.TigerRealVnc:
-                args.Add($"{hostForColonFormat}::{entry.Port}");
-                break;
-
-            case VncViewerFlavor.TightVnc:
-                args.Add($"-host={cleanHost}");
-                args.Add($"-port={entry.Port}");
-                break;
-
-            case VncViewerFlavor.UltraVnc:
-                args.Add($"{hostForColonFormat}:{entry.Port}");
-                break;
-
-            case VncViewerFlavor.Custom:
-                var template = string.IsNullOrWhiteSpace(settings.VncCustomArgumentsTemplate)
-                    ? "{host}:{port}"
-                    : settings.VncCustomArgumentsTemplate;
-                foreach (var token in SplitArgumentsPreservingQuotes(template))
-                {
-                    var expanded = token
-                        .Replace("{host}", cleanHost, StringComparison.OrdinalIgnoreCase)
-                        .Replace("{port}", entry.Port.ToString(), StringComparison.OrdinalIgnoreCase)
-                        .Replace("{user}", identity.CleanUsername, StringComparison.OrdinalIgnoreCase);
-                    if (!string.IsNullOrWhiteSpace(expanded))
-                        args.Add(expanded);
-                }
-                break;
-        }
-
-        if (!string.IsNullOrWhiteSpace(entry.VncParameters))
-        {
-            foreach (var extra in SplitArgumentsPreservingQuotes(entry.VncParameters))
-            {
-                if (extra.StartsWith("-password", StringComparison.OrdinalIgnoreCase) ||
-                    extra.StartsWith("/password", StringComparison.OrdinalIgnoreCase))
-                {
-                    continue;
-                }
-                args.Add(extra);
-            }
-        }
-
-        var notice = hasPassword
-            ? L.Text("O cliente VNC solicitará a senha ao abrir (senhas não são passadas em texto puro por argumentos).")
-            : L.Text("O cliente VNC solicitará a senha caso o servidor exija autenticação.");
-
-        return new ConnectionLaunchPlan(
-            available,
-            exe,
-            L.Format("Cliente VNC ({0})", (settings.VncFlavor)),
-            args,
-            null,
-            null,
-            endpoint,
-            identity.CleanUsername,
-            L.Format("Cliente iniciado: VNC para {0}.", (endpoint)),
-            notice,
-            L.Text("Nenhum cliente VNC foi encontrado. Configure o caminho do executável VNC em 'Configurar Executáveis'."));
-    }
-
-    public static List<string> SplitArgumentsPreservingQuotes(string input)
-    {
-        var result = new List<string>();
-        if (string.IsNullOrWhiteSpace(input))
-            return result;
-
-        var current = new StringBuilder();
-        var inQuotes = false;
-
-        foreach (var ch in input)
-        {
-            if (ch == '"')
-            {
-                inQuotes = !inQuotes;
-                continue;
-            }
-
-            if (char.IsWhiteSpace(ch) && !inQuotes)
-            {
-                if (current.Length > 0)
-                {
-                    result.Add(current.ToString());
-                    current.Clear();
-                }
-            }
-            else
-            {
-                current.Append(ch);
-            }
-        }
-
-        if (current.Length > 0)
-            result.Add(current.ToString());
-
-        return result;
-    }
+    // Compatibility entry point; argument parsing belongs to the plan builder.
+    public static List<string> SplitArgumentsPreservingQuotes(string input) => CommandLineTokenizer.Split(input);
 }

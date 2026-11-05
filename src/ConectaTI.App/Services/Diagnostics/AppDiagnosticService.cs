@@ -21,6 +21,9 @@ public record AppDiagnosticInfo(
     int TrashConnectionsCount,
     string? LastSanitizedError)
 {
+    // Keep ActiveConnectionsCount in the serialized/report contract for older consumers.
+    [System.Text.Json.Serialization.JsonIgnore]
+    public int ConnectionsOutsideTrashCount => ActiveConnectionsCount;
     public string Runtime { get; init; } = string.Empty;
     public string SelectedLanguage { get; init; } = string.Empty;
     public string EffectiveLanguage { get; init; } = string.Empty;
@@ -67,11 +70,11 @@ public class AppDiagnosticService
         {
         }
 
-        int activeCount = 0;
+        int outsideTrashCount = 0;
         int trashCount = 0;
         try
         {
-            activeCount = await _repository.GetActiveCountAsync();
+            outsideTrashCount = await _repository.GetConnectionsOutsideTrashCountAsync();
             trashCount = await _repository.GetDeletedCountAsync();
         }
         catch
@@ -89,7 +92,7 @@ public class AppDiagnosticService
             DatabaseExists: dbExists,
             DatabaseSizeBytes: dbSize,
             SchemaVersion: schemaVersion,
-            ActiveConnectionsCount: activeCount,
+            ActiveConnectionsCount: outsideTrashCount,
             TrashConnectionsCount: trashCount,
             LastSanitizedError: _logger.LastSanitizedError)
         {
@@ -127,7 +130,7 @@ public class AppDiagnosticService
             sb.AppendLine(L.Format("Tamanho do Banco: {0}", (FormatFileSize(info.DatabaseSizeBytes))));
         }
         sb.AppendLine(L.Format("Versão do Esquema SQLite: {0}", (info.SchemaVersion)));
-        sb.AppendLine(L.Format("Conexões Ativas: {0}", (info.ActiveConnectionsCount)));
+        sb.AppendLine(L.Format("Cadastros fora da lixeira: {0}", info.ConnectionsOutsideTrashCount));
         sb.AppendLine(L.Format("Conexões na Lixeira: {0}", (info.TrashConnectionsCount)));
         sb.AppendLine(L.Format("Último Erro Registrado: {0}", ((string.IsNullOrWhiteSpace(info.LastSanitizedError) ? L.Text("Nenhum erro registrado") : info.LastSanitizedError))));
         sb.AppendLine("================================");

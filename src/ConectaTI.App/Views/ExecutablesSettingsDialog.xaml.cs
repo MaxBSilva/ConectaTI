@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -5,6 +7,7 @@ using ConectaTI.App.Models;
 using ConectaTI.App.Security;
 using ConectaTI.App.Services;
 using ConectaTI.App.Services.Launchers;
+using ConectaTI.App.Services.Updates;
 using ConectaTI.App.ViewModels;
 using Microsoft.Win32;
 
@@ -12,9 +15,19 @@ namespace ConectaTI.App.Views;
 
 public partial class ExecutablesSettingsDialog : Window
 {
+    public const int TabGeneralIndex = 0;
+    public const int TabAppearanceIndex = 1;
+    public const int TabClientsIndex = 2;
+    public const int TabCredentialsIndex = 3;
+    public const int TabImportBackupIndex = 4;
+    public const int TabShortcutsIndex = 5;
+    public const int TabDiagnosticsIndex = 6;
+
     private readonly SettingsService _settingsService;
     private readonly CredentialVaultService _vaultService;
     private readonly MainViewModel? _mainViewModel;
+    private readonly AppUpdateService _updateService;
+    private UpdateCheckResult? _latestUpdateCheck;
     private bool _suppressThemeEvent;
     private bool _loadingPreferences = true;
 
@@ -25,13 +38,16 @@ public partial class ExecutablesSettingsDialog : Window
         SettingsService settingsService,
         CredentialVaultService vaultService,
         MainViewModel? mainViewModel = null,
-        int initialTabIndex = 0)
+        int initialTabIndex = 0,
+        bool autoCheckUpdatesOnLoad = false,
+        AppUpdateService? updateService = null)
     {
         InitializeComponent();
         LocalizedWindow.Attach(this);
         _settingsService = settingsService;
         _vaultService = vaultService;
         _mainViewModel = mainViewModel;
+        _updateService = updateService ?? new AppUpdateService();
 
         if (initialTabIndex >= 0 && initialTabIndex < SettingsTabs.Items.Count)
         {
@@ -40,6 +56,11 @@ public partial class ExecutablesSettingsDialog : Window
 
         LoadCurrentValues();
         _loadingPreferences = false;
+
+        if (autoCheckUpdatesOnLoad)
+        {
+            Loaded += async (_, _) => await TriggerUpdateCheckAsync(showMessageBox: true);
+        }
     }
 
     private void LoadCurrentValues()
@@ -47,8 +68,8 @@ public partial class ExecutablesSettingsDialog : Window
         var s = _settingsService.Current;
 
         LanguageCombo.SelectedIndex = (int)s.Language;
-        DensityCombo.SelectedIndex = (int)s.Density;
-        FontSizeCombo.SelectedIndex = ViewPreferencesService.FontSizePresetIndex(s.FontSize);
+        DensityCombo.SelectedIndex = s.ComfortableMode ? 1 : 0;
+        FontSizeSlider.Value = s.FontSize;
         _suppressThemeEvent = true;
         try
         {
@@ -86,7 +107,9 @@ public partial class ExecutablesSettingsDialog : Window
         ClipboardClearSecondsBox.Text = s.ClipboardClearSeconds.ToString();
         RevealSecondsBox.Text = s.PasswordRevealSeconds.ToString();
 
+        ShortcutsItemsControl.ItemsSource = KeyboardShortcutsCatalog.GetAll();
         UpdateMasterPasswordStatus();
+        RefreshUpdateSectionState();
         ValidateAllExecutableBoxes();
         _ = LoadDiagnosticValuesAsync();
     }
@@ -102,7 +125,7 @@ public partial class ExecutablesSettingsDialog : Window
             DiagDbPathText.Text = diag.DatabasePath;
             DiagSchemaVersionText.Text = $"v{diag.SchemaVersion}";
             DiagWritableText.Text = diag.IsDataDirectoryWritable ? L.Text("Gravável (OK)") : L.Text("Somente Leitura (Restrito)");
-            DiagCountsText.Text = L.Format("{0} ativas | {1} na lixeira", (diag.ActiveConnectionsCount), (diag.TrashConnectionsCount));
+            DiagCountsText.Text = L.Format("{0} fora da lixeira | {1} na lixeira", diag.ConnectionsOutsideTrashCount, diag.TrashConnectionsCount);
             DiagLastErrorText.Text = string.IsNullOrWhiteSpace(diag.LastSanitizedError)
                 ? L.Text("Nenhum erro registrado nesta sessão.")
                 : diag.LastSanitizedError;
@@ -163,24 +186,20 @@ public partial class ExecutablesSettingsDialog : Window
         _settingsService.Current.Language = (AppLanguage)LanguageCombo.SelectedIndex;
         _settingsService.Save();
         LocalizationService.Current.SetLanguage(_settingsService.Current.Language);
+        ShortcutsItemsControl.ItemsSource = KeyboardShortcutsCatalog.GetAll();
         UpdateMasterPasswordStatus();
+        RefreshUpdateSectionState();
         ValidateAllExecutableBoxes();
         _ = LoadDiagnosticValuesAsync();
     }
-    private void FontSizeCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
-    {
-        if (_loadingPreferences || FontSizeCombo.SelectedIndex < 0) return;
-        _settingsService.Current.FontSize = ViewPreferencesService.FontSizePresets[FontSizeCombo.SelectedIndex];
-        ApplyViewPreferences();
-    }
-    private void DensityCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
-    {
-        if (_loadingPreferences || DensityCombo.SelectedIndex < 0) return;
-        _settingsService.Current.Density = (InterfaceDensity)DensityCombo.SelectedIndex;
-        ApplyViewPreferences();
-    }
+    private void ResetFontSize_Click(object sender, RoutedEventArgs e) => FontSizeSlider.Value = 12.5;
+    private void FontSizeSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e) => ApplyViewPreferences();
+    private void ViewPreference_Changed(object sender, SelectionChangedEventArgs e) => ApplyViewPreferences();
     private void ApplyViewPreferences()
     {
+        if (_loadingPreferences) return;
+        _settingsService.Current.ComfortableMode = DensityCombo.SelectedIndex == 1;
+        _settingsService.Current.FontSize = FontSizeSlider.Value;
         ViewPreferencesService.Apply(_settingsService.Current);
         _settingsService.Save();
     }
@@ -199,14 +218,15 @@ public partial class ExecutablesSettingsDialog : Window
 
         _settingsService.Current.Theme = mode;
         ThemeService.ApplyTheme(mode);
+        _mainViewModel?.RefreshThemeProperties();
     }
 
     private async void UpdateMasterPasswordStatus()
     {
         MasterPasswordStatusText.Text = L.Text("As senhas são protegidas automaticamente para este usuário Windows. Para compartilhar, exporte um pacote com senhas.");
-        try { MigratePreviousPasswordsButton.Visibility=await _vaultService.HasPreviousVaultCredentialsAsync()
+        try { MigratePreviousPasswordsButton.Visibility = await _vaultService.HasPreviousVaultCredentialsAsync()
             ? Visibility.Visible : Visibility.Collapsed; }
-        catch(Exception ex){_vaultService.RecordMigrationFailure(ex);}
+        catch (Exception ex) { _vaultService.RecordMigrationFailure(ex); }
     }
 
     private void ExecutablePathBox_TextChanged(object sender, TextChangedEventArgs e)
@@ -304,7 +324,7 @@ public partial class ExecutablesSettingsDialog : Window
 
     private void MigrateMasterPassword_Click(object sender, RoutedEventArgs e)
     {
-        new VaultMigrationDialog(_vaultService) { Owner=this }.ShowDialog();
+        new VaultMigrationDialog(_vaultService) { Owner = this }.ShowDialog();
         UpdateMasterPasswordStatus();
     }
 
@@ -398,8 +418,271 @@ public partial class ExecutablesSettingsDialog : Window
 
         _settingsService.Save();
         ThemeService.ApplyTheme(s.Theme);
+        _mainViewModel?.RefreshThemeProperties();
         DialogResult = true;
         Close();
+    }
+
+    private void RefreshUpdateSectionState()
+    {
+        InstalledSuiteVersionBadgeText.Text = $"v{AppUpdateService.GetInstalledVersion()}";
+
+        if (AppUpdateService.HasRollbackBackup())
+        {
+            var meta = AppUpdateService.TryReadRollbackMetadata();
+            RestorePreviousVersionButton.Visibility = Visibility.Visible;
+            RestorePreviousVersionButton.ToolTip = meta != null
+                ? $"Restaurar instalação anterior (v{meta.PreviousVersion})"
+                : "Restaurar instalação anterior";
+        }
+        else
+        {
+            RestorePreviousVersionButton.Visibility = Visibility.Collapsed;
+        }
+    }
+
+    private async void CheckUpdatesButton_Click(object sender, RoutedEventArgs e)
+    {
+        await TriggerUpdateCheckAsync(showMessageBox: true);
+    }
+
+    public async Task<UpdateCheckResult> TriggerUpdateCheckAsync(bool showMessageBox = true)
+    {
+        CheckUpdatesButton.IsEnabled = false;
+        ApplyUpdateButton.Visibility = Visibility.Collapsed;
+        UpdateStatusTextBlock.Visibility = Visibility.Visible;
+        UpdateStatusTextBlock.Text = "Consultando última Release estável em MaxBSilva/ConectaTI...";
+
+        try
+        {
+            var res = await _updateService.CheckForUpdatesAsync();
+            _latestUpdateCheck = res;
+
+            if (!res.Success)
+            {
+                UpdateStatusTextBlock.Text = res.ErrorMessage ?? res.StatusMessage;
+                if (showMessageBox)
+                {
+                    MessageBox.Show(
+                        this,
+                        res.ErrorMessage ?? res.StatusMessage,
+                        L.Text("Buscar atualizações"),
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning);
+                }
+                return res;
+            }
+
+            if (!res.IsUpdateAvailable)
+            {
+                var upToDateText = L.Text("Você já está na versão mais recente");
+                UpdateStatusTextBlock.Text = $"{upToDateText} (v{res.InstalledVersion}).";
+                ApplyUpdateButton.Visibility = Visibility.Collapsed;
+
+                if (showMessageBox)
+                {
+                    MessageBox.Show(
+                        this,
+                        upToDateText,
+                        L.Text("Buscar atualizações"),
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+                }
+                return res;
+            }
+
+            UpdateStatusTextBlock.Text =
+                $"Versão instalada: v{res.InstalledVersion}  →  Disponível: v{res.AvailableVersion}";
+            ApplyUpdateButton.Visibility = Visibility.Visible;
+
+            if (showMessageBox)
+            {
+                var dr = MessageBox.Show(
+                    this,
+                    $"Nova versão disponível em MaxBSilva/ConectaTI!\n\n" +
+                    $"Versão instalada: v{res.InstalledVersion}\n" +
+                    $"Versão disponível: v{res.AvailableVersion}\n\n" +
+                    $"Deseja atualizar agora? Seus acessos, credenciais, configurações, backups e textos rápidos serão mantidos.",
+                    L.Text("Buscar atualizações"),
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Information);
+
+                if (dr == MessageBoxResult.Yes)
+                {
+                    await ExecuteApplyUpdateFlowAsync(confirmWithUser: false);
+                }
+            }
+
+            return res;
+        }
+        finally
+        {
+            CheckUpdatesButton.IsEnabled = true;
+            RefreshUpdateSectionState();
+        }
+    }
+
+    private async void ApplyUpdateButton_Click(object sender, RoutedEventArgs e)
+    {
+        await ExecuteApplyUpdateFlowAsync(confirmWithUser: true);
+    }
+
+    private async Task ExecuteApplyUpdateFlowAsync(bool confirmWithUser)
+    {
+        if (_latestUpdateCheck is null || !_latestUpdateCheck.IsUpdateAvailable)
+            return;
+
+        if (_mainViewModel?.HasAnyUnsavedDrafts == true)
+        {
+            var draftWarn = MessageBox.Show(
+                this,
+                "Existem rascunhos de edição pendentes não salvos nesta sessão.\n\n" +
+                "O ConectaTI só grava alterações por Salvar (Ctrl+S). Se continuar e reiniciar agora, os rascunhos em memória serão descartados.\n\n" +
+                "Deseja continuar com a atualização mesmo assim?",
+                "Rascunhos Pendentes Antes de Reiniciar",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning);
+
+            if (draftWarn != MessageBoxResult.Yes)
+            {
+                DialogFeedbackText.Text = "Atualização adiada para permitir salvar os rascunhos pendentes (Ctrl+S).";
+                return;
+            }
+        }
+        else if (confirmWithUser)
+        {
+            var confirm = MessageBox.Show(
+                this,
+                $"Confirma o download, validação (SHA-256) e instalação da versão v{_latestUpdateCheck.AvailableVersion}?\n\n" +
+                $"Versão instalada: v{_latestUpdateCheck.InstalledVersion}\n" +
+                $"Versão disponível: v{_latestUpdateCheck.AvailableVersion}\n\n" +
+                $"Banco, credenciais, configurações, backups e textos rápidos serão preservados.",
+                L.Text("Atualizar agora"),
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question);
+
+            if (confirm != MessageBoxResult.Yes)
+                return;
+        }
+
+        CheckUpdatesButton.IsEnabled = false;
+        ApplyUpdateButton.IsEnabled = false;
+        UpdateStatusTextBlock.Visibility = Visibility.Visible;
+
+        try
+        {
+            var result = await _updateService.DownloadValidateAndApplyAsync(
+                _latestUpdateCheck,
+                AppContext.BaseDirectory,
+                progressCallback: msg => Dispatcher.Invoke(() => UpdateStatusTextBlock.Text = msg));
+
+            UpdateStatusTextBlock.Text = result.Message;
+            RefreshUpdateSectionState();
+
+            if (!result.Success)
+            {
+                MessageBox.Show(
+                    this,
+                    result.Message,
+                    "Falha na Atualização",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+                return;
+            }
+
+            ApplyUpdateButton.Visibility = Visibility.Collapsed;
+            var restartPrompt = MessageBox.Show(
+                this,
+                $"{result.Message}\n\nDeseja reiniciar o ConectaTI agora para carregar a nova versão?",
+                "Atualização Concluída",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Information);
+
+            if (restartPrompt == MessageBoxResult.Yes)
+            {
+                var exePath = Path.Combine(AppContext.BaseDirectory, "ConectaTI.exe");
+                if (File.Exists(exePath))
+                {
+                    Process.Start(new ProcessStartInfo(exePath)
+                    {
+                        WorkingDirectory = AppContext.BaseDirectory,
+                        UseShellExecute = false
+                    });
+                    Application.Current.Shutdown();
+                }
+            }
+        }
+        finally
+        {
+            CheckUpdatesButton.IsEnabled = true;
+            ApplyUpdateButton.IsEnabled = true;
+        }
+    }
+
+    private void RestorePreviousVersionButton_Click(object sender, RoutedEventArgs e)
+    {
+        var meta = AppUpdateService.TryReadRollbackMetadata();
+        var prevVer = meta?.PreviousVersion ?? "anterior";
+
+        if (_mainViewModel?.HasAnyUnsavedDrafts == true)
+        {
+            var draftWarn = MessageBox.Show(
+                this,
+                "Existem rascunhos não salvos em memória. Deseja continuar com a restauração da instalação anterior?",
+                "Rascunhos Pendentes",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning);
+
+            if (draftWarn != MessageBoxResult.Yes)
+                return;
+        }
+
+        var confirm = MessageBox.Show(
+            this,
+            $"Deseja restaurar a instalação anterior (v{prevVer}) do conjunto ConectaTI + HotKeyText?\n" +
+            $"Seus dados, credenciais, configurações e textos rápidos permanecerão intactos.",
+            L.Text("Restaurar versão anterior"),
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Question);
+
+        if (confirm != MessageBoxResult.Yes)
+            return;
+
+        if (AppUpdateService.RestorePreviousInstallation(AppContext.BaseDirectory, string.Empty, out var err))
+        {
+            UpdateStatusTextBlock.Visibility = Visibility.Visible;
+            UpdateStatusTextBlock.Text = $"Instalação anterior (v{prevVer}) restaurada com sucesso.";
+            RefreshUpdateSectionState();
+            MessageBox.Show(
+                this,
+                $"A versão anterior (v{prevVer}) foi restaurada na pasta do aplicativo.",
+                L.Text("Restaurar versão anterior"),
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+        }
+        else
+        {
+            MessageBox.Show(
+                this,
+                $"Não foi possível restaurar a versão anterior: {err}",
+                L.Text("Restaurar versão anterior"),
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+        }
+    }
+
+    private void OpenQuickTextsFromSettings_Click(object sender, RoutedEventArgs e)
+    {
+        if (Owner is MainWindow mainWin)
+        {
+            mainWin.OpenQuickTextsPanel();
+            DialogFeedbackText.Text = "Painel integrado de Textos rápidos aberto na janela principal.";
+            Close();
+        }
+        else
+        {
+            DialogFeedbackText.Text = "Módulo integrado de Textos rápidos disponível na borda direita da janela principal.";
+        }
     }
 
     private void CancelButton_Click(object sender, RoutedEventArgs e)
@@ -407,6 +690,7 @@ public partial class ExecutablesSettingsDialog : Window
         // Reverte eventual prévia de tema caso o usuário cancele
         var reloaded = _settingsService.Load();
         ThemeService.ApplyTheme(reloaded.Theme);
+        _mainViewModel?.RefreshThemeProperties();
         DialogResult = false;
         Close();
     }

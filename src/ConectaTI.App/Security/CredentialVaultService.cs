@@ -11,7 +11,7 @@ namespace ConectaTI.App.Security;
 /// DPAPI and Windows Credential Manager are retained only for reading legacy credentials.
 /// Portable encrypted packages use their independent transport password.
 /// </summary>
-public partial class CredentialVaultService
+public partial class CredentialVaultService : ICredentialSecretReader
 {
     private static readonly byte[] ApplicationDpapiEntropy =
         Encoding.UTF8.GetBytes("ConectaTI::DPAPI::CurrentUser::Entropy::v1");

@@ -128,12 +128,17 @@ public class AppPaths
             if (!Directory.Exists(TempRdpDirectory))
                 return;
 
-            foreach (var file in Directory.GetFiles(TempRdpDirectory, "*.rdp"))
+            // A client can defer reading the file during credential prompts. Keep files while any MSTSC is alive.
+            var clients = System.Diagnostics.Process.GetProcessesByName("mstsc");
+            var clientRunning = clients.Length > 0;
+            foreach (var client in clients) client.Dispose();
+            if (clientRunning) return;
+            foreach (var file in Directory.GetFiles(TempRdpDirectory, "conectati-*.rdp"))
             {
                 try
                 {
                     var info = new FileInfo(file);
-                    if (DateTime.UtcNow - info.LastWriteTimeUtc > TimeSpan.FromMinutes(15))
+                    if (DateTime.UtcNow - info.LastWriteTimeUtc > TimeSpan.FromDays(1))
                     {
                         File.Delete(file);
                     }
@@ -143,8 +148,22 @@ public class AppPaths
                     // Ignora arquivo temporário ainda em uso pelo mstsc
                 }
             }
-
-            Launchers.RdpSessionFiles.CleanupAbandoned(TempRdpDirectory);
+            foreach (var directory in Directory.GetDirectories(TempRdpDirectory, "conectati-*"))
+            {
+                try
+                {
+                    var info = new DirectoryInfo(directory);
+                    if (!Guid.TryParseExact(info.Name[10..], "N", out _)
+                        || info.Attributes.HasFlag(FileAttributes.ReparsePoint)
+                        || DateTime.UtcNow - info.LastWriteTimeUtc <= TimeSpan.FromDays(1)) continue;
+                    foreach (var file in info.GetFiles("*.rdp"))
+                        if (!file.Attributes.HasFlag(FileAttributes.ReparsePoint)
+                            && DateTime.UtcNow - file.LastWriteTimeUtc > TimeSpan.FromDays(1)) file.Delete();
+                    // Never recursively remove a directory: unexpected supporting files are preserved.
+                    if (!info.EnumerateFileSystemInfos().Any()) info.Delete();
+                }
+                catch { /* MSTSC and user files take precedence over cleanup. */ }
+            }
         }
         catch
         {
@@ -152,3 +171,4 @@ public class AppPaths
         }
     }
 }
+

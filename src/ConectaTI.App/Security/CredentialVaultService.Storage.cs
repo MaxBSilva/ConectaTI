@@ -28,7 +28,7 @@ public partial class CredentialVaultService
         return credential.SecretStorage==CredentialSecretStorage.LegacyWindows ? ReadLegacySecret(credential) : UnprotectSecret(credential);
     }
 
-    public async Task<string> ReadSecretAsync(SavedCredential snapshot)
+    public virtual async Task<string> ReadSecretAsync(SavedCredential snapshot)
     {
         var before = await _repository.GetCredentialByIdAsync(snapshot.Id);
         if (before!=null && NeedsPasswordMigration(before))
@@ -87,9 +87,9 @@ public partial class CredentialVaultService
         finally { _repository.CredentialOperationGate.Release(); }
     }
 
-    public async Task SaveApplicationCredentialAsync(SavedCredential credential, string? replacementPassword = null)
+    public virtual async Task SaveApplicationCredentialAsync(SavedCredential credential, string? replacementPassword = null)
     {
-
+        
         await _repository.CredentialOperationGate.WaitAsync();
         try
         {

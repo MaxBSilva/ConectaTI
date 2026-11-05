@@ -19,7 +19,7 @@ public record NetworkDiagnosticResult(
 /// com suporte a timeout e cancelamento.
 /// Diferencia explicitamente "porta acessível na rede" de "autenticação realizada".
 /// </summary>
-public class NetworkDiagnosticService
+public class NetworkDiagnosticService : INetworkConnectivityProbe
 {
     public async Task<NetworkDiagnosticResult> TestConnectivityAsync(
         string hostInput,

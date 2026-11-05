@@ -6,7 +6,31 @@ namespace ConectaTI.App.Models;
 
 public class ConnectionEntry : ObservableObject
 {
+    private RdpOptions _rdpOptions = new();
+    public ConnectionEntry() { _rdpOptions.PropertyChanged += RdpOptionsChanged; }
+    private void RdpOptionsChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e) => OnPropertyChanged(nameof(RdpOptions));
+    public RdpOptions RdpOptions
+    {
+        get => _rdpOptions;
+        set
+        {
+            _rdpOptions.PropertyChanged -= RdpOptionsChanged;
+            SetProperty(ref _rdpOptions, value ?? new());
+            _rdpOptions.PropertyChanged += RdpOptionsChanged;
+        }
+    }
     public string Id { get; set; } = Guid.NewGuid().ToString("D");
+    private bool _isActive = true;
+    public bool IsActive
+    {
+        get => _isActive;
+        set
+        {
+            if (SetProperty(ref _isActive, value)) OnPropertyChanged(nameof(ActivityDisplay));
+        }
+    }
+    [JsonIgnore]
+    public string ActivityDisplay => IsActive ? L.Text("Ativo") : L.Text("Inativo");
     private string _name = string.Empty;
     public string Name
     {
@@ -285,7 +309,7 @@ public class ConnectionEntry : ObservableObject
 
     public void RefreshDisplayProperties()
     {
-        foreach (var name in new[] { nameof(EnvironmentDisplay), nameof(EnvironmentBadge), nameof(ProtocolDisplay), nameof(EffectiveUserDisplay), nameof(LastOpenedDisplay), nameof(VpnStatusBadge) }) OnPropertyChanged(name);
+        foreach (var name in new[] { nameof(ActivityDisplay), nameof(EnvironmentDisplay), nameof(EnvironmentBadge), nameof(ProtocolDisplay), nameof(EffectiveUserDisplay), nameof(LastOpenedDisplay), nameof(VpnStatusBadge) }) OnPropertyChanged(name);
     }
 
     public ConnectionEntry Clone()
@@ -293,6 +317,7 @@ public class ConnectionEntry : ObservableObject
         return new ConnectionEntry
         {
             Id = Id,
+            IsActive = IsActive,
             Name = Name,
             ClientName = ClientName,
             GroupName = GroupName,
@@ -312,6 +337,7 @@ public class ConnectionEntry : ObservableObject
             RdpHeight = RdpHeight,
             RdpUseMultimon = RdpUseMultimon,
             RdpAdminSession = RdpAdminSession,
+            RdpOptions = RdpOptions.Clone(),
             SshClient = SshClient,
             SshUseAgent = SshUseAgent,
             VncParameters = VncParameters,
@@ -342,7 +368,7 @@ public class ConnectionEntry : ObservableObject
 
     public bool HasSameEditableValues(ConnectionEntry other)
     {
-        return string.Equals(Name, other.Name, StringComparison.Ordinal) &&
+        return IsActive == other.IsActive && string.Equals(Name, other.Name, StringComparison.Ordinal) &&
                string.Equals(ClientName, other.ClientName, StringComparison.Ordinal) &&
                string.Equals(GroupName, other.GroupName, StringComparison.Ordinal) &&
                Environment == other.Environment &&
@@ -361,6 +387,7 @@ public class ConnectionEntry : ObservableObject
                RdpHeight == other.RdpHeight &&
                RdpUseMultimon == other.RdpUseMultimon &&
                RdpAdminSession == other.RdpAdminSession &&
+               RdpOptions.SameValues(other.RdpOptions) &&
                SshClient == other.SshClient &&
                SshUseAgent == other.SshUseAgent &&
                string.Equals(VncParameters, other.VncParameters, StringComparison.Ordinal) &&
@@ -370,3 +397,5 @@ public class ConnectionEntry : ObservableObject
                string.Equals(VpnNotes, other.VpnNotes, StringComparison.Ordinal);
     }
 }
+
+

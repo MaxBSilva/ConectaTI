@@ -11,7 +11,7 @@ namespace ConectaTI.App.Security;
 /// - Trata temporariamente área de transferência ocupada por outro processo (COMException / CLIPBRD_E_CANT_OPEN).
 /// - Ao copiar senha, agenda limpeza automática após um intervalo, somente se o conteúdo atual ainda for aquele copiado pelo aplicativo.
 /// </summary>
-public class ClipboardService
+public class ClipboardService : ITextClipboard
 {
     private readonly AppLogger _logger;
     private readonly Func<string, bool> _setClipboardAction;
@@ -33,8 +33,7 @@ public class ClipboardService
         _clearClipboardAction = customClearClipboard ?? DefaultClearClipboard;
     }
 
-    public async Task<bool> CopyTextWithRetryAsync(string text, bool isSecret = false, int autoClearSeconds = 0,
-        Func<bool>? canCopy = null)
+    public async Task<bool> CopyTextWithRetryAsync(string text, bool isSecret = false, int autoClearSeconds = 0, Func<bool>? canCopy = null)
     {
         if (string.IsNullOrEmpty(text))
             return false;
@@ -42,7 +41,7 @@ public class ClipboardService
         var copied = false;
         for (var attempt = 1; attempt <= 6; attempt++)
         {
-            if (canCopy?.Invoke() == false) return false;
+            if (canCopy != null && !canCopy()) return false;
             try
             {
                 if (_setClipboardAction(text))

@@ -19,7 +19,7 @@
             <Setter Property="ToolTip" Value="{Binding Text, RelativeSource={RelativeSource Self}}"/>
         </Style>
     </Window.Resources>
-    <Grid Margin="16">
+    <Grid Background="{DynamicResource AppBackgroundBrush}" Margin="16">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>

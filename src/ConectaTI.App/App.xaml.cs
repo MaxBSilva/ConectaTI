@@ -5,6 +5,7 @@ using ConectaTI.App.Services;
 using ConectaTI.App.Services.Diagnostics;
 using ConectaTI.App.Services.ImportExport;
 using ConectaTI.App.Services.Launchers;
+using ConectaTI.App.Services.Updates;
 using ConectaTI.App.ViewModels;
 
 namespace ConectaTI.App;
@@ -17,6 +18,19 @@ public partial class App : Application
     {
         if (IsIsolatedHost) return;
         base.OnStartup(e);
+
+        if (Array.IndexOf(e.Args, "--rollback-update") >= 0)
+        {
+            var ok = AppUpdateService.RestorePreviousInstallation(AppContext.BaseDirectory, string.Empty, out var err);
+            if (!ok)
+            {
+                MessageBox.Show(err ?? "Não foi possível restaurar a versão anterior.", "ConectaTI — Recuperação", MessageBoxButton.OK, MessageBoxImage.Warning);
+                Shutdown(1);
+                return;
+            }
+            Shutdown(0);
+            return;
+        }
 
         string? explicitDataDirectory = null;
         var directoryIndex = Array.IndexOf(e.Args, "--data-dir");
@@ -54,7 +68,7 @@ public partial class App : Application
         }
 
         var logger = new AppLogger(paths);
-        logger.Info("Startup", "Iniciando ConectaTI v1.5.0...");
+        logger.Info("Startup", $"Iniciando ConectaTI v{typeof(App).Assembly.GetName().Version}...");
 
         // Migração segura e consistente de bases legadas (%LOCALAPPDATA%\ConectaTI\conectati.db)
         if (explicitDataDirectory == null) DatabaseMigrationManager.EnsureDatabaseMigrated(paths, logger);
@@ -83,7 +97,7 @@ public partial class App : Application
         var vaultService = new CredentialVaultService(settingsService, repository, logger);
         _sessionVault=vaultService;
         var clipboardService = new ClipboardService(logger);
-        var launcherService = new ConnectionLauncherService(paths, settingsService, repository, vaultService, clipboardService, logger);
+        var launcherService = new ConnectionLauncherService(paths, settingsService, repository, vaultService, logger);
         var importExportService = new ImportExportService(repository, vaultService, logger);
         var diagnosticService = new NetworkDiagnosticService();
 
@@ -104,6 +118,11 @@ public partial class App : Application
         var mainWindow = new MainWindow(mainVm);
         MainWindow = mainWindow;
         mainWindow.Show();
+
+        if (Array.IndexOf(e.Args, "--check-updates") >= 0)
+        {
+            _ = mainWindow.Dispatcher.BeginInvoke(new Action(mainWindow.OpenUpdatesCheckFromExternalTrigger));
+        }
     }
 
     protected override void OnExit(ExitEventArgs e)

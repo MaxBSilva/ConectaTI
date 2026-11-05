@@ -220,7 +220,12 @@ public partial class ImportExportDialog : Window
             PrivateKeyPathColumnIndex = _currentCsvDoc.SuggestedMapping.PrivateKeyPathColumnIndex,
             TagsColumnIndex = _currentCsvDoc.SuggestedMapping.TagsColumnIndex,
             NotesColumnIndex = _currentCsvDoc.SuggestedMapping.NotesColumnIndex,
-            FavoriteColumnIndex = _currentCsvDoc.SuggestedMapping.FavoriteColumnIndex
+            FavoriteColumnIndex = _currentCsvDoc.SuggestedMapping.FavoriteColumnIndex,
+            SshClientColumnIndex = _currentCsvDoc.SuggestedMapping.SshClientColumnIndex,
+            SshUseAgentColumnIndex = _currentCsvDoc.SuggestedMapping.SshUseAgentColumnIndex,
+            VncParametersColumnIndex = _currentCsvDoc.SuggestedMapping.VncParametersColumnIndex,
+            ActiveColumnIndex = _currentCsvDoc.SuggestedMapping.ActiveColumnIndex,
+            RdpConfigurationColumnIndex = _currentCsvDoc.SuggestedMapping.RdpConfigurationColumnIndex
         };
 
         if (_operationCts != null) return;

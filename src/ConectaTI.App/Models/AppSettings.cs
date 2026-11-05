@@ -3,14 +3,7 @@ namespace ConectaTI.App.Models;
 public class AppSettings
 {
     public AppLanguage Language { get; set; } = AppLanguage.Automatic;
-    public InterfaceDensity Density { get; set; } = InterfaceDensity.Standard;
-    // Compatibilidade com consumidores anteriores; o JSON novo grava Density.
-    [System.Text.Json.Serialization.JsonIgnore]
-    public bool ComfortableMode
-    {
-        get => Density == InterfaceDensity.Comfortable;
-        set => Density = value ? InterfaceDensity.Comfortable : InterfaceDensity.Compact;
-    }
+    public bool ComfortableMode { get; set; }
     public double FontSize { get; set; } = 12.5;
     public Dictionary<string, double> ImportColumnWidths { get; set; } = new();
     public AppThemeMode Theme { get; set; } = AppThemeMode.System;
@@ -47,5 +40,4 @@ public class AppSettings
     public bool IsMaximized { get; set; }
     public double LeftPaneWidth { get; set; } = 220;
     public double RightPaneWidth { get; set; } = 395;
-    public double LeftPaneRatio { get; set; } = double.NaN;
 }

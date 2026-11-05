@@ -30,78 +30,155 @@
         <helpers:FavoriteStarTextConverter x:Key="FavStarText"/>
     </Window.Resources>
 
-    <Grid>
+    <Grid x:Name="RootLayoutGrid" Background="{DynamicResource AppBackgroundBrush}" SizeChanged="RootLayoutGrid_SizeChanged">
         <Grid.RowDefinitions>
-            <!-- 0: Barra Superior Compacta -->
+            <!-- 0: Barra Superior Compacta e Responsiva -->
             <RowDefinition Height="Auto"/>
-            <!-- 1: Área Central (Lista à Esquerda / Formulário à Direita) -->
+            <!-- 1: Área Central (Lista à Esquerda / Formulário à Direita Sempre Lado a Lado) -->
             <RowDefinition Height="*"/>
             <!-- 2: Barra de Status Discreta -->
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
         <!-- ========================================================================= -->
-        <!-- BARRA SUPERIOR COMPACTA                                                   -->
+        <!-- BARRA SUPERIOR COMPACTA E RESPONSIVA                                      -->
         <!-- ========================================================================= -->
         <Border Grid.Row="0"
                 Background="{DynamicResource HeaderBackgroundBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,0,0,1"
-                Padding="{DynamicResource HeaderPadding}">
-                <!-- Toda a largura fica disponível para comandos, com quebra natural. -->
-                <WrapPanel x:Name="HeaderActions" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Button Click="NewConnectionButton_Click"
+                Padding="10,6">
+            <DockPanel LastChildFill="True">
+                <!-- Direita: Aparência (Tema Sol/Lua) e Configurações (Engrenagem) claramente diferenciados -->
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button x:Name="ThemeToggleButton"
+                            Command="{Binding ToggleThemeCommand}"
+                            Style="{DynamicResource HeaderSecondaryButtonStyle}"
+                            Margin="0,0,6,0"
+                            ToolTip="{Binding ThemeToggleToolTip}"
+                            AutomationProperties.Name="{loc:Loc TextA7B73FF6C5D1}">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <Path Width="13" Height="13" Stretch="Uniform" Fill="#FBBF24" VerticalAlignment="Center">
+                                <Path.Style>
+                                    <Style TargetType="Path">
+                                        <!-- Sol nítido com centro sólido e raios separados no modo escuro; lua crescente no modo claro -->
+                                        <Setter Property="Data" Value="M 8,4.2 A 3.8,3.8 0 1 1 7.99,4.2 Z M 7.2,0 H 8.8 V 2.3 H 7.2 Z M 7.2,13.7 H 8.8 V 16 H 7.2 Z M 0,7.2 H 2.3 V 8.8 H 0 Z M 13.7,7.2 H 16 V 8.8 H 13.7 Z M 1.9,3.0 L 3.0,1.9 L 4.7,3.6 L 3.6,4.7 Z M 11.3,12.4 L 12.4,11.3 L 14.1,13.0 L 13.0,14.1 Z M 13.0,1.9 L 14.1,3.0 L 12.4,4.7 L 11.3,3.6 Z M 3.6,11.3 L 4.7,12.4 L 3.0,14.1 L 1.9,13.0 Z"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ThemeToggleIcon}" Value="🌙">
+                                                <Setter Property="Data" Value="M 9.5,1 A 7,7 0 1 0 15,11.2 A 5.5,5.5 0 1 1 9.5,1 Z"/>
+                                                <Setter Property="Fill" Value="#38BDF8"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Path.Style>
+                            </Path>
+                            <TextBlock x:Name="ThemeButtonLabel" Text="{loc:Loc Text04F9F0A78DBE}" TextWrapping="Wrap" Margin="5,0,0,0" FontSize="{DynamicResource Font12}" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+
+                    <Button x:Name="SettingsGearButton"
+                            Click="OpenSettingsButton_Click"
+                            Style="{DynamicResource HeaderSecondaryButtonStyle}"
+                            ToolTip="{loc:Loc Text76B0FB6AD189}"
+                            AutomationProperties.Name="{loc:Loc Text76B0FB6AD189}">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <Path x:Name="SettingsGearIconPath"
+                                  Width="15"
+                                  Height="15"
+                                  Stretch="Uniform"
+                                  SnapsToDevicePixels="True"
+                                  VerticalAlignment="Center"
+                                  Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                  Data="F0 M 10.2,0.8 L 13.8,0.8 L 14.3,3.7 A 8.4,8.4 0 0 1 16.2,4.5 L 18.6,2.8 L 21.2,5.4 L 19.5,7.8 A 8.4,8.4 0 0 1 20.3,9.7 L 23.2,10.2 L 23.2,13.8 L 20.3,14.3 A 8.4,8.4 0 0 1 19.5,16.2 L 21.2,18.6 L 18.6,21.2 L 16.2,19.5 A 8.4,8.4 0 0 1 14.3,20.3 L 13.8,23.2 L 10.2,23.2 L 9.7,20.3 A 8.4,8.4 0 0 1 7.8,19.5 L 5.4,21.2 L 2.8,18.6 L 4.5,16.2 A 8.4,8.4 0 0 1 3.7,14.3 L 0.8,13.8 L 0.8,10.2 L 3.7,9.7 A 8.4,8.4 0 0 1 4.5,7.8 L 2.8,5.4 L 5.4,2.8 L 7.8,4.5 A 8.4,8.4 0 0 1 9.7,3.7 Z M 12,7.8 A 4.2,4.2 0 1 0 12,16.2 A 4.2,4.2 0 1 0 12,7.8 Z"/>
+                            <TextBlock x:Name="SettingsButtonLabel" Text="{loc:Loc Text76B0FB6AD189}" TextWrapping="Wrap" Margin="5,0,0,0" FontSize="{DynamicResource Font12}" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+
+                <!-- Esquerda: Ação Primária (+ Nova) + Ações Secundárias e Menu de Ações Adicionais -->
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button x:Name="NewConnectionButton"
+                            Click="NewConnectionButton_Click"
                             Style="{DynamicResource PrimaryButtonStyle}"
-                            Padding="{DynamicResource ButtonPadding}"
-                            Margin="0,2,6,2"
+                            Padding="10,4"
+                            Margin="0,0,6,0"
                             ToolTip="{loc:Loc Text9BB1328098A8}"
                             AutomationProperties.Name="{loc:Loc TextC9DC78D19188}">
                         <TextBlock TextWrapping="Wrap" Text="{loc:Loc TextBADD8CCF4A67}" FontSize="{DynamicResource Font12_5}"/>
                     </Button>
 
-                    <Button Command="{Binding ToggleThemeCommand}"
-                            Padding="{DynamicResource HeaderButtonPadding}"
-                            Margin="0,2,6,2"
-                            Background="#1E293B"
-                            Foreground="#F8FAFC"
-                            BorderBrush="#334155"
-                            ToolTip="{Binding ThemeToggleToolTip}"
-                            AutomationProperties.Name="{loc:Loc TextA7B73FF6C5D1}">
-                        <TextBlock Text="{Binding ThemeToggleIcon}" FontSize="{DynamicResource Font12_5}"/>
-                    </Button>
+                    <Button x:Name="ImportRdpButton"
+                            Content="{loc:Loc Text7A379B5A9C3F}"
+                            Click="ImportRdp_Click"
+                            Style="{DynamicResource HeaderSecondaryButtonStyle}"
+                            Margin="0,0,6,0"
+                            ToolTip="{loc:Loc Text5AD394933E8E}"/>
 
-                    <Button Click="BatchEdit_Click" IsEnabled="{Binding CanBatchEdit}" Margin="0,2,6,2" Padding="{DynamicResource ButtonPadding}">
-                        <TextBlock Text="{loc:Loc Text3B11819721B7}" TextWrapping="Wrap"/>
+                    <Button x:Name="BatchEditButton"
+                            Content="{loc:Loc Text3B11819721B7}"
+                            Click="BatchEdit_Click"
+                            IsEnabled="{Binding CanBatchEdit}"
+                            Style="{DynamicResource HeaderSecondaryButtonStyle}"
+                            Margin="0,0,6,0"/>
+
+                    <Button x:Name="QuickTextsButton"
+                            Content="{loc:Loc TextAE29611184C1}"
+                            Click="QuickTextsButton_Click"
+                            Style="{DynamicResource HeaderSecondaryButtonStyle}"
+                            Margin="0,0,6,0"
+                            ToolTip="{loc:Loc TextC61ED4CDBFAA}"
+                            AutomationProperties.Name="{loc:Loc TextAE29611184C1}"/>
+
+                    <TextBlock x:Name="HeaderSelectionBadge"
+                               Text="{Binding SelectedAccessCountText}"
+                               VerticalAlignment="Center"
+                               Foreground="#CBD5E1"
+                               FontSize="{DynamicResource Font11_5}"
+                               TextTrimming="CharacterEllipsis"
+                               MaxWidth="150"
+                               Margin="0,0,6,0"/>
+
+                    <Button x:Name="TopOverflowButton"
+                            Click="TopOverflowButton_Click"
+                            Style="{DynamicResource HeaderSecondaryButtonStyle}"
+                            ToolTip="{loc:Loc Text01581BD379D3}"
+                            AutomationProperties.Name="{loc:Loc Text01581BD379D3}">
+                        <TextBlock TextWrapping="Wrap" Text="{loc:Loc Text3BBF2C614563}" FontSize="{DynamicResource Font12}"/>
+                        <Button.ContextMenu>
+                            <ContextMenu x:Name="TopOverflowMenu">
+                                <MenuItem Header="{loc:Loc TextAE29611184C1}" Click="QuickTextsButton_Click"/>
+                                <MenuItem x:Name="MenuToggleThemeItem" Header="{loc:Loc Text04F9F0A78DBE}" Command="{Binding ToggleThemeCommand}" ToolTip="{Binding ThemeToggleToolTip}"/>
+                                <Separator/>
+                                <MenuItem Header="{loc:Loc Text7A379B5A9C3F}" Click="ImportRdp_Click"/>
+                                <MenuItem Header="{loc:Loc Text3B11819721B7}" Click="BatchEdit_Click" IsEnabled="{Binding CanBatchEdit}"/>
+                                <Separator/>
+                                <MenuItem Header="{loc:Loc Text9ECAAA06B087}" Click="OpenImportExportFromHeader_Click"/>
+                                <MenuItem Header="{loc:Loc TextF68E4F381086}" Click="OpenCredentialsFromHeader_Click"/>
+                                <Separator/>
+                                <MenuItem Header="{loc:Loc Text5519670C5987}" Click="OpenShortcutsTab_Click"/>
+                            </ContextMenu>
+                        </Button.ContextMenu>
                     </Button>
-                    <TextBlock Text="{Binding SelectedAccessCountText}" VerticalAlignment="Center" Foreground="#F8FAFC" Margin="0,2,8,2" TextWrapping="Wrap"/>
-                    <Button x:Name="SettingsGearButton"
-                            Click="OpenSettingsButton_Click"
-                            Margin="0,2,0,2"
-                            Padding="{DynamicResource ButtonPadding}"
-                            Background="#1E293B"
-                            Foreground="#F8FAFC"
-                            BorderBrush="#334155"
-                            ToolTip="{loc:Loc Text76B0FB6AD189}"
-                            AutomationProperties.Name="{loc:Loc Text76B0FB6AD189}">
-                        <TextBlock Text="⚙" FontSize="{DynamicResource Font13}"/>
-                    </Button>
-                </WrapPanel>
+                </StackPanel>
+            </DockPanel>
         </Border>
 
         <!-- ========================================================================= -->
-        <!-- ÁREA CENTRAL COM 2 PAINÉIS (LISTA À ESQUERDA / FORMULÁRIO À DIREITA)       -->
+        <!-- ÁREA CENTRAL COM PAINÉIS LADO A LADO + ABA/PAINEL DE TEXTOS RÁPIDOS       -->
         <!-- ========================================================================= -->
-        <Grid x:Name="MainWorkspace" Grid.Row="1" SizeChanged="MainWorkspace_SizeChanged">
+        <Grid x:Name="CentralWorkspaceGrid" Grid.Row="1">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition x:Name="LeftColumnDef" Width="220" MinWidth="130"/>
-                <ColumnDefinition x:Name="PaneSplitterColumnDef" Width="4"/>
-                <ColumnDefinition x:Name="RightColumnDef" Width="*" MinWidth="300"/>
+                <ColumnDefinition Width="6"/>
+                <ColumnDefinition x:Name="RightColumnDef" Width="*" MinWidth="260"/>
+                <ColumnDefinition x:Name="QuickTextsColumnDef" Width="0"/>
+                <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
 
             <!-- ===================================================================== -->
-            <!-- PAINEL ESQUERDO: Campo "Buscar..." + Lista Compacta de Conexões        -->
+            <!-- PAINEL ESQUERDO: Campo "Buscar..." + Filtros + Lista Compacta         -->
             <!-- ===================================================================== -->
-            <Grid x:Name="AccessListPane" Grid.Column="0" Background="{DynamicResource SurfaceBrush}" SizeChanged="AccessListPane_SizeChanged">
+            <Grid Grid.Column="0" Background="{DynamicResource SurfaceBrush}">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
@@ -109,7 +186,7 @@
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <!-- Campo compacto "Buscar..." com botão de limpar -->
+                <!-- Campo compacto "Buscar..." com ícone e botão de limpar -->
                 <Border Grid.Row="0"
                         Background="{DynamicResource SurfaceBrush}"
                         BorderBrush="{DynamicResource BorderBrush}"
@@ -118,33 +195,42 @@
                     <Border Background="{DynamicResource InputBackgroundBrush}"
                             BorderBrush="{DynamicResource BorderBrush}"
                             BorderThickness="1"
-                            CornerRadius="4">
+                            CornerRadius="5">
                         <Grid>
                             <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
 
+                            <TextBlock Grid.Column="0"
+                                       Text="⌕"
+                                       VerticalAlignment="Center"
+                                       Margin="7,0,0,1"
+                                       FontSize="{DynamicResource Font13}"
+                                       Foreground="{DynamicResource MutedTextBrush}"
+                                       IsHitTestVisible="False"/>
+
                             <TextBox x:Name="SearchTextBox"
-                                     Grid.Column="0"
+                                     Grid.Column="1"
                                      Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
                                      Background="Transparent"
                                      BorderThickness="0"
-                                     Padding="{DynamicResource HeaderButtonPadding}"
+                                     Padding="5,4"
                                      FontSize="{DynamicResource Font12_5}"
                                      ToolTip="{loc:Loc Text013F5E45ED6C}"
                                      AutomationProperties.Name="{loc:Loc Text5F55EDF90089}"/>
 
-                            <TextBlock TextWrapping="Wrap" Grid.Column="0"
+                            <TextBlock TextWrapping="Wrap" Grid.Column="1"
                                        Text="{loc:Loc Text0160E76C91E7}"
                                        Visibility="{Binding SearchText, Converter={StaticResource StringEmptyToVis}}"
                                        IsHitTestVisible="False"
                                        VerticalAlignment="Center"
-                                       Margin="8,0,0,0"
+                                       Margin="6,0,0,0"
                                        FontSize="{DynamicResource Font12_5}"
                                        Foreground="{DynamicResource MutedTextBrush}"/>
 
-                            <Button Grid.Column="1"
+                            <Button Grid.Column="2"
                                     Content="✕"
                                     Click="ClearSearchTextOnly_Click"
                                     Visibility="{Binding SearchText, Converter={StaticResource StringNotEmptyToVis}}"
@@ -157,70 +243,169 @@
                     </Border>
                 </Border>
 
-                <!-- Pílulas compactas de visualização: Todos, Favoritos, Recentes, Lixeira -->
+                <!-- Pílulas compactas de visualização e filtro de situação (Todos / Ativos / Inativos) -->
                 <Border Grid.Row="1"
                         Background="{DynamicResource SurfaceBrush}"
                         BorderBrush="{DynamicResource BorderBrush}"
                         BorderThickness="0,0,0,1"
-                        Padding="4,3">
-                    <Grid>
-                    <Button x:Name="ViewModeMenuButton" Visibility="Collapsed" Click="ViewModeMenuButton_Click"
-                            Padding="{DynamicResource CopyButtonPadding}" HorizontalContentAlignment="Stretch"
-                            ToolTip="{Binding CurrentViewModeLabel}" AutomationProperties.Name="{loc:Loc ViewModesLabel}">
-                        <DockPanel>
-                            <TextBlock DockPanel.Dock="Right" Text=" ▾"/>
-                            <TextBlock Text="{Binding CurrentViewModeLabel}" TextTrimming="CharacterEllipsis"/>
-                        </DockPanel>
-                        <Button.ContextMenu>
-                            <ContextMenu>
-                                <MenuItem Header="{loc:Loc TextBD02B9A7D71D}" Command="{Binding SetViewModeCommand}" CommandParameter="{x:Static models:ConnectionViewMode.All}"/>
-                                <MenuItem Header="{Binding FavoritesButtonLabel}" Command="{Binding SetViewModeCommand}" CommandParameter="{x:Static models:ConnectionViewMode.Favorites}"/>
-                                <MenuItem Header="{loc:Loc Text4E6C1551840F}" Command="{Binding SetViewModeCommand}" CommandParameter="{x:Static models:ConnectionViewMode.Recent}"/>
-                                <MenuItem Header="{Binding TrashButtonLabel}" Command="{Binding SetViewModeCommand}" CommandParameter="{x:Static models:ConnectionViewMode.Trash}"/>
-                            </ContextMenu>
-                        </Button.ContextMenu>
-                    </Button>
-                    <UniformGrid x:Name="ViewModeButtons" Columns="2">
-                        <UniformGrid.Resources>
-                            <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-                                <Setter Property="ContentTemplate"><Setter.Value><DataTemplate><TextBlock Text="{Binding}" TextWrapping="Wrap" TextAlignment="Center"/></DataTemplate></Setter.Value></Setter>
-                            </Style>
-                        </UniformGrid.Resources>
-                        <Button Content="{loc:Loc TextBD02B9A7D71D}"
-                                Command="{Binding SetViewModeCommand}"
-                                CommandParameter="{x:Static models:ConnectionViewMode.All}"
-                                FontSize="{DynamicResource Font10_5}"
-                                Padding="{DynamicResource FilterButtonPadding}"
-                                Margin="1,0"
-                                ToolTip="{loc:Loc TextB3977B864159}"/>
-                        <Button Content="{Binding FavoritesButtonLabel}"
-                                Command="{Binding SetViewModeCommand}"
-                                CommandParameter="{x:Static models:ConnectionViewMode.Favorites}"
-                                FontSize="{DynamicResource Font10_5}"
-                                Padding="{DynamicResource FilterButtonPadding}"
-                                Margin="1,0"
-                                ToolTip="{loc:Loc TextFEA0D3D1588C}"/>
-                        <Button Content="{loc:Loc Text4E6C1551840F}"
-                                Command="{Binding SetViewModeCommand}"
-                                CommandParameter="{x:Static models:ConnectionViewMode.Recent}"
-                                FontSize="{DynamicResource Font10_5}"
-                                Padding="{DynamicResource FilterButtonPadding}"
-                                Margin="1,0"
-                                ToolTip="{loc:Loc TextC62B898F85F9}"/>
-                        <Button Content="{Binding TrashButtonLabel}"
-                                Command="{Binding SetViewModeCommand}"
-                                CommandParameter="{x:Static models:ConnectionViewMode.Trash}"
-                                FontSize="{DynamicResource Font10_5}"
-                                Padding="{DynamicResource FilterButtonPadding}"
-                                Margin="1,0"
-                                ToolTip="{loc:Loc TextF4A70EAE5B48}"/>
-                    </UniformGrid>
-                    </Grid>
+                        Padding="4,4">
+                    <Border.Resources>
+                        <Style x:Key="ViewModeFilterButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                            <Setter Property="ContentTemplate">
+                                <Setter.Value>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding}" TextWrapping="Wrap" TextAlignment="Center"/>
+                                    </DataTemplate>
+                                </Setter.Value>
+                            </Setter>
+                            <Setter Property="FontSize" Value="{DynamicResource Font10_5}"/>
+                            <Setter Property="Padding" Value="2,3"/>
+                            <Setter Property="Margin" Value="1,1"/>
+                        </Style>
+                    </Border.Resources>
+                    <StackPanel>
+                        <UniformGrid Columns="2">
+                            <Button Content="{loc:Loc TextBD02B9A7D71D}"
+                                    Command="{Binding SetViewModeCommand}"
+                                    CommandParameter="{x:Static models:ConnectionViewMode.All}"
+                                    ToolTip="{loc:Loc TextB3977B864159}">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource ViewModeFilterButtonStyle}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding CurrentViewMode}" Value="{x:Static models:ConnectionViewMode.All}">
+                                                <Setter Property="Background" Value="{DynamicResource SelectionBackgroundBrush}"/>
+                                                <Setter Property="Foreground" Value="{DynamicResource SelectionTextBrush}"/>
+                                                <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                                <Setter Property="FontWeight" Value="SemiBold"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+
+                            <Button Content="{Binding FavoritesButtonLabel}"
+                                    Command="{Binding SetViewModeCommand}"
+                                    CommandParameter="{x:Static models:ConnectionViewMode.Favorites}"
+                                    ToolTip="{loc:Loc TextFEA0D3D1588C}">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource ViewModeFilterButtonStyle}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding CurrentViewMode}" Value="{x:Static models:ConnectionViewMode.Favorites}">
+                                                <Setter Property="Background" Value="{DynamicResource SelectionBackgroundBrush}"/>
+                                                <Setter Property="Foreground" Value="{DynamicResource SelectionTextBrush}"/>
+                                                <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                                <Setter Property="FontWeight" Value="SemiBold"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+
+                            <Button Content="{loc:Loc Text4E6C1551840F}"
+                                    Command="{Binding SetViewModeCommand}"
+                                    CommandParameter="{x:Static models:ConnectionViewMode.Recent}"
+                                    ToolTip="{loc:Loc TextC62B898F85F9}">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource ViewModeFilterButtonStyle}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding CurrentViewMode}" Value="{x:Static models:ConnectionViewMode.Recent}">
+                                                <Setter Property="Background" Value="{DynamicResource SelectionBackgroundBrush}"/>
+                                                <Setter Property="Foreground" Value="{DynamicResource SelectionTextBrush}"/>
+                                                <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                                <Setter Property="FontWeight" Value="SemiBold"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+
+                            <Button Content="{Binding TrashButtonLabel}"
+                                    Command="{Binding SetViewModeCommand}"
+                                    CommandParameter="{x:Static models:ConnectionViewMode.Trash}"
+                                    ToolTip="{loc:Loc TextF4A70EAE5B48}">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource ViewModeFilterButtonStyle}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding CurrentViewMode}" Value="{x:Static models:ConnectionViewMode.Trash}">
+                                                <Setter Property="Background" Value="{DynamicResource SelectionBackgroundBrush}"/>
+                                                <Setter Property="Foreground" Value="{DynamicResource SelectionTextBrush}"/>
+                                                <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                                <Setter Property="FontWeight" Value="SemiBold"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                        </UniformGrid>
+
+                        <UniformGrid Columns="3" Margin="0,3,0,0">
+                            <Button x:Name="ActivityAllFilterButton"
+                                    Content="{loc:Loc TextBD02B9A7D71D}"
+                                    Command="{Binding SetActivityFilterCommand}"
+                                    CommandParameter="{x:Static models:ConnectionActivityFilter.All}"
+                                    ToolTip="{loc:Loc TextE765CE3080E6}"
+                                    AutomationProperties.Name="{loc:Loc TextE765CE3080E6}">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource ViewModeFilterButtonStyle}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding CurrentActivityFilter}" Value="{x:Static models:ConnectionActivityFilter.All}">
+                                                <Setter Property="Background" Value="{DynamicResource SelectionBackgroundBrush}"/>
+                                                <Setter Property="Foreground" Value="{DynamicResource SelectionTextBrush}"/>
+                                                <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                                <Setter Property="FontWeight" Value="SemiBold"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+
+                            <Button x:Name="ActivityActiveFilterButton"
+                                    Content="{loc:Loc Text46E6638C8237}"
+                                    Command="{Binding SetActivityFilterCommand}"
+                                    CommandParameter="{x:Static models:ConnectionActivityFilter.Active}"
+                                    ToolTip="{loc:Loc TextB5E3F368C3BC}"
+                                    AutomationProperties.Name="{loc:Loc TextB5E3F368C3BC}">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource ViewModeFilterButtonStyle}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding CurrentActivityFilter}" Value="{x:Static models:ConnectionActivityFilter.Active}">
+                                                <Setter Property="Background" Value="{DynamicResource SelectionBackgroundBrush}"/>
+                                                <Setter Property="Foreground" Value="{DynamicResource SelectionTextBrush}"/>
+                                                <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                                <Setter Property="FontWeight" Value="SemiBold"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+
+                            <Button x:Name="ActivityInactiveFilterButton"
+                                    Content="{loc:Loc Text11995DC6D958}"
+                                    Command="{Binding SetActivityFilterCommand}"
+                                    CommandParameter="{x:Static models:ConnectionActivityFilter.Inactive}"
+                                    ToolTip="{loc:Loc Text89F016F41CBB}"
+                                    AutomationProperties.Name="{loc:Loc Text89F016F41CBB}">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource ViewModeFilterButtonStyle}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding CurrentActivityFilter}" Value="{x:Static models:ConnectionActivityFilter.Inactive}">
+                                                <Setter Property="Background" Value="{DynamicResource SelectionBackgroundBrush}"/>
+                                                <Setter Property="Foreground" Value="{DynamicResource SelectionTextBrush}"/>
+                                                <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                                <Setter Property="FontWeight" Value="SemiBold"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                        </UniformGrid>
+                    </StackPanel>
                 </Border>
 
-                <!-- Lista Compacta: Apenas nomes de identificação das conexões e badges de ambiente -->
+                <!-- Lista Compacta: Nomes de identificação das conexões, estado Ativo/Inativo e badges -->
                 <ListBox x:Name="ConnectionsListBox" SelectionMode="Extended" SelectionChanged="ConnectionsListBox_SelectionChanged"
                          IsTextSearchEnabled="False"
+                         PreviewMouseLeftButtonDown="ConnectionsListBox_PreviewMouseLeftButtonDown"
                          Grid.Row="2"
                          ItemsSource="{Binding FilteredConnections}"
                          SelectedItem="{Binding SelectedConnection, Mode=TwoWay}"
@@ -232,9 +417,6 @@
                          BorderThickness="0"
                          PreviewMouseRightButtonDown="ConnectionsListBox_RightClick"
                          MouseDoubleClick="ConnectionsListBox_MouseDoubleClick"
-                         PreviewMouseDown="ConnectionsListBox_PreviewMouseDown"
-                         LostKeyboardFocus="ConnectionsListBox_LostKeyboardFocus"
-                         PreviewTextInput="ConnectionsListBox_PreviewTextInput"
                          PreviewKeyDown="ConnectionsListBox_PreviewKeyDown">
                     <ListBox.ContextMenu>
                         <ContextMenu>
@@ -251,28 +433,89 @@
                             <MenuItem Header="{loc:Loc Text298A26FABB25}" Click="MenuCopyPassword_Click"/>
                         </ContextMenu>
                     </ListBox.ContextMenu>
-                    <ListBox.ItemContainerStyle><Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}"><Setter Property="Padding" Value="{DynamicResource ConnectionItemPadding}"/><Setter Property="MinHeight" Value="{DynamicResource ConnectionItemMinHeight}"/></Style></ListBox.ItemContainerStyle>
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+                            <Setter Property="Padding" Value="{DynamicResource ConnectionItemPadding}"/>
+                        </Style>
+                    </ListBox.ItemContainerStyle>
                     <ListBox.ItemTemplate>
                         <DataTemplate>
-                            <DockPanel LastChildFill="True" Margin="2,1">
-                                <Border DockPanel.Dock="Right"
-                                        Visibility="{Binding HasEnvironmentBadge, Converter={StaticResource BoolToVis}}"
-                                        CornerRadius="3"
-                                        Padding="3,1"
-                                        Margin="4,0,2,0"
-                                        VerticalAlignment="Center"
-                                        Background="{DynamicResource SurfaceAltBrush}">
-                                    <TextBlock Text="{Binding EnvironmentBadge}"
-                                               FontSize="{DynamicResource Font9}"
-                                               FontWeight="SemiBold"
-                                               Foreground="{DynamicResource SecondaryTextBrush}"/>
+                            <DockPanel LastChildFill="True" Margin="2,1" ToolTip="{Binding Name}">
+                                <Border Width="3" CornerRadius="1.5" Margin="0,1,5,1" Background="{DynamicResource DangerBrush}">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsActive}" Value="False">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
                                 </Border>
+                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <TextBlock Text="★"
+                                               Visibility="{Binding IsFavorite, Converter={StaticResource BoolToVis}}"
+                                               Foreground="{DynamicResource WarningBrush}"
+                                               FontSize="{DynamicResource Font10_5}"
+                                               VerticalAlignment="Center"
+                                               Margin="2,0,2,0"/>
+                                    <Border Visibility="{Binding HasEnvironmentBadge, Converter={StaticResource BoolToVis}}"
+                                            CornerRadius="3"
+                                            Padding="4,1"
+                                            Margin="3,0,2,0"
+                                            VerticalAlignment="Center"
+                                            BorderBrush="{DynamicResource BorderBrush}"
+                                            BorderThickness="1"
+                                            Background="{DynamicResource SurfaceAltBrush}">
+                                        <TextBlock Text="{Binding EnvironmentBadge}"
+                                                   FontSize="{DynamicResource Font9}"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource SecondaryTextBrush}"/>
+                                    </Border>
+                                    <Border Background="{DynamicResource DangerSurfaceBrush}"
+                                            BorderBrush="{DynamicResource DangerBorderBrush}"
+                                            BorderThickness="1"
+                                            CornerRadius="3"
+                                            Padding="4,1"
+                                            Margin="3,0,2,0"
+                                            VerticalAlignment="Center">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsActive}" Value="False">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <TextBlock Text="{Binding ActivityDisplay}" Foreground="{DynamicResource DangerBrush}" FontSize="{DynamicResource Font9}" FontWeight="SemiBold"/>
+                                    </Border>
+                                </StackPanel>
                                 <TextBlock Text="{Binding Name}"
                                            TextTrimming="CharacterEllipsis"
                                            FontSize="{DynamicResource Font12_5}"
-                                           Padding="2,3"
+                                           Padding="2,2"
                                            VerticalAlignment="Center"
-                                           ToolTip="{Binding Name}"/>
+                                           ToolTip="{Binding Name}">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsActive}" Value="False">
+                                                    <Setter Property="Foreground" Value="{DynamicResource DangerBrush}"/>
+                                                </DataTrigger>
+                                                <MultiDataTrigger>
+                                                    <MultiDataTrigger.Conditions>
+                                                        <Condition Binding="{Binding IsActive}" Value="False"/>
+                                                        <Condition Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True"/>
+                                                    </MultiDataTrigger.Conditions>
+                                                    <Setter Property="Foreground" Value="{DynamicResource InactiveSelectedTextBrush}"/>
+                                                </MultiDataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
                             </DockPanel>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
@@ -282,7 +525,7 @@
                 <Border Grid.Row="3"
                         Visibility="{Binding IncrementalSearchStatus, Converter={StaticResource StringNotEmptyToVis}}"
                         Background="{DynamicResource AccentBrush}"
-                        Padding="{DynamicResource CopyButtonPadding}">
+                        Padding="6,3">
                     <TextBlock Text="{Binding IncrementalSearchStatus}"
                                Foreground="{DynamicResource AccentTextBrush}"
                                FontSize="{DynamicResource Font11}"
@@ -291,31 +534,71 @@
                 </Border>
             </Grid>
 
-            <!-- Divisória Redimensionável -->
-            <GridSplitter x:Name="PaneSplitter" Grid.Column="1"
-                          Width="4"
+            <!-- Divisória Redimensionável com Alça Discreta e Área Confortável -->
+            <GridSplitter x:Name="MainPanelsSplitter"
+                          Grid.Column="1"
+                          Width="6"
                           HorizontalAlignment="Stretch"
                           VerticalAlignment="Stretch"
-                          Background="{DynamicResource BorderBrush}"
+                          Background="Transparent"
+                          FocusVisualStyle="{StaticResource KeyboardFocusVisualStyle}"
                           ShowsPreview="True"
-                          ResizeBehavior="PreviousAndNext"
-                          ResizeDirection="Columns"
-                          DragCompleted="PaneSplitter_DragCompleted"
                           Cursor="SizeWE"
-                          ToolTip="{loc:Loc TextFA6E89A3EFC8}"/>
+                          ToolTip="{loc:Loc TextFA6E89A3EFC8}">
+                <GridSplitter.Template>
+                    <ControlTemplate TargetType="GridSplitter">
+                        <Grid Background="Transparent">
+                            <Border x:Name="SplitterLine"
+                                    Width="1"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Stretch"
+                                    Background="{DynamicResource BorderBrush}"
+                                    Opacity="0.6"/>
+                            <Border x:Name="SplitterGrip"
+                                    Width="2.5"
+                                    Height="28"
+                                    CornerRadius="1.25"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    Background="{DynamicResource MutedTextBrush}"
+                                    Opacity="0.55"
+                                    SnapsToDevicePixels="True"/>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="SplitterLine" Property="Opacity" Value="0.95"/>
+                                <Setter TargetName="SplitterGrip" Property="Width" Value="3.5"/>
+                                <Setter TargetName="SplitterGrip" Property="Height" Value="34"/>
+                                <Setter TargetName="SplitterGrip" Property="CornerRadius" Value="1.75"/>
+                                <Setter TargetName="SplitterGrip" Property="Background" Value="{DynamicResource FocusBorderBrush}"/>
+                                <Setter TargetName="SplitterGrip" Property="Opacity" Value="1.0"/>
+                            </Trigger>
+                            <Trigger Property="IsDragging" Value="True">
+                                <Setter TargetName="SplitterLine" Property="Background" Value="{DynamicResource FocusBorderBrush}"/>
+                                <Setter TargetName="SplitterLine" Property="Opacity" Value="1.0"/>
+                                <Setter TargetName="SplitterGrip" Property="Width" Value="3.5"/>
+                                <Setter TargetName="SplitterGrip" Property="Background" Value="{DynamicResource FocusBorderBrush}"/>
+                                <Setter TargetName="SplitterGrip" Property="Opacity" Value="1.0"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </GridSplitter.Template>
+            </GridSplitter>
 
             <!-- ===================================================================== -->
-            <!-- PAINEL DIREITO: Formulário Fixo com Edição Direta                     -->
+            <!-- PAINEL DIREITO: Formulário Estruturado da Conexão Selecionada         -->
             <!-- ===================================================================== -->
-            <Border x:Name="AccessDetailsPane" Grid.Column="2"
+            <Border x:Name="ConnectionDetailsBorder"
+                    Grid.Column="2"
                     Background="{DynamicResource SurfaceBrush}"
                     BorderBrush="{DynamicResource BorderBrush}"
-                    BorderThickness="1,0,0,0">
-                <ScrollViewer x:Name="DetailsScrollViewer" VerticalScrollBarVisibility="Auto"
+                    BorderThickness="0">
+                <ScrollViewer VerticalScrollBarVisibility="Auto"
                               HorizontalScrollBarVisibility="Disabled"
-                              Padding="{DynamicResource DetailPanePadding}"
+                              Padding="{DynamicResource FormPadding}"
                               Focusable="False">
                     <StackPanel>
+                        <!-- Seletor de Rascunhos Não Salvos (visível quando há rascunhos novos em memória) -->
                         <ComboBox ItemsSource="{Binding NewDrafts}" SelectedItem="{Binding SelectedNewDraft, Mode=TwoWay}"
                                   ToolTip="{loc:Loc TextB50E4138B1C1}" Margin="0,0,0,8"
                                   AutomationProperties.Name="{loc:Loc TextF82BFA5FF80D}">
@@ -345,34 +628,65 @@
                                 </DataTemplate>
                             </ComboBox.ItemTemplate>
                         </ComboBox>
+
                         <!-- Faixa de Aviso e Ações quando o item está na Lixeira -->
                         <Border Visibility="{Binding IsTrashMode, Converter={StaticResource BoolToVis}}"
-                                Background="#451A03"
-                                BorderBrush="#D97706"
+                                Background="{DynamicResource WarningSurfaceBrush}"
+                                BorderBrush="{DynamicResource WarningBorderBrush}"
                                 BorderThickness="1"
-                                CornerRadius="4"
-                                Padding="{DynamicResource SectionPadding}"
+                                CornerRadius="5"
+                                Padding="10,8"
                                 Margin="0,0,0,12">
-                            <StackPanel>
-                                <StackPanel VerticalAlignment="Center">
-                                    <TextBlock TextWrapping="Wrap" Text="{loc:Loc TextEC97782257F3}" FontWeight="SemiBold" Foreground="#FDE68A" FontSize="{DynamicResource Font12_5}"/>
-                                    <TextBlock Text="{Binding SelectedConnection.DeletedAtDisplay}" Foreground="#FDE68A" FontSize="{DynamicResource Font11}" Margin="0,2,0,0"/>
+                            <DockPanel LastChildFill="False">
+                                <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center">
+                                    <TextBlock TextWrapping="Wrap" Text="{loc:Loc TextEC97782257F3}" FontWeight="SemiBold" Foreground="{DynamicResource WarningTextBrush}" FontSize="{DynamicResource Font12_5}"/>
+                                    <TextBlock Text="{Binding SelectedConnection.DeletedAtDisplay}" Foreground="{DynamicResource WarningTextBrush}" FontSize="{DynamicResource Font11}" Margin="0,2,0,0"/>
                                 </StackPanel>
-                                <WrapPanel VerticalAlignment="Center" Margin="0,6,0,0">
+                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
                                     <Button Content="{loc:Loc Text010AD8D3A1F4}"
                                             Command="{Binding RestoreSelectedConnectionCommand}"
-                                            Padding="{DynamicResource ButtonPadding}" Margin="0,0,6,4" FontSize="{DynamicResource Font11_5}"/>
+                                            Padding="10,4" Margin="0,0,6,0" FontSize="{DynamicResource Font11_5}"/>
                                     <Button Content="{loc:Loc Text37045D507711}"
                                             Command="{Binding DeleteConnectionCommand}"
-                                            Background="#7F1D1D" Foreground="#FEE2E2" BorderBrush="#EF4444"
-                                            Padding="{DynamicResource ButtonPadding}" Margin="0,0,0,4" FontSize="{DynamicResource Font11_5}"/>
-                                </WrapPanel>
-                            </StackPanel>
+                                            Background="{DynamicResource DangerSurfaceBrush}"
+                                            Foreground="{DynamicResource DangerBrush}"
+                                            BorderBrush="{DynamicResource DangerBorderBrush}"
+                                            Padding="10,4" FontSize="{DynamicResource Font11_5}"/>
+                                </StackPanel>
+                            </DockPanel>
                         </Border>
 
-                        <!-- 1. Nome da Conexão + Copiar -->
-                        <TextBlock TextWrapping="Wrap" Text="{loc:Loc TextBF09C0A4277F}" FontSize="{DynamicResource Font11_5}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="{DynamicResource FieldLabelMargin}"/>
-                        <Grid Margin="{DynamicResource FieldGroupMargin}">
+                        <!-- 1. Nome da Conexão + Estado Ativo/Inativo + Copiar -->
+                        <DockPanel Margin="0,0,0,3">
+                            <Border DockPanel.Dock="Right"
+                                    CornerRadius="4"
+                                    Padding="6,1"
+                                    Margin="8,0,0,0"
+                                    VerticalAlignment="Center"
+                                    BorderThickness="1">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="Background" Value="{DynamicResource SurfaceAltBrush}"/>
+                                        <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding EditingEntry.IsActive}" Value="False">
+                                                <Setter Property="Background" Value="{DynamicResource DangerSurfaceBrush}"/>
+                                                <Setter Property="BorderBrush" Value="{DynamicResource DangerBorderBrush}"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                                <CheckBox Content="{Binding EditingEntry.ActivityDisplay}"
+                                          IsChecked="{Binding EditingEntry.IsActive, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                          FontSize="{DynamicResource Font11}"
+                                          FontWeight="SemiBold"
+                                          AutomationProperties.Name="{loc:Loc Text2115CB058992}"
+                                          ToolTip="{loc:Loc TextD8C846810CB4}"
+                                          VerticalAlignment="Center"/>
+                            </Border>
+                            <TextBlock Style="{StaticResource FieldLabelTextStyle}" Text="{loc:Loc TextBF09C0A4277F}" Margin="0" VerticalAlignment="Center"/>
+                        </DockPanel>
+                        <Grid Margin="{DynamicResource FieldSpacingMargin}">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
@@ -380,8 +694,7 @@
                             <TextBox x:Name="ConnectionNameTextBox"
                                      Grid.Column="0"
                                      Text="{Binding EditingEntry.Name, UpdateSourceTrigger=PropertyChanged}"
-                                     FontSize="{DynamicResource Font12_5}"
-                                     Padding="{DynamicResource FieldPadding}"/>
+                                     FontSize="{DynamicResource Font12_5}"/>
                             <Button Grid.Column="1"
                                     Command="{Binding CopyConnectionNameCommand}"
                                     Style="{DynamicResource IconCopyButtonStyle}"
@@ -394,8 +707,8 @@
                         </Grid>
 
                         <!-- 2. Endereço / Hostname[:porta] + Copiar -->
-                        <TextBlock TextWrapping="Wrap" Text="{loc:Loc Text134E55471D20}" FontSize="{DynamicResource Font11_5}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="{DynamicResource FieldLabelMargin}"/>
-                        <Grid Margin="{DynamicResource FieldGroupMargin}">
+                        <TextBlock Style="{StaticResource FieldLabelTextStyle}" Text="{loc:Loc Text134E55471D20}"/>
+                        <Grid Margin="{DynamicResource FieldSpacingMargin}">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
@@ -403,8 +716,7 @@
                             <TextBox Grid.Column="0"
                                      Text="{Binding InlineHostAndPort, UpdateSourceTrigger=PropertyChanged}"
                                      FontFamily="Consolas"
-                                     FontSize="{DynamicResource Font12_5}"
-                                     Padding="{DynamicResource FieldPadding}"/>
+                                     FontSize="{DynamicResource Font12_5}"/>
                             <Button Grid.Column="1"
                                     Command="{Binding CopyHostCommand}"
                                     Style="{DynamicResource IconCopyButtonStyle}"
@@ -417,16 +729,15 @@
                         </Grid>
 
                         <!-- 3. Usuário [DOMÍNIO\usuário] + Copiar -->
-                        <TextBlock TextWrapping="Wrap" Text="{loc:Loc TextB8EFA018467E}" FontSize="{DynamicResource Font11_5}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="{DynamicResource FieldLabelMargin}"/>
-                        <Grid Margin="{DynamicResource FieldGroupMargin}">
+                        <TextBlock Style="{StaticResource FieldLabelTextStyle}" Text="{loc:Loc TextB8EFA018467E}"/>
+                        <Grid Margin="{DynamicResource FieldSpacingMargin}">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <TextBox Grid.Column="0"
                                      Text="{Binding InlineUserWithDomain, UpdateSourceTrigger=PropertyChanged}"
-                                     FontSize="{DynamicResource Font12_5}"
-                                     Padding="{DynamicResource FieldPadding}"/>
+                                     FontSize="{DynamicResource Font12_5}"/>
                             <Button Grid.Column="1"
                                     Command="{Binding CopyUsernameCommand}"
                                     Style="{DynamicResource IconCopyButtonStyle}"
@@ -438,28 +749,42 @@
                             </Button>
                         </Grid>
 
-                        <!-- 4. Senha (Mascarada, Mostrar/Ocultar, Copiar, Indicação, Remover) -->
-                        <WrapPanel Margin="{DynamicResource FieldLabelMargin}">
-                            <TextBlock TextWrapping="Wrap" Text="{loc:Loc TextD482C10B3D4D}" FontSize="{DynamicResource Font11_5}" Foreground="{DynamicResource SecondaryTextBrush}" VerticalAlignment="Center"/>
-                            <!-- Indicação discreta de senha salva / marcada para remoção -->
-                            <TextBlock Text="{Binding SavedPasswordBadgeText}" TextWrapping="Wrap"
-                                       FontSize="{DynamicResource Font11}"
-                                       Foreground="{Binding PasswordStateBrush}"
-                                       VerticalAlignment="Center"
-                                       Margin="8,0,0,0"/>
+                        <!-- 4. Senha (Mascarada, Mostrar/Ocultar, Copiar, Indicação com ícone + cor, Remover) -->
+                        <WrapPanel Margin="0,0,0,3" VerticalAlignment="Center">
+                            <TextBlock Style="{StaticResource FieldLabelTextStyle}" Text="{loc:Loc TextD482C10B3D4D}" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                            <Border CornerRadius="3"
+                                    Padding="5,1"
+                                    Background="{DynamicResource SurfaceAltBrush}"
+                                    BorderBrush="{DynamicResource BorderBrush}"
+                                    BorderThickness="1"
+                                    VerticalAlignment="Center">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding PasswordStatusIcon}"
+                                               FontSize="{DynamicResource Font10_5}"
+                                               FontWeight="Bold"
+                                               Foreground="{Binding PasswordStateBrush}"
+                                               VerticalAlignment="Center"
+                                               Margin="0,0,4,0"/>
+                                    <TextBlock Text="{Binding SavedPasswordBadgeText}"
+                                               TextWrapping="Wrap"
+                                               FontSize="{DynamicResource Font10_5}"
+                                               FontWeight="SemiBold"
+                                               Foreground="{Binding PasswordStateBrush}"
+                                               VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
 
                             <!-- Ação explícita para remover senha existente -->
                             <Button Content="{loc:Loc TextA3037DC71A43}"
                                     Click="RemovePasswordButton_Click"
                                     Visibility="{Binding HasSavedPassword, Converter={StaticResource BoolToVis}}"
-                                    HorizontalAlignment="Right"
                                     Padding="6,1"
                                     FontSize="{DynamicResource Font10_5}"
-                                    Margin="4,0,0,0"
+                                    Margin="6,0,0,0"
                                     ToolTip="{loc:Loc Text86509F57E908}"/>
                         </WrapPanel>
 
-                        <Grid Margin="{DynamicResource FieldGroupMargin}">
+                        <Grid Margin="{DynamicResource FieldSpacingMargin}">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
@@ -470,8 +795,7 @@
                             <Grid Grid.Column="0" Visibility="{Binding IsPasswordRevealed, Converter={StaticResource InverseBoolToVis}}">
                                 <PasswordBox x:Name="InlinePasswordBox"
                                              PasswordChanged="InlinePasswordBox_PasswordChanged"
-                                             FontSize="{DynamicResource Font12_5}"
-                                             Padding="{DynamicResource FieldPadding}"/>
+                                             FontSize="{DynamicResource Font12_5}"/>
                                 <TextBlock x:Name="PasswordBulletsPlaceholder"
                                            Text="••••••••••••"
                                            IsHitTestVisible="False"
@@ -486,8 +810,7 @@
                                      Grid.Column="0"
                                      TextChanged="RevealedPasswordTextBox_TextChanged"
                                      Visibility="{Binding IsPasswordRevealed, Converter={StaticResource BoolToVis}}"
-                                     FontSize="{DynamicResource Font12_5}"
-                                     Padding="{DynamicResource FieldPadding}"/>
+                                     FontSize="{DynamicResource Font12_5}"/>
 
                             <!-- Botão Mostrar / Ocultar Senha -->
                             <Button Grid.Column="1"
@@ -499,7 +822,7 @@
                                 <TextBlock Text="👁" FontSize="{DynamicResource Font12}"/>
                             </Button>
 
-                            <!-- Botão Copiar Senha (funciona mesmo mascarada, cofre desbloqueado, limpa em 30s) -->
+                            <!-- Botão Copiar Senha -->
                             <Button Grid.Column="2"
                                     Command="{Binding CopyPasswordCommand}"
                                     Style="{DynamicResource IconCopyButtonStyle}"
@@ -512,8 +835,8 @@
                         </Grid>
 
                         <!-- 5. Chave Privada (visível para SSH e WinSCP; oculta para MSTSC e VNC) -->
-                        <StackPanel Visibility="{Binding SupportsPrivateKey, Converter={StaticResource BoolToVis}}" Margin="{DynamicResource FieldGroupMargin}">
-                            <TextBlock TextWrapping="Wrap" Text="{loc:Loc TextE6E1B71770FE}" FontSize="{DynamicResource Font11_5}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="{DynamicResource FieldLabelMargin}"/>
+                        <StackPanel Visibility="{Binding SupportsPrivateKey, Converter={StaticResource BoolToVis}}" Margin="{DynamicResource FieldSpacingMargin}">
+                            <TextBlock Style="{StaticResource FieldLabelTextStyle}" Text="{loc:Loc TextE6E1B71770FE}"/>
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
@@ -521,44 +844,42 @@
                                 </Grid.ColumnDefinitions>
                                 <TextBox Grid.Column="0"
                                          Text="{Binding EditingEntry.PrivateKeyPath, UpdateSourceTrigger=PropertyChanged}"
-                                         FontSize="{DynamicResource Font12}"
-                                         Padding="{DynamicResource FieldPadding}"/>
+                                         FontSize="{DynamicResource Font12}"/>
                                 <Button Grid.Column="1"
                                         Content="..."
                                         Click="BrowsePrivateKey_Click"
-                                        Padding="{DynamicResource ButtonPadding}"
+                                        Padding="8,4"
                                         Margin="4,0,0,0"
                                         ToolTip="{loc:Loc TextCBC206F5964B}"/>
                             </Grid>
                         </StackPanel>
 
                         <!-- 6. Tipo de Conexão -->
-                        <TextBlock TextWrapping="Wrap" Text="{loc:Loc Text2FC429DB7583}" FontSize="{DynamicResource Font11_5}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="{DynamicResource FieldLabelMargin}"/>
+                        <TextBlock Style="{StaticResource FieldLabelTextStyle}" Text="{loc:Loc Text2FC429DB7583}"/>
                         <ComboBox ItemsSource="{Binding ConnectionTypeOptions}"
                                   DisplayMemberPath="DisplayName"
                                   SelectedValuePath="Value"
                                   SelectedValue="{Binding SelectedConnectionType, Mode=TwoWay}"
-                                  Margin="0,0,0,12"/>
+                                  Margin="0,0,0,10"/>
 
                         <!-- 7. Ações Principais: Conectar, Salvar e Menu discreto (•••) -->
-                        <WrapPanel x:Name="DetailActions" Margin="0,0,0,2">
+                        <WrapPanel Margin="0,0,0,8">
                             <!-- Conectar (Botão Principal em Destaque) -->
-                            <Button DockPanel.Dock="Left"
-                                    Command="{Binding ConnectCommand}"
+                            <Button Command="{Binding ConnectCommand}"
                                     Style="{DynamicResource PrimaryButtonStyle}"
-                                    Padding="{DynamicResource ActionButtonPadding}"
-                                    Margin="0,0,8,6"
+                                    Padding="18,6"
+                                    Margin="0,0,8,4"
                                     ToolTip="{loc:Loc Text76D0D8DA1D7C}"
                                     AutomationProperties.Name="{loc:Loc Text3B0B0FDFE2E3}">
                                 <TextBlock TextWrapping="Wrap" Text="{loc:Loc Text3B0B0FDFE2E3}" FontSize="{DynamicResource Font13}" FontWeight="SemiBold"/>
                             </Button>
 
-                            <!-- Salvar -->
-                            <Button x:Name="SaveConnectionButton" DockPanel.Dock="Left"
+                            <!-- Salvar (com destaque âmbar e texto explícito quando há alterações pendentes) -->
+                            <Button x:Name="SaveConnectionButton"
                                     Click="SaveButton_Click"
                                     IsEnabled="{Binding CanSave}"
-                                    Padding="{DynamicResource ActionButtonPadding}"
-                                    Margin="0,0,8,6"
+                                    Padding="14,6"
+                                    Margin="0,0,8,4"
                                     ToolTip="{loc:Loc TextCFB546213C60}"
                                     AutomationProperties.Name="{loc:Loc TextAEF7CD5B2081}">
                                 <Button.Style>
@@ -568,19 +889,19 @@
                                                 <Setter Property="Background" Value="#F59E0B"/>
                                                 <Setter Property="Foreground" Value="#1C1917"/>
                                                 <Setter Property="BorderBrush" Value="#D97706"/>
+                                                <Setter Property="FontWeight" Value="SemiBold"/>
                                             </DataTrigger>
                                         </Style.Triggers>
                                     </Style>
                                 </Button.Style>
-                                <TextBlock Text="{Binding SaveButtonText}" TextWrapping="Wrap" FontSize="{DynamicResource Font12_5}"/>
+                                <TextBlock Text="{Binding SaveButtonText}" FontSize="{DynamicResource Font12_5}"/>
                             </Button>
 
                             <!-- Menu Discreto para Duplicar, Excluir e Testar Conexão -->
                             <Button x:Name="MoreActionsButton"
-                                    DockPanel.Dock="Left"
                                     Click="MoreActionsButton_Click"
-                                    Padding="{DynamicResource ActionButtonPadding}"
-                                    Margin="0,0,0,6"
+                                    Padding="10,6"
+                                    Margin="0,0,0,4"
                                     ToolTip="{loc:Loc Text289CA5B692D9}">
                                 <TextBlock Text="•••" FontSize="{DynamicResource Font12}" FontWeight="Bold"/>
                                 <Button.ContextMenu>
@@ -595,31 +916,53 @@
                             </Button>
                         </WrapPanel>
 
-                        <Button x:Name="CopyCompleteAccessButton" Command="{Binding CopyCompleteAccessCommand}"
-                                Padding="{DynamicResource ActionButtonPadding}" Margin="0,0,0,12" HorizontalContentAlignment="Center"
-                                AutomationProperties.Name="{loc:Loc CopyCompleteAccess}">
-                            <TextBlock Text="{loc:Loc CopyCompleteAccess}" TextWrapping="Wrap" TextAlignment="Center"/>
+                        <Button Command="{Binding CopyAllDataCommand}"
+                                HorizontalAlignment="Stretch"
+                                Margin="0,0,0,8"
+                                AutomationProperties.Name="{loc:Loc Text9AC8AA8772A1}">
+                            <TextBlock Text="{loc:Loc Text9AC8AA8772A1}" TextWrapping="Wrap" TextAlignment="Center"/>
                         </Button>
 
-                        <TextBlock Text="{Binding PendingChangesText}" TextWrapping="Wrap"
-                                   Foreground="{DynamicResource SecondaryTextBrush}" FontSize="{DynamicResource Font11}" Margin="0,0,0,6"/>
-                        <Button Content="{loc:Loc Text534C4DA81431}" Command="{Binding CancelEditCommand}"
+                        <!-- Faixa de Alterações Pendentes (não depende apenas de cor: exibe ícone ● + borda + botão de descarte) -->
+                        <Border Visibility="{Binding PendingChangesText, Converter={StaticResource StringNotEmptyToVis}}"
+                                Background="{DynamicResource WarningSurfaceBrush}"
+                                BorderBrush="{DynamicResource WarningBorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="5"
+                                Padding="8,6"
+                                Margin="0,0,0,8">
+                            <StackPanel>
+                                <DockPanel>
+                                    <TextBlock Text="●"
+                                               Foreground="{DynamicResource WarningTextBrush}"
+                                               FontSize="{DynamicResource Font11}"
+                                               FontWeight="Bold"
+                                               Margin="0,0,6,0"
+                                               VerticalAlignment="Top"/>
+                                    <TextBlock Text="{Binding PendingChangesText}"
+                                               TextWrapping="Wrap"
+                                               Foreground="{DynamicResource WarningTextBrush}"
+                                               FontWeight="SemiBold"
+                                               FontSize="{DynamicResource Font11}"/>
+                                </DockPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <Button Content="{loc:Loc Text534C4DA81431}"
+                                Command="{Binding CancelEditCommand}"
                                 IsEnabled="{Binding CanDiscardChanges}"
                                 Visibility="{Binding CanDiscardChanges, Converter={StaticResource BoolToVis}}"
-                                HorizontalAlignment="Left" Margin="{DynamicResource FieldGroupMargin}" Padding="{DynamicResource ButtonPadding}"/>
+                                HorizontalAlignment="Left"
+                                Margin="0,0,0,10"
+                                Padding="10,4"/>
 
                         <!-- 8. "Mais opções" (Expander recolhido por padrão) -->
                         <Expander Header="{loc:Loc Text5D951376C42F}"
                                   IsExpanded="False"
                                   Foreground="{DynamicResource PrimaryTextBrush}"
                                   FontSize="{DynamicResource Font12}"
-                                  Margin="{DynamicResource FieldGroupMargin}">
-                            <Border Background="{DynamicResource SurfaceAltBrush}"
-                                    BorderBrush="{DynamicResource BorderBrush}"
-                                    BorderThickness="1"
-                                    CornerRadius="5"
-                                    Padding="{DynamicResource SectionPadding}"
-                                    Margin="0,4,0,0">
+                                  Margin="0,0,0,8">
+                            <Border Style="{DynamicResource SectionCardBorderStyle}" Margin="0,4,0,0">
                                 <StackPanel>
                                     <!-- Cliente e Grupo -->
                                     <Grid Margin="0,0,0,8">
@@ -629,11 +972,11 @@
                                         </Grid.ColumnDefinitions>
                                         <StackPanel Grid.Column="0" Margin="0,0,4,0">
                                             <TextBlock TextWrapping="Wrap" Text="{loc:Loc TextF851D9A83AB0}" FontSize="{DynamicResource Font11}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,2"/>
-                                            <TextBox Text="{Binding EditingEntry.ClientName, UpdateSourceTrigger=PropertyChanged}" FontSize="{DynamicResource Font12}" Padding="{DynamicResource FieldPadding}"/>
+                                            <TextBox Text="{Binding EditingEntry.ClientName, UpdateSourceTrigger=PropertyChanged}" FontSize="{DynamicResource Font12}" Padding="5,3"/>
                                         </StackPanel>
                                         <StackPanel Grid.Column="1" Margin="4,0,0,0">
                                             <TextBlock TextWrapping="Wrap" Text="{loc:Loc Text399B037DAB0F}" FontSize="{DynamicResource Font11}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,2"/>
-                                            <TextBox Text="{Binding EditingEntry.GroupName, UpdateSourceTrigger=PropertyChanged}" FontSize="{DynamicResource Font12}" Padding="{DynamicResource FieldPadding}"/>
+                                            <TextBox Text="{Binding EditingEntry.GroupName, UpdateSourceTrigger=PropertyChanged}" FontSize="{DynamicResource Font12}" Padding="5,3"/>
                                         </StackPanel>
                                     </Grid>
 
@@ -661,7 +1004,7 @@
                                     <!-- Observações -->
                                     <TextBlock TextWrapping="Wrap" Text="{loc:Loc TextC01DDBEAAB7C}" FontSize="{DynamicResource Font11}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,2"/>
                                     <TextBox Text="{Binding EditingEntry.Notes, UpdateSourceTrigger=PropertyChanged}"
-                                             Height="50"
+                                             Height="{DynamicResource NotesHeight}"
                                              TextWrapping="Wrap"
                                              AcceptsReturn="True"
                                              VerticalContentAlignment="Top"
@@ -671,6 +1014,45 @@
 
                                     <!-- Opções Específicas de RDP (MSTSC) -->
                                     <StackPanel Visibility="{Binding IsRdpSelected, Converter={StaticResource BoolToVis}}" Margin="0,0,0,6">
+                                        <Expander Header="{loc:Loc TextD553FE9A0545}" Margin="0,4,0,8">
+                                            <StackPanel Margin="4">
+                                                <StackPanel.Resources>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Foreground" Value="{DynamicResource SecondaryTextBrush}"/>
+                                                        <Setter Property="FontSize" Value="{DynamicResource Font11}"/>
+                                                        <Setter Property="TextWrapping" Value="Wrap"/>
+                                                        <Setter Property="Margin" Value="0,4,0,3"/>
+                                                    </Style>
+                                                </StackPanel.Resources>
+                                                <TextBlock Text="{loc:Loc Text4461EA901BE0}"/>
+                                                <TextBox Text="{Binding EditingEntry.RdpOptions.GatewayHostname, UpdateSourceTrigger=PropertyChanged}"/>
+                                                <TextBlock Text="{loc:Loc Text6D1BB4F20328}" TextWrapping="Wrap"/>
+                                                <TextBox Text="{Binding EditingEntry.RdpOptions.GatewayUsageMethod, UpdateSourceTrigger=PropertyChanged}"/>
+                                                <TextBlock Text="{loc:Loc Text14B1A3B5898E}" TextWrapping="Wrap"/>
+                                                <TextBox Text="{Binding EditingEntry.RdpOptions.GatewayCredentialsSource, UpdateSourceTrigger=PropertyChanged}"/>
+                                                <TextBlock Text="{loc:Loc TextB31D65B1D31E}" TextWrapping="Wrap"/>
+                                                <TextBox Text="{Binding EditingEntry.RdpOptions.GatewayProfileUsageMethod, UpdateSourceTrigger=PropertyChanged}"/>
+                                                <CheckBox Content="{loc:Loc Text265299E22025}" IsChecked="{Binding EditingEntry.RdpOptions.PromptCredentialOnce, UpdateSourceTrigger=PropertyChanged}"/>
+                                                <TextBlock Text="{loc:Loc TextF4B780D1F8D6}" TextWrapping="Wrap"/>
+                                            </StackPanel>
+                                        </Expander>
+                                        <Expander Header="{loc:Loc Text3312B550641E}" Margin="0,0,0,8">
+                                            <StackPanel Margin="4">
+                                                <StackPanel.Resources>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Foreground" Value="{DynamicResource SecondaryTextBrush}"/>
+                                                        <Setter Property="FontSize" Value="{DynamicResource Font11}"/>
+                                                        <Setter Property="TextWrapping" Value="Wrap"/>
+                                                        <Setter Property="Margin" Value="0,4,0,3"/>
+                                                    </Style>
+                                                </StackPanel.Resources>
+                                                <TextBlock Text="{loc:Loc Text3021412EFCE9}" TextWrapping="Wrap"/>
+                                                <TextBox Text="{Binding EditingEntry.RdpOptions.AdditionalProperties, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" Height="{DynamicResource RdpAdvancedHeight}" VerticalScrollBarVisibility="Auto"/>
+                                                <TextBlock Text="{loc:Loc TextD958F8E91014}" TextWrapping="Wrap"/>
+                                                <TextBox Text="{Binding EditingEntry.RdpOptions.OriginalContent, Mode=OneWay}" IsReadOnly="True" AcceptsReturn="True" Height="{DynamicResource RdpOriginalHeight}" VerticalScrollBarVisibility="Auto"/>
+                                                <Button Content="{loc:Loc TextE79A3E4B7661}" Click="RdpDiagnostics_Click" Margin="0,4,0,0"/>
+                                            </StackPanel>
+                                        </Expander>
                                         <TextBlock TextWrapping="Wrap" Text="{loc:Loc Text8F804E33755B}" FontSize="{DynamicResource Font11}" FontWeight="SemiBold" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4"/>
                                         <WrapPanel Margin="0,0,0,6">
                                             <CheckBox Content="{loc:Loc TextCDD35DEA1EE3}" IsChecked="{Binding EditingEntry.RdpFullScreen, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,10,4"/>
@@ -702,7 +1084,7 @@
                                     <!-- Opções Específicas de VNC -->
                                     <StackPanel Visibility="{Binding IsVncSelected, Converter={StaticResource BoolToVis}}">
                                         <TextBlock TextWrapping="Wrap" Text="{loc:Loc Text7B3218B5EEBD}" FontSize="{DynamicResource Font11}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,2"/>
-                                        <TextBox Text="{Binding EditingEntry.VncParameters, UpdateSourceTrigger=PropertyChanged}" FontSize="{DynamicResource Font12}" Padding="{DynamicResource FieldPadding}"/>
+                                        <TextBox Text="{Binding EditingEntry.VncParameters, UpdateSourceTrigger=PropertyChanged}" FontSize="{DynamicResource Font12}" Padding="5,3"/>
                                     </StackPanel>
                                 </StackPanel>
                             </Border>
@@ -712,7 +1094,7 @@
                         <Expander IsExpanded="False"
                                   Foreground="{DynamicResource PrimaryTextBrush}"
                                   FontSize="{DynamicResource Font12}"
-                                  Margin="{DynamicResource FieldGroupMargin}">
+                                  Margin="0,0,0,10">
                             <Expander.Header>
                                 <DockPanel HorizontalAlignment="Stretch">
                                     <TextBlock TextWrapping="Wrap" Text="{loc:Loc Text0120E59D18C6}" FontWeight="SemiBold" VerticalAlignment="Center"/>
@@ -724,12 +1106,7 @@
                                                VerticalAlignment="Center"/>
                                 </DockPanel>
                             </Expander.Header>
-                            <Border Background="{DynamicResource SurfaceAltBrush}"
-                                    BorderBrush="{DynamicResource BorderBrush}"
-                                    BorderThickness="1"
-                                    CornerRadius="5"
-                                    Padding="{DynamicResource SectionPadding}"
-                                    Margin="0,4,0,0">
+                            <Border Style="{DynamicResource SectionCardBorderStyle}" Margin="0,4,0,0">
                                 <StackPanel>
                                     <!-- Nome da VPN -->
                                     <TextBlock TextWrapping="Wrap" Text="{loc:Loc TextA4A2EF0A67A1}" FontSize="{DynamicResource Font11}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,2"/>
@@ -741,12 +1118,12 @@
                                         <TextBox Grid.Column="0"
                                                  Text="{Binding EditingEntry.VpnName, UpdateSourceTrigger=PropertyChanged}"
                                                  FontSize="{DynamicResource Font12}"
-                                                 Padding="{DynamicResource FieldPadding}"/>
+                                                 Padding="5,3"/>
                                         <Button Grid.Column="1"
                                                 Content="📋"
                                                 ToolTip="{loc:Loc TextFDADA95F7ABC}"
                                                 Command="{Binding CopyVpnNameCommand}"
-                                                Padding="{DynamicResource CopyButtonPadding}"
+                                                Padding="6,3"
                                                 Margin="4,0,0,0"
                                                 Cursor="Hand"/>
                                     </Grid>
@@ -755,7 +1132,7 @@
                                     <TextBlock TextWrapping="Wrap" Text="{loc:Loc Text23ECCE63EAEA}" FontSize="{DynamicResource Font11}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,2"/>
                                     <TextBox Text="{Binding EditingEntry.VpnApp, UpdateSourceTrigger=PropertyChanged}"
                                              FontSize="{DynamicResource Font12}"
-                                             Padding="{DynamicResource FieldPadding}"
+                                             Padding="5,3"
                                              Margin="0,0,0,8"/>
 
                                     <!-- Servidor / IP[:porta] -->
@@ -769,12 +1146,12 @@
                                                  Text="{Binding EditingEntry.VpnServer, UpdateSourceTrigger=PropertyChanged}"
                                                  FontFamily="Consolas"
                                                  FontSize="{DynamicResource Font12}"
-                                                 Padding="{DynamicResource FieldPadding}"/>
+                                                 Padding="5,3"/>
                                         <Button Grid.Column="1"
                                                 Content="📋"
                                                 ToolTip="{loc:Loc TextD23258F58F26}"
                                                 Command="{Binding CopyVpnServerCommand}"
-                                                Padding="{DynamicResource CopyButtonPadding}"
+                                                Padding="6,3"
                                                 Margin="4,0,0,0"
                                                 Cursor="Hand"/>
                                     </Grid>
@@ -782,7 +1159,7 @@
                                     <!-- Observações -->
                                     <TextBlock TextWrapping="Wrap" Text="{loc:Loc TextC01DDBEAAB7C}" FontSize="{DynamicResource Font11}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,2"/>
                                     <TextBox Text="{Binding EditingEntry.VpnNotes, UpdateSourceTrigger=PropertyChanged}"
-                                             Height="45"
+                                             Height="{DynamicResource VpnNotesHeight}"
                                              TextWrapping="Wrap"
                                              AcceptsReturn="True"
                                              VerticalContentAlignment="Top"
@@ -808,6 +1185,308 @@
                     </StackPanel>
                 </ScrollViewer>
             </Border>
+
+            <!-- ===================================================================== -->
+            <!-- PAINEL RETRÁTIL DE TEXTOS RÁPIDOS (HotKeyText Integrado)               -->
+            <!-- Em janela larga fica na Coluna 3; em janela estreita abre sobre a     -->
+            <!-- Coluna 2 (detalhes), mantendo a lista de acessos (Coluna 0) acessível -->
+            <!-- ===================================================================== -->
+            <Border x:Name="QuickTextsSidePanel"
+                    Grid.Column="3"
+                    Panel.ZIndex="20"
+                    Visibility="Collapsed"
+                    Background="{DynamicResource SurfaceBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}"
+                    BorderThickness="1,0,0,0">
+                <Grid Margin="10,8">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="145"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- 0: Cabeçalho do Painel + Botão Recolher -->
+                    <DockPanel Grid.Row="0" Margin="0,0,0,6">
+                        <Button x:Name="QuickTextsCollapseButton"
+                                DockPanel.Dock="Right"
+                                Content="Recolher ▸"
+                                Click="QuickTextsCollapseButton_Click"
+                                Padding="8,3"
+                                FontSize="{DynamicResource Font11}"
+                                VerticalAlignment="Top"
+                                ToolTip="Recolher o painel mantendo Scroll Lock e atalhos ativos (Esc)"/>
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <Border CornerRadius="4" Width="18" Height="18" Background="{DynamicResource AccentBrush}" Margin="0,0,6,0" VerticalAlignment="Center">
+                                    <TextBlock Text="H" Foreground="{DynamicResource AccentTextBrush}" FontWeight="Bold" FontSize="11" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <TextBlock Text="{loc:Loc TextAE29611184C1}" FontWeight="SemiBold" FontSize="{DynamicResource Font13}" Foreground="{DynamicResource PrimaryTextBrush}" VerticalAlignment="Center"/>
+                            </StackPanel>
+                            <TextBlock x:Name="QuickTextsSubheaderText"
+                                       FontSize="{DynamicResource Font10_5}"
+                                       Foreground="{DynamicResource SecondaryTextBrush}"
+                                       Margin="0,2,0,0"
+                                       TextTrimming="CharacterEllipsis"/>
+                        </StackPanel>
+                    </DockPanel>
+
+                    <!-- 1: Aviso de Conflito com Edição Avulsa (exibido somente quando detectado) -->
+                    <Border x:Name="QuickTextsConflictBanner"
+                            Grid.Row="1"
+                            Visibility="Collapsed"
+                            Background="{DynamicResource WarningSurfaceBrush}"
+                            BorderBrush="{DynamicResource WarningBorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="5"
+                            Padding="8,6"
+                            Margin="0,0,0,6">
+                        <StackPanel>
+                            <TextBlock x:Name="QuickTextsConflictTextBlock"
+                                       TextWrapping="Wrap"
+                                       FontSize="{DynamicResource Font11}"
+                                       FontWeight="SemiBold"
+                                       Foreground="{DynamicResource WarningTextBrush}"/>
+                            <Button x:Name="QuickTextsRetryActivateButton"
+                                    Content="Ativar atalhos integrados"
+                                    Click="QuickTextsRetryActivateButton_Click"
+                                    HorizontalAlignment="Left"
+                                    Padding="8,3"
+                                    FontSize="{DynamicResource Font11}"
+                                    Margin="0,5,0,0"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- 2: Lista de Textos Cadastrados -->
+                    <Border Grid.Row="2"
+                            Background="{DynamicResource InputBackgroundBrush}"
+                            BorderBrush="{DynamicResource BorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="5"
+                            Padding="2">
+                        <ListBox x:Name="QuickTextsListBox"
+                                 SelectionMode="Single"
+                                 SelectionChanged="QuickTextsListBox_SelectionChanged"
+                                 MouseDoubleClick="QuickTextsListBox_MouseDoubleClick"
+                                 AutomationProperties.Name="Lista de textos rápidos">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <DockPanel Margin="0,1">
+                                        <Border DockPanel.Dock="Left"
+                                                CornerRadius="4"
+                                                MinWidth="24"
+                                                Padding="6,2"
+                                                Margin="0,0,8,0"
+                                                VerticalAlignment="Center"
+                                                Background="{DynamicResource AccentBrush}">
+                                            <TextBlock Text="{Binding EffectiveShortcut}"
+                                                       Foreground="{DynamicResource AccentTextBrush}"
+                                                       FontWeight="SemiBold"
+                                                       FontSize="{DynamicResource Font10_5}"
+                                                       HorizontalAlignment="Center"
+                                                       VerticalAlignment="Center"/>
+                                        </Border>
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding DisplayTitle}"
+                                                       FontWeight="SemiBold"
+                                                       FontSize="{DynamicResource Font11_5}"
+                                                       TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Text="{Binding DisplayPreview}"
+                                                       FontSize="{DynamicResource Font10_5}"
+                                                       Foreground="{DynamicResource SecondaryTextBrush}"
+                                                       TextTrimming="CharacterEllipsis"/>
+                                        </StackPanel>
+                                    </DockPanel>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </Border>
+
+                    <!-- 3: Barra de Ações da Lista (+ Novo, Excluir, Ordenar ▲/▼, Inserir) -->
+                    <WrapPanel Grid.Row="3" Margin="0,6,0,6">
+                        <Button x:Name="QuickTextsNewButton"
+                                Content="+ Novo"
+                                Click="QuickTextsNewButton_Click"
+                                Style="{DynamicResource PrimaryButtonStyle}"
+                                Padding="9,3"
+                                FontSize="{DynamicResource Font11}"
+                                Margin="0,0,5,3"/>
+                        <Button x:Name="QuickTextsDeleteButton"
+                                Content="Excluir"
+                                Click="QuickTextsDeleteButton_Click"
+                                Padding="8,3"
+                                FontSize="{DynamicResource Font11}"
+                                Margin="0,0,5,3"/>
+                        <Button x:Name="QuickTextsMoveUpButton"
+                                Content="▲"
+                                Click="QuickTextsMoveUpButton_Click"
+                                Padding="7,3"
+                                FontSize="{DynamicResource Font11}"
+                                Margin="0,0,4,3"
+                                ToolTip="Mover texto para cima"/>
+                        <Button x:Name="QuickTextsMoveDownButton"
+                                Content="▼"
+                                Click="QuickTextsMoveDownButton_Click"
+                                Padding="7,3"
+                                FontSize="{DynamicResource Font11}"
+                                Margin="0,0,5,3"
+                                ToolTip="Mover texto para baixo"/>
+                        <Button x:Name="QuickTextsInsertNowButton"
+                                Content="Inserir agora"
+                                Click="QuickTextsInsertNowButton_Click"
+                                Padding="8,3"
+                                FontSize="{DynamicResource Font11}"
+                                Margin="0,0,0,3"
+                                ToolTip="Inserir o texto selecionado na última janela de destino ativa"/>
+                    </WrapPanel>
+
+                    <!-- 4: Editor do Texto Selecionado (Título, Atalho, Exibir texto e Conteúdo) -->
+                    <Grid Grid.Row="4">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- Título e Atalho lado a lado -->
+                        <Grid Grid.Row="0" Margin="0,0,0,6">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="105"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" Margin="0,0,6,0">
+                                <TextBlock Style="{StaticResource FieldLabelTextStyle}" Text="Título" Margin="0,0,0,2"/>
+                                <TextBox x:Name="QuickTextTitleBox"
+                                         TextChanged="QuickTextTitleBox_TextChanged"
+                                         FontSize="{DynamicResource Font12}"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Margin="0,0,4,0">
+                                <TextBlock Style="{StaticResource FieldLabelTextStyle}" Text="Atalho" Margin="0,0,0,2"/>
+                                <TextBox x:Name="QuickTextShortcutBox"
+                                         IsReadOnly="True"
+                                         TextAlignment="Center"
+                                         FontWeight="SemiBold"
+                                         Cursor="Hand"
+                                         GotKeyboardFocus="QuickTextShortcutBox_GotKeyboardFocus"
+                                         LostKeyboardFocus="QuickTextShortcutBox_LostKeyboardFocus"
+                                         PreviewKeyDown="QuickTextShortcutBox_PreviewKeyDown"
+                                         FontSize="{DynamicResource Font11_5}"
+                                         ToolTip="Clique e pressione a tecla ou combinação desejada (ex.: 1, Shift+1, Ctrl+2)"/>
+                            </StackPanel>
+                            <Button x:Name="QuickTextDefaultShortcutButton"
+                                    Grid.Column="2"
+                                    Content="Padrão"
+                                    Click="QuickTextDefaultShortcutButton_Click"
+                                    VerticalAlignment="Bottom"
+                                    Padding="7,5"
+                                    FontSize="{DynamicResource Font11}"
+                                    ToolTip="Restaurar atalho padrão da posição (1–9, 0, A–Z)"/>
+                        </Grid>
+
+                        <!-- Rótulo do Conteúdo + Opção de Exibir/Ocultar prévia -->
+                        <DockPanel Grid.Row="1" Margin="0,0,0,3">
+                            <CheckBox x:Name="QuickTextShowContentCheckBox"
+                                      DockPanel.Dock="Right"
+                                      Content="Exibir texto"
+                                      IsChecked="True"
+                                      Click="QuickTextShowContentCheckBox_Click"
+                                      FontSize="{DynamicResource Font11}"
+                                      VerticalAlignment="Center"
+                                      ToolTip="Desmarque para ocultar prévia e mascarar texto sensível"/>
+                            <TextBlock Style="{StaticResource FieldLabelTextStyle}" Text="Texto a inserir" Margin="0" VerticalAlignment="Center"/>
+                        </DockPanel>
+
+                        <!-- Caixa de Conteúdo (visível ou mascarada) -->
+                        <Grid Grid.Row="2">
+                            <TextBox x:Name="QuickTextContentBox"
+                                     AcceptsReturn="True"
+                                     AcceptsTab="True"
+                                     TextWrapping="Wrap"
+                                     VerticalScrollBarVisibility="Auto"
+                                     VerticalContentAlignment="Top"
+                                     TextChanged="QuickTextContentBox_TextChanged"
+                                     FontSize="{DynamicResource Font12}"/>
+                            <PasswordBox x:Name="QuickTextMaskedContentBox"
+                                         Visibility="Collapsed"
+                                         PasswordChanged="QuickTextMaskedContentBox_PasswordChanged"
+                                         FontSize="{DynamicResource Font12}"/>
+                        </Grid>
+                    </Grid>
+
+                    <!-- 5: Rodapé com Modo (Digitar vs Colar) e Iniciar com o Windows -->
+                    <Border Grid.Row="5"
+                            BorderBrush="{DynamicResource BorderBrush}"
+                            BorderThickness="0,1,0,0"
+                            Margin="0,8,0,0"
+                            Padding="0,6,0,0">
+                        <StackPanel>
+                            <TextBlock Text="Modo de inserção:" FontWeight="SemiBold" FontSize="{DynamicResource Font11}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,3"/>
+                            <RadioButton x:Name="QuickTextModeTypeRadio"
+                                         Content="Digitar (usa Colar automaticamente em WTS/RDP)"
+                                         Checked="QuickTextModeRadio_Checked"
+                                         FontSize="{DynamicResource Font11}"
+                                         Margin="0,0,0,3"/>
+                            <RadioButton x:Name="QuickTextModePasteRadio"
+                                         Content="Sempre colar pela área de transferência"
+                                         Checked="QuickTextModeRadio_Checked"
+                                         FontSize="{DynamicResource Font11}"
+                                         Margin="0,0,0,5"/>
+                            <CheckBox x:Name="QuickTextStartWithWindowsCheckBox"
+                                      Content="Iniciar com o Windows"
+                                      Click="QuickTextStartWithWindowsCheckBox_Click"
+                                      FontSize="{DynamicResource Font11}"/>
+                            <Button x:Name="QuickTextsCheckUpdatesButton"
+                                    Content="{loc:Loc Text2A2A2B8CE89E}"
+                                    Click="QuickTextsCheckUpdatesButton_Click"
+                                    HorizontalAlignment="Left"
+                                    Margin="0,6,0,0"
+                                    FontSize="{DynamicResource Font11}"/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <!-- ===================================================================== -->
+            <!-- ABA NA BORDA DIREITA: Abre e recolhe o painel "Textos rápidos"        -->
+            <!-- ===================================================================== -->
+            <Border x:Name="QuickTextsEdgeTabBorder"
+                    Grid.Column="4"
+                    Background="{DynamicResource SurfaceAltBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}"
+                    BorderThickness="1,0,0,0">
+                <Button x:Name="QuickTextsEdgeTabButton"
+                        Click="QuickTextsEdgeTabButton_Click"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        Padding="4,12"
+                        VerticalAlignment="Stretch"
+                        VerticalContentAlignment="Center"
+                        ToolTip="{loc:Loc TextC61ED4CDBFAA}"
+                        AutomationProperties.Name="{loc:Loc TextAE29611184C1}">
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                        <TextBlock x:Name="QuickTextsEdgeTabArrow"
+                                   Text="◂"
+                                   FontSize="{DynamicResource Font11}"
+                                   FontWeight="Bold"
+                                   Foreground="{DynamicResource AccentBrush}"
+                                   HorizontalAlignment="Center"
+                                   Margin="0,0,0,6"/>
+                        <TextBlock x:Name="QuickTextsEdgeTabLabel"
+                                   Text="{loc:Loc TextAE29611184C1}"
+                                   FontSize="{DynamicResource Font11_5}"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource PrimaryTextBrush}"
+                                   HorizontalAlignment="Center">
+                            <TextBlock.LayoutTransform>
+                                <RotateTransform Angle="90"/>
+                            </TextBlock.LayoutTransform>
+                        </TextBlock>
+                    </StackPanel>
+                </Button>
+            </Border>
         </Grid>
 
         <!-- ========================================================================= -->
@@ -817,7 +1496,7 @@
                 Background="{DynamicResource SurfaceAltBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,1,0,0"
-                Padding="{DynamicResource ButtonPadding}">
+                Padding="10,4">
             <TextBlock Text="{Binding StatusMessage}"
                        Foreground="{DynamicResource SecondaryTextBrush}"
                        FontSize="{DynamicResource Font11_5}"

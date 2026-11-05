@@ -5,95 +5,206 @@
         xmlns:loc="clr-namespace:ConectaTI.App.Localization"
         Title="{loc:Loc Text5ADE38599061}"
         Icon="pack://application:,,,/ConectaTI;component/Assets/conectati.ico"
-        Width="760" Height="640"
-        MinWidth="660" MinHeight="520"
+        Width="780" Height="650"
+        MinWidth="640" MinHeight="500"
         WindowStartupLocation="CenterOwner"
         Background="{DynamicResource AppBackgroundBrush}"
         Foreground="{DynamicResource PrimaryTextBrush}"
         UseLayoutRounding="True"
         SnapsToDevicePixels="True">
-    <Grid Margin="18">
+    <Grid Background="{DynamicResource AppBackgroundBrush}" Margin="16">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <DockPanel Grid.Row="0" Margin="0,0,0,12">
+        <DockPanel Grid.Row="0" Margin="0,0,0,10">
             <StackPanel VerticalAlignment="Center">
-                <TextBlock TextWrapping="Wrap" Text="{loc:Loc Text76B0FB6AD189}" FontSize="{DynamicResource Font18}" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextBrush}"/>
+                <TextBlock TextWrapping="Wrap" Text="{loc:Loc Text76B0FB6AD189}" FontSize="{DynamicResource Font17}" FontWeight="SemiBold" Foreground="{DynamicResource PrimaryTextBrush}"/>
                 <TextBlock TextWrapping="Wrap" Text="{loc:Loc TextED176FEF9943}"
-                           Foreground="{DynamicResource SecondaryTextBrush}" FontSize="{DynamicResource Font12_5}" Margin="0,2,0,0"/>
+                           Foreground="{DynamicResource SecondaryTextBrush}" FontSize="{DynamicResource Font12}" Margin="0,2,0,0"/>
             </StackPanel>
         </DockPanel>
 
         <TabControl x:Name="SettingsTabs" Grid.Row="1" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}">
             <!-- ================================================================= -->
-            <!-- ABA 1: GERAL (Tema e Área de Transferência)                       -->
+            <!-- ABA 0: GERAL E SEGURANÇA                                          -->
             <!-- ================================================================= -->
             <TabItem Header="{loc:Loc Text2130A3B5E09E}">
-                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="18">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16" Foreground="{DynamicResource PrimaryTextBrush}">
                     <StackPanel>
-                        <TextBlock TextWrapping="Wrap" Text="{loc:Loc Text7AE9D418353B}" FontWeight="SemiBold" Margin="0,0,0,6"/>
-                        <ComboBox x:Name="LanguageCombo" SelectionChanged="LanguageCombo_SelectionChanged" MaxWidth="650" HorizontalAlignment="Stretch" MinWidth="250" Margin="0,0,0,16">
-                            <ComboBoxItem Content="Automático — seguir o idioma do Windows"/>
-                            <ComboBoxItem Content="Português (Brasil)"/><ComboBoxItem Content="English"/><ComboBoxItem Content="Español"/>
-                        </ComboBox>
-                        <TextBlock TextWrapping="Wrap" Text="{loc:Loc TextA691DB0557A4}" FontWeight="SemiBold" Margin="0,0,0,6"/>
-                        <ComboBox x:Name="DensityCombo" SelectionChanged="DensityCombo_SelectionChanged" MaxWidth="380" HorizontalAlignment="Stretch" Margin="0,0,0,16">
-                            <ComboBoxItem Content="{loc:Loc DensityCompact}"/><ComboBoxItem Content="{loc:Loc PreferenceStandard}"/><ComboBoxItem Content="{loc:Loc DensityComfortable}"/>
-                        </ComboBox>
-                        <TextBlock TextWrapping="Wrap" Text="{loc:Loc TextSizeLabel}" FontWeight="SemiBold" Margin="0,0,0,6"/>
-                        <ComboBox x:Name="FontSizeCombo" SelectionChanged="FontSizeCombo_SelectionChanged" MaxWidth="380" HorizontalAlignment="Stretch" Margin="0,0,0,16">
-                            <ComboBoxItem Content="{loc:Loc TextSizeSmaller}"/><ComboBoxItem Content="{loc:Loc PreferenceStandard}"/><ComboBoxItem Content="{loc:Loc TextSizeLarger}"/>
-                        </ComboBox>
-                        <TextBlock TextWrapping="Wrap" Text="{loc:Loc Text04F9F0A78DBE}" FontSize="{DynamicResource Font14}" FontWeight="SemiBold" Margin="0,0,0,8"/>
-                        <Grid Margin="0,0,0,18">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="260"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <StackPanel Grid.Column="0">
-                                <TextBlock TextWrapping="Wrap" Text="{loc:Loc TextEB88B483EA19}" FontSize="{DynamicResource Font12_5}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4"/>
-                                <ComboBox x:Name="ThemeModeCombo" SelectionChanged="ThemeModeCombo_SelectionChanged">
+                        <!-- Bloco 1: Idioma e Comportamento Geral -->
+                        <Border Style="{DynamicResource SectionCardBorderStyle}" Margin="0,0,0,12">
+                            <StackPanel>
+                                <DockPanel Margin="0,0,0,6">
+                                    <Border DockPanel.Dock="Right" Background="{DynamicResource SubtleBadgeBackgroundBrush}" CornerRadius="3" Padding="6,2" VerticalAlignment="Center" Margin="8,0,0,0">
+                                        <TextBlock TextWrapping="Wrap" Text="{loc:Loc TextDD4B58997665}" FontSize="{DynamicResource Font10_5}" Foreground="{DynamicResource SecondaryTextBrush}"/>
+                                    </Border>
+                                    <TextBlock TextWrapping="Wrap" Text="{loc:Loc Text7AE9D418353B}" FontSize="{DynamicResource Font13_5}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                </DockPanel>
+                                <ComboBox x:Name="LanguageCombo" SelectionChanged="LanguageCombo_SelectionChanged" MaxWidth="420" HorizontalAlignment="Left" MinWidth="250">
+                                    <ComboBoxItem Content="{loc:Loc Text44AFDC2603B8}"/>
+                                    <ComboBoxItem Content="Português (Brasil)"/>
+                                    <ComboBoxItem Content="English"/>
+                                    <ComboBoxItem Content="Español"/>
+                                </ComboBox>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Bloco 2: Segurança e Área de Transferência -->
+                        <Border Style="{DynamicResource SectionCardBorderStyle}" Margin="0,0,0,12">
+                            <StackPanel>
+                                <DockPanel Margin="0,0,0,8">
+                                    <Border DockPanel.Dock="Right" Background="{DynamicResource SubtleBadgeBackgroundBrush}" CornerRadius="3" Padding="6,2" VerticalAlignment="Center" Margin="8,0,0,0">
+                                        <TextBlock TextWrapping="Wrap" Text="{loc:Loc Text0C7F48135A18}" FontSize="{DynamicResource Font10_5}" Foreground="{DynamicResource SecondaryTextBrush}"/>
+                                    </Border>
+                                    <TextBlock TextWrapping="Wrap" Text="{loc:Loc Text7A1042B28193}" FontSize="{DynamicResource Font13_5}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                </DockPanel>
+
+                                <Grid Margin="0,0,0,12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                                        <TextBlock TextWrapping="Wrap" Text="{loc:Loc TextEDD837F12E8C}" FontSize="{DynamicResource Font12}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4"/>
+                                        <TextBox x:Name="ClipboardClearSecondsBox"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                                        <TextBlock TextWrapping="Wrap" Text="{loc:Loc Text85A1D3DF281D}" FontSize="{DynamicResource Font12}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4"/>
+                                        <TextBox x:Name="RevealSecondsBox"/>
+                                    </StackPanel>
+                                </Grid>
+
+                                <CheckBox x:Name="RegisterRdpVaultCheck"
+                                          Content="{loc:Loc Text6B93836F2497}"
+                                          Margin="0,0,0,2"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Bloco 3: Proteção das Credenciais (DPAPI) -->
+                        <Border Style="{DynamicResource SectionCardBorderStyle}" Margin="0,0,0,12">
+                            <StackPanel>
+                                <TextBlock TextWrapping="Wrap" Text="{loc:Loc TextBFF5D43C2C6B}" FontSize="{DynamicResource Font13_5}" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                                <TextBlock TextWrapping="Wrap" x:Name="MasterPasswordStatusText"
+                                           Text="{loc:Loc Text69FDFD93281A}"
+                                           FontSize="{DynamicResource Font12}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,8"/>
+
+                                <Button x:Name="MigratePreviousPasswordsButton" Visibility="Collapsed" Content="{loc:Loc TextC914B1CC0E8A}" Click="MigrateMasterPassword_Click" HorizontalAlignment="Left" Padding="12,6"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Bloco 4: Atualizações do Conjunto (ConectaTI + HotKeyText via MaxBSilva/ConectaTI) -->
+                        <Border Style="{DynamicResource SectionCardBorderStyle}" Margin="0,0,0,12">
+                            <StackPanel>
+                                <DockPanel Margin="0,0,0,4">
+                                    <Border DockPanel.Dock="Right" Background="{DynamicResource SubtleBadgeBackgroundBrush}" CornerRadius="3" Padding="6,2" VerticalAlignment="Center" Margin="8,0,0,0">
+                                        <TextBlock x:Name="InstalledSuiteVersionBadgeText" TextWrapping="Wrap" FontSize="{DynamicResource Font10_5}" Foreground="{DynamicResource SecondaryTextBrush}"/>
+                                    </Border>
+                                    <TextBlock TextWrapping="Wrap" Text="{loc:Loc Text284C050CDFEC}" FontSize="{DynamicResource Font13_5}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                </DockPanel>
+
+                                <TextBlock TextWrapping="Wrap" Text="{loc:Loc TextA4F3AB73BFA2}"
+                                           FontSize="{DynamicResource Font12}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,8"/>
+
+                                <TextBlock x:Name="UpdateStatusTextBlock"
+                                           TextWrapping="Wrap"
+                                           FontSize="{DynamicResource Font12_5}"
+                                           FontWeight="SemiBold"
+                                           Foreground="{DynamicResource PrimaryTextBrush}"
+                                           Visibility="Collapsed"
+                                           Margin="0,0,0,8"/>
+
+                                <WrapPanel Orientation="Horizontal">
+                                    <Button x:Name="CheckUpdatesButton"
+                                            Content="{loc:Loc Text2A2A2B8CE89E}"
+                                            Click="CheckUpdatesButton_Click"
+                                            Padding="12,6"
+                                            Margin="0,0,8,4"/>
+
+                                    <Button x:Name="ApplyUpdateButton"
+                                            Content="{loc:Loc Text6301AB1ABF1F}"
+                                            Click="ApplyUpdateButton_Click"
+                                            Style="{DynamicResource PrimaryButtonStyle}"
+                                            Visibility="Collapsed"
+                                            Padding="12,6"
+                                            Margin="0,0,8,4"/>
+
+                                    <Button x:Name="RestorePreviousVersionButton"
+                                            Content="{loc:Loc TextEDFCC7E87CB1}"
+                                            Click="RestorePreviousVersionButton_Click"
+                                            Visibility="Collapsed"
+                                            Padding="12,6"
+                                            Margin="0,0,8,4"/>
+                                </WrapPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Bloco 5: Textos rápidos integrados (HotKeyText por Vinícius da Veiga) -->
+                        <Border Style="{DynamicResource SectionCardBorderStyle}">
+                            <StackPanel>
+                                <TextBlock TextWrapping="Wrap" Text="{loc:Loc TextAE29611184C1}" FontSize="{DynamicResource Font13_5}" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                                <TextBlock TextWrapping="Wrap" Text="{loc:Loc TextEB780EFF17CA}"
+                                           FontSize="{DynamicResource Font12}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,8"/>
+                                <Button x:Name="OpenQuickTextsFromSettingsButton"
+                                        Content="{loc:Loc TextAE29611184C1}"
+                                        Click="OpenQuickTextsFromSettings_Click"
+                                        HorizontalAlignment="Left"
+                                        Padding="12,6"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- ================================================================= -->
+            <!-- ABA 1: APARÊNCIA (Tema, Densidade e Tamanho da Fonte)             -->
+            <!-- ================================================================= -->
+            <TabItem Header="{loc:Loc Text04F9F0A78DBE}">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16" Foreground="{DynamicResource PrimaryTextBrush}">
+                    <StackPanel>
+                        <TextBlock TextWrapping="Wrap" Text="{loc:Loc TextB242768B4424}"
+                                   Foreground="{DynamicResource SecondaryTextBrush}" FontSize="{DynamicResource Font12}" Margin="0,0,0,12"/>
+
+                        <!-- Bloco 1: Tema do Aplicativo -->
+                        <Border Style="{DynamicResource SectionCardBorderStyle}" Margin="0,0,0,12">
+                            <StackPanel>
+                                <DockPanel Margin="0,0,0,6">
+                                    <Border DockPanel.Dock="Right" Background="{DynamicResource SubtleBadgeBackgroundBrush}" CornerRadius="3" Padding="6,2" VerticalAlignment="Center" Margin="8,0,0,0">
+                                        <TextBlock TextWrapping="Wrap" Text="{loc:Loc Text93B273F94DA3}" FontSize="{DynamicResource Font10_5}" Foreground="{DynamicResource SecondaryTextBrush}"/>
+                                    </Border>
+                                    <TextBlock TextWrapping="Wrap" Text="{loc:Loc TextEB88B483EA19}" FontSize="{DynamicResource Font13_5}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                </DockPanel>
+                                <ComboBox x:Name="ThemeModeCombo" SelectionChanged="ThemeModeCombo_SelectionChanged" MaxWidth="340" HorizontalAlignment="Left" MinWidth="240">
                                     <ComboBoxItem Content="{loc:Loc TextBBC72DF02AC9}"/>
                                     <ComboBoxItem Content="{loc:Loc Text64B58754485A}"/>
                                     <ComboBoxItem Content="{loc:Loc Text0F1C67EB81A0}"/>
                                 </ComboBox>
                             </StackPanel>
-                        </Grid>
+                        </Border>
 
-                        <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0" Margin="0,0,0,16"/>
+                        <!-- Bloco 2: Densidade e Tamanho da Fonte (independentes) -->
+                        <Border Style="{DynamicResource SectionCardBorderStyle}">
+                            <StackPanel>
+                                <DockPanel Margin="0,0,0,8">
+                                    <Border DockPanel.Dock="Right" Background="{DynamicResource SubtleBadgeBackgroundBrush}" CornerRadius="3" Padding="6,2" VerticalAlignment="Center" Margin="8,0,0,0">
+                                        <TextBlock TextWrapping="Wrap" Text="{loc:Loc TextDD4B58997665}" FontSize="{DynamicResource Font10_5}" Foreground="{DynamicResource SecondaryTextBrush}"/>
+                                    </Border>
+                                    <TextBlock TextWrapping="Wrap" Text="{loc:Loc TextA691DB0557A4}" FontSize="{DynamicResource Font13_5}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                </DockPanel>
 
-                        <TextBlock TextWrapping="Wrap" Text="{loc:Loc Text7A1042B28193}" FontSize="{DynamicResource Font14}" FontWeight="SemiBold" Margin="0,0,0,10"/>
-                        <Grid Margin="0,0,0,14">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <StackPanel Grid.Column="0" Margin="0,0,8,0">
-                                <TextBlock TextWrapping="Wrap" Text="{loc:Loc TextEDD837F12E8C}" FontSize="{DynamicResource Font12_5}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4"/>
-                                <TextBox x:Name="ClipboardClearSecondsBox"/>
+                                <ComboBox x:Name="DensityCombo" SelectionChanged="ViewPreference_Changed" MaxWidth="340" MinWidth="240" HorizontalAlignment="Left" Margin="0,0,0,14">
+                                    <ComboBoxItem Content="{loc:Loc TextA192EB9E9C8A}"/>
+                                    <ComboBoxItem Content="{loc:Loc TextD42A6DC78356}"/>
+                                </ComboBox>
+
+                                <TextBlock TextWrapping="Wrap" Text="{loc:Loc Text5C4B4BD1A56D}" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                                <Slider x:Name="FontSizeSlider" Minimum="11" Maximum="18" TickFrequency="0.5" IsSnapToTickEnabled="True" ValueChanged="FontSizeSlider_ValueChanged" MaxWidth="380" HorizontalAlignment="Stretch" Margin="0,4,0,8"/>
+                                <TextBlock x:Name="FontSizeValueText" Foreground="{DynamicResource PrimaryTextBrush}" TextWrapping="Wrap" Margin="0,0,0,8"><Run Text="{loc:Loc Text999E8AAB92FC}"/><Run Text=" "/><Run Text="{Binding Value, ElementName=FontSizeSlider, StringFormat={}{0:0.0}}"/><Run Text=" (11–18)"/></TextBlock>
+                                <Button Content="{loc:Loc Text4C061C66DBCD}" Click="ResetFontSize_Click" HorizontalAlignment="Left"/>
                             </StackPanel>
-                            <StackPanel Grid.Column="1" Margin="8,0,0,0">
-                                <TextBlock TextWrapping="Wrap" Text="{loc:Loc Text85A1D3DF281D}" FontSize="{DynamicResource Font12_5}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4"/>
-                                <TextBox x:Name="RevealSecondsBox"/>
-                            </StackPanel>
-                        </Grid>
-
-                        <CheckBox x:Name="RegisterRdpVaultCheck"
-                                  Content="{loc:Loc Text6B93836F2497}"
-                                  Margin="0,0,0,18"/>
-
-                        <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0" Margin="0,0,0,16"/>
-
-                        <TextBlock TextWrapping="Wrap" Text="{loc:Loc TextBFF5D43C2C6B}" FontSize="{DynamicResource Font14}" FontWeight="SemiBold" Margin="0,0,0,4"/>
-                        <TextBlock TextWrapping="Wrap" x:Name="MasterPasswordStatusText"
-                                   Text="{loc:Loc Text69FDFD93281A}"
-                                   FontSize="{DynamicResource Font12_5}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,10"/>
-
-                        <Button x:Name="MigratePreviousPasswordsButton" Visibility="Collapsed" Content="{loc:Loc TextC914B1CC0E8A}" Click="MigrateMasterPassword_Click" HorizontalAlignment="Left" Padding="12,6"/>
-
+                        </Border>
                     </StackPanel>
                 </ScrollViewer>
             </TabItem>
@@ -102,20 +213,23 @@
             <!-- ABA 2: PROGRAMAS (MSTSC, PuTTY, OpenSSH, WinSCP e VNC)            -->
             <!-- ================================================================= -->
             <TabItem Header="{loc:Loc Text7B637BAB4F9F}">
-                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="18">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16">
                     <StackPanel>
-                        <DockPanel Margin="0,0,0,12">
-                            <TextBlock TextWrapping="Wrap" Text="{loc:Loc Text1113234D991B}" FontSize="{DynamicResource Font14}" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                            <Button Content="{loc:Loc Text6C1F9EBCC8F7}" Click="AutoDetectButton_Click"
-                                    HorizontalAlignment="Right" Padding="12,5"/>
+                        <DockPanel Margin="0,0,0,10">
+                            <Button DockPanel.Dock="Right" Content="{loc:Loc Text6C1F9EBCC8F7}" Click="AutoDetectButton_Click"
+                                    Padding="12,5" Margin="8,0,0,0"/>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock TextWrapping="Wrap" Text="{loc:Loc Text1113234D991B}" FontSize="{DynamicResource Font13_5}" FontWeight="SemiBold"/>
+                                <TextBlock TextWrapping="Wrap" Text="{loc:Loc Text0C7F48135A18}" FontSize="{DynamicResource Font11}" Foreground="{DynamicResource SecondaryTextBrush}"/>
+                            </StackPanel>
                         </DockPanel>
 
                         <!-- 1. Área de Trabalho Remota — mstsc.exe -->
                         <DockPanel Margin="0,2,0,3">
-                            <TextBlock TextWrapping="Wrap" Text="{loc:Loc Text594C3B2E334A}" FontSize="{DynamicResource Font12_5}" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                            <TextBlock x:Name="MstscValidationText" HorizontalAlignment="Right" FontSize="{DynamicResource Font11_5}" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="MstscValidationText" DockPanel.Dock="Right" TextTrimming="CharacterEllipsis" MaxWidth="320" Margin="8,0,0,0" FontSize="{DynamicResource Font11}" VerticalAlignment="Center"/>
+                            <TextBlock TextWrapping="Wrap" Text="{loc:Loc Text594C3B2E334A}" FontSize="{DynamicResource Font12}" FontWeight="SemiBold" VerticalAlignment="Center"/>
                         </DockPanel>
-                        <Grid Margin="0,0,0,10">
+                        <Grid Margin="0,0,0,9">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
@@ -129,10 +243,10 @@
 
                         <!-- 2. PuTTY -->
                         <DockPanel Margin="0,2,0,3">
-                            <TextBlock TextWrapping="Wrap" Text="{loc:Loc TextD653A7844124}" FontSize="{DynamicResource Font12_5}" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                            <TextBlock x:Name="PuttyValidationText" HorizontalAlignment="Right" FontSize="{DynamicResource Font11_5}" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="PuttyValidationText" DockPanel.Dock="Right" TextTrimming="CharacterEllipsis" MaxWidth="320" Margin="8,0,0,0" FontSize="{DynamicResource Font11}" VerticalAlignment="Center"/>
+                            <TextBlock TextWrapping="Wrap" Text="{loc:Loc TextD653A7844124}" FontSize="{DynamicResource Font12}" FontWeight="SemiBold" VerticalAlignment="Center"/>
                         </DockPanel>
-                        <Grid Margin="0,0,0,10">
+                        <Grid Margin="0,0,0,9">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
@@ -143,10 +257,10 @@
 
                         <!-- 3. OpenSSH -->
                         <DockPanel Margin="0,2,0,3">
-                            <TextBlock TextWrapping="Wrap" Text="{loc:Loc TextB34A5D5691AD}" FontSize="{DynamicResource Font12_5}" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                            <TextBlock x:Name="OpenSshValidationText" HorizontalAlignment="Right" FontSize="{DynamicResource Font11_5}" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="OpenSshValidationText" DockPanel.Dock="Right" TextTrimming="CharacterEllipsis" MaxWidth="320" Margin="8,0,0,0" FontSize="{DynamicResource Font11}" VerticalAlignment="Center"/>
+                            <TextBlock TextWrapping="Wrap" Text="{loc:Loc TextB34A5D5691AD}" FontSize="{DynamicResource Font12}" FontWeight="SemiBold" VerticalAlignment="Center"/>
                         </DockPanel>
-                        <Grid Margin="0,0,0,10">
+                        <Grid Margin="0,0,0,9">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
@@ -157,10 +271,10 @@
 
                         <!-- 4. WinSCP -->
                         <DockPanel Margin="0,2,0,3">
-                            <TextBlock TextWrapping="Wrap" Text="{loc:Loc Text673FA557D7AA}" FontSize="{DynamicResource Font12_5}" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                            <TextBlock x:Name="WinScpValidationText" HorizontalAlignment="Right" FontSize="{DynamicResource Font11_5}" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="WinScpValidationText" DockPanel.Dock="Right" TextTrimming="CharacterEllipsis" MaxWidth="320" Margin="8,0,0,0" FontSize="{DynamicResource Font11}" VerticalAlignment="Center"/>
+                            <TextBlock TextWrapping="Wrap" Text="{loc:Loc Text673FA557D7AA}" FontSize="{DynamicResource Font12}" FontWeight="SemiBold" VerticalAlignment="Center"/>
                         </DockPanel>
-                        <Grid Margin="0,0,0,10">
+                        <Grid Margin="0,0,0,9">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
@@ -171,10 +285,10 @@
 
                         <!-- 5. VNC -->
                         <DockPanel Margin="0,2,0,3">
-                            <TextBlock TextWrapping="Wrap" Text="{loc:Loc TextE41A2B6503B0}" FontSize="{DynamicResource Font12_5}" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                            <TextBlock x:Name="VncValidationText" HorizontalAlignment="Right" FontSize="{DynamicResource Font11_5}" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="VncValidationText" DockPanel.Dock="Right" TextTrimming="CharacterEllipsis" MaxWidth="320" Margin="8,0,0,0" FontSize="{DynamicResource Font11}" VerticalAlignment="Center"/>
+                            <TextBlock TextWrapping="Wrap" Text="{loc:Loc TextE41A2B6503B0}" FontSize="{DynamicResource Font12}" FontWeight="SemiBold" VerticalAlignment="Center"/>
                         </DockPanel>
-                        <Grid Margin="0,0,0,12">
+                        <Grid Margin="0,0,0,10">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
@@ -183,20 +297,20 @@
                             <Button Grid.Column="1" Content="{loc:Loc TextB9D4506C3B66}" Click="BrowseVnc_Click" Margin="6,0,0,0"/>
                         </Grid>
 
-                        <Grid Margin="0,4,0,10">
+                        <Grid Margin="0,2,0,10">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
                             <StackPanel Grid.Column="0" Margin="0,0,8,0">
-                                <TextBlock TextWrapping="Wrap" Text="{loc:Loc TextF429B5263082}" FontSize="{DynamicResource Font12_5}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4"/>
+                                <TextBlock TextWrapping="Wrap" Text="{loc:Loc TextF429B5263082}" FontSize="{DynamicResource Font12}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4"/>
                                 <ComboBox x:Name="PreferredSshCombo">
                                     <ComboBoxItem Content="{loc:Loc TextD653A7844124}" Tag="Putty"/>
                                     <ComboBoxItem Content="{loc:Loc Text2FFCD6F40E95}" Tag="OpenSsh"/>
                                 </ComboBox>
                             </StackPanel>
                             <StackPanel Grid.Column="1" Margin="8,0,0,0">
-                                <TextBlock TextWrapping="Wrap" Text="{loc:Loc Text5DE6B45BC540}" FontSize="{DynamicResource Font12_5}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4"/>
+                                <TextBlock TextWrapping="Wrap" Text="{loc:Loc Text5DE6B45BC540}" FontSize="{DynamicResource Font12}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4"/>
                                 <ComboBox x:Name="VncFlavorCombo">
                                     <ComboBoxItem Content="{loc:Loc Text28EE40536291}" Tag="TigerRealVnc"/>
                                     <ComboBoxItem Content="{loc:Loc Text23E564CAAABA}" Tag="TightVnc"/>
@@ -206,7 +320,7 @@
                             </StackPanel>
                         </Grid>
 
-                        <TextBlock TextWrapping="Wrap" Text="{loc:Loc TextC62CB625D100}" FontSize="{DynamicResource Font12_5}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4"/>
+                        <TextBlock TextWrapping="Wrap" Text="{loc:Loc TextC62CB625D100}" FontSize="{DynamicResource Font12}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,4"/>
                         <TextBox x:Name="VncTemplateBox"/>
                     </StackPanel>
                 </ScrollViewer>
@@ -216,9 +330,9 @@
             <!-- ABA 3: CREDENCIAIS                                                -->
             <!-- ================================================================= -->
             <TabItem Header="{loc:Loc TextADF9E60F4D90}">
-                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="20">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="18">
                     <StackPanel>
-                        <TextBlock TextWrapping="Wrap" Text="{loc:Loc TextD1D6DB3BE482}" FontSize="{DynamicResource Font15}" FontWeight="SemiBold" Margin="0,0,0,6"/>
+                        <TextBlock TextWrapping="Wrap" Text="{loc:Loc TextD1D6DB3BE482}" FontSize="{DynamicResource Font14}" FontWeight="SemiBold" Margin="0,0,0,6"/>
                         <TextBlock Text="{loc:Loc Text4BF37FF33AA7}"
                                    Foreground="{DynamicResource SecondaryTextBrush}" TextWrapping="Wrap" Margin="0,0,0,14"/>
 
@@ -230,11 +344,7 @@
                                 Margin="0,0,0,18"/>
 
                         <!-- Aviso de Portabilidade DPAPI -->
-                        <Border Background="{DynamicResource SurfaceAltBrush}"
-                                BorderBrush="{DynamicResource BorderBrush}"
-                                BorderThickness="1"
-                                CornerRadius="6"
-                                Padding="14">
+                        <Border Style="{DynamicResource SectionCardBorderStyle}">
                             <StackPanel>
                                 <TextBlock TextWrapping="Wrap" Text="{loc:Loc Text622599F7B801}"
                                            FontSize="{DynamicResource Font13}" FontWeight="SemiBold" Margin="0,0,0,6"/>
@@ -252,44 +362,106 @@
             <!-- ABA 4: IMPORTAÇÃO E BACKUP                                        -->
             <!-- ================================================================= -->
             <TabItem Header="{loc:Loc TextEF101CAD23DF}">
-                <StackPanel Margin="20">
-                    <TextBlock TextWrapping="Wrap" Text="{loc:Loc Text4A366C8B3706}" FontSize="{DynamicResource Font15}" FontWeight="SemiBold" Margin="0,0,0,6"/>
-                    <TextBlock Text="{loc:Loc Text6285442CFEFD}"
-                               Foreground="{DynamicResource SecondaryTextBrush}" TextWrapping="Wrap" Margin="0,0,0,16"/>
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="18">
+                    <StackPanel>
+                        <Border Style="{DynamicResource SectionCardBorderStyle}" Margin="0,0,0,12">
+                            <StackPanel>
+                                <TextBlock TextWrapping="Wrap" Text="{loc:Loc Text4A366C8B3706}" FontSize="{DynamicResource Font14}" FontWeight="SemiBold" Margin="0,0,0,6"/>
+                                <TextBlock Text="{loc:Loc Text6285442CFEFD}"
+                                           Foreground="{DynamicResource SecondaryTextBrush}" TextWrapping="Wrap" Margin="0,0,0,14"/>
 
-                    <WrapPanel>
-                        <Button Content="{loc:Loc Text9ECAAA06B087}"
-                                Click="OpenImportExportDialog_Click"
-                                Style="{DynamicResource PrimaryButtonStyle}"
-                                Padding="16,8" Margin="0,0,10,8"/>
+                                <WrapPanel>
+                                    <Button Content="{loc:Loc Text9ECAAA06B087}"
+                                            Click="OpenImportExportDialog_Click"
+                                            Style="{DynamicResource PrimaryButtonStyle}"
+                                            Padding="16,8" Margin="0,0,10,8"/>
 
-                        <Button Content="{loc:Loc TextD2DF9DBF7DC0}"
-                                Click="CreateQuickBackup_Click"
-                                Padding="14,8" Margin="0,0,0,8"/>
-                    </WrapPanel>
-                </StackPanel>
+                                    <Button Content="{loc:Loc TextD2DF9DBF7DC0}"
+                                            Click="CreateQuickBackup_Click"
+                                            Padding="14,8" Margin="0,0,0,8"/>
+                                </WrapPanel>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
             </TabItem>
 
             <!-- ================================================================= -->
-            <!-- ABA 5: DIAGNÓSTICO                                                -->
+            <!-- ABA 5: ATALHOS DE TECLADO                                         -->
             <!-- ================================================================= -->
-            <TabItem Header="{loc:Loc TextE695EB16E81F}">
-                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="20">
+            <TabItem Header="{loc:Loc Text4F30B1F869E5}">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16">
                     <StackPanel>
-                        <TextBlock TextWrapping="Wrap" Text="{loc:Loc Text877BC3447067}" FontSize="{DynamicResource Font15}" FontWeight="SemiBold" Margin="0,0,0,6"/>
-                        <TextBlock Text="{loc:Loc Text240CF7238558}"
-                                   Foreground="{DynamicResource SecondaryTextBrush}" TextWrapping="Wrap" Margin="0,0,0,14"/>
+                        <TextBlock TextWrapping="Wrap" Text="{loc:Loc Text0B6358F3B7D3}" FontSize="{DynamicResource Font14}" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                        <TextBlock TextWrapping="Wrap" Text="{loc:Loc Text9818D4913D2F}" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="{DynamicResource Font12}" Margin="0,0,0,12"/>
 
-                        <Border Background="{DynamicResource SurfaceAltBrush}"
-                                BorderBrush="{DynamicResource BorderBrush}"
-                                BorderThickness="1"
-                                CornerRadius="6"
-                                Padding="14"
-                                Margin="0,0,0,14">
+                        <ItemsControl x:Name="ShortcutsItemsControl">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="{DynamicResource SurfaceAltBrush}"
+                                            BorderBrush="{DynamicResource BorderBrush}"
+                                            BorderThickness="1"
+                                            CornerRadius="5"
+                                            Padding="10,7"
+                                            Margin="0,0,0,6">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="125"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <Border Grid.Column="0"
+                                                    Background="{DynamicResource SubtleBadgeBackgroundBrush}"
+                                                    BorderBrush="{DynamicResource BorderBrush}"
+                                                    BorderThickness="1"
+                                                    CornerRadius="4"
+                                                    Padding="7,3"
+                                                    HorizontalAlignment="Left"
+                                                    VerticalAlignment="Top">
+                                                <TextBlock Text="{Binding Shortcut}"
+                                                           FontFamily="Consolas"
+                                                           FontWeight="SemiBold"
+                                                           FontSize="{DynamicResource Font11_5}"
+                                                           Foreground="{DynamicResource PrimaryTextBrush}"
+                                                           TextWrapping="Wrap"/>
+                                            </Border>
+                                            <StackPanel Grid.Column="1" Margin="10,0,0,0">
+                                                <WrapPanel VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding Action}" FontWeight="SemiBold" FontSize="{DynamicResource Font12_5}" TextWrapping="Wrap" Margin="0,0,8,0"/>
+                                                    <TextBlock Text="{Binding Context}" FontSize="{DynamicResource Font11}" Foreground="{DynamicResource MutedTextBrush}" TextWrapping="Wrap" VerticalAlignment="Center"/>
+                                                </WrapPanel>
+                                                <TextBlock Text="{Binding Description}" FontSize="{DynamicResource Font11_5}" Foreground="{DynamicResource SecondaryTextBrush}" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- ================================================================= -->
+            <!-- ABA 6: SOBRE E DIAGNÓSTICO                                        -->
+            <!-- ================================================================= -->
+            <TabItem Header="{loc:Loc Text806793D4CA28}">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16">
+                    <StackPanel>
+                        <Border Style="{DynamicResource SectionCardBorderStyle}" Margin="0,0,0,12">
+                            <StackPanel>
+                                <TextBlock TextWrapping="Wrap" Text="{loc:Loc TextE78E18F47D77}" FontSize="{DynamicResource Font14}" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                                <TextBlock TextWrapping="Wrap" Text="{loc:Loc Text95BB7D70C7E1}" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="{DynamicResource Font12}"/>
+                            </StackPanel>
+                        </Border>
+
+                        <TextBlock TextWrapping="Wrap" Text="{loc:Loc Text877BC3447067}" FontSize="{DynamicResource Font14}" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                        <TextBlock Text="{loc:Loc Text240CF7238558}"
+                                   Foreground="{DynamicResource SecondaryTextBrush}" TextWrapping="Wrap" FontSize="{DynamicResource Font12}" Margin="0,0,0,10"/>
+
+                        <Border Style="{DynamicResource SectionCardBorderStyle}" Margin="0,0,0,12">
                             <StackPanel>
                                 <Grid Margin="0,0,0,8">
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="190"/>
+                                        <ColumnDefinition Width="180"/>
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
                                     <TextBlock TextWrapping="Wrap" Grid.Column="0" Text="{loc:Loc Text4E8983D8D972}" FontWeight="SemiBold" FontSize="{DynamicResource Font12}"/>
@@ -298,7 +470,7 @@
 
                                 <Grid Margin="0,0,0,8">
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="190"/>
+                                        <ColumnDefinition Width="180"/>
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
                                     <TextBlock TextWrapping="Wrap" Grid.Column="0" Text="{loc:Loc Text99D46ADA74E4}" FontWeight="SemiBold" FontSize="{DynamicResource Font12}"/>
@@ -307,7 +479,7 @@
 
                                 <Grid Margin="0,0,0,8">
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="190"/>
+                                        <ColumnDefinition Width="180"/>
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
                                     <TextBlock TextWrapping="Wrap" Grid.Column="0" Text="{loc:Loc Text393F24C49FCC}" FontWeight="SemiBold" FontSize="{DynamicResource Font12}"/>
@@ -316,16 +488,16 @@
 
                                 <Grid Margin="0,0,0,8">
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="190"/>
+                                        <ColumnDefinition Width="180"/>
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
                                     <TextBlock TextWrapping="Wrap" Grid.Column="0" Text="{loc:Loc Text0C7669885EC9}" FontWeight="SemiBold" FontSize="{DynamicResource Font12}"/>
                                     <TextBlock TextWrapping="Wrap" x:Name="DiagCountsText" Grid.Column="1" Text="{loc:Loc Text1258573B225A}" FontSize="{DynamicResource Font12}"/>
                                 </Grid>
 
-                                <Grid Margin="0,0,0,6">
+                                <Grid Margin="0,0,0,4">
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="190"/>
+                                        <ColumnDefinition Width="180"/>
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
                                     <TextBlock TextWrapping="Wrap" Grid.Column="0" Text="{loc:Loc Text4E8E952D032B}" FontWeight="SemiBold" FontSize="{DynamicResource Font12}"/>
@@ -334,7 +506,7 @@
                             </StackPanel>
                         </Border>
 
-                        <WrapPanel Orientation="Horizontal" Margin="0,4,0,0">
+                        <WrapPanel Orientation="Horizontal" Margin="0,2,0,0">
                             <Button Content="{loc:Loc TextE093EB410320}" Click="OpenDatabaseFolder_Click" Padding="14,7" Margin="0,0,8,8"/>
                             <Button Content="{loc:Loc Text425C16F62D4A}" Click="OpenLogsFolder_Click" Padding="14,7" Margin="0,0,8,8"/>
                             <Button Content="{loc:Loc Text75331D5D1612}" Click="CopyDiagnosticReport_Click" Padding="14,7" Margin="0,0,0,8"/>
@@ -344,12 +516,12 @@
             </TabItem>
         </TabControl>
 
-        <DockPanel Grid.Row="2" Margin="0,14,0,0">
-            <TextBlock x:Name="DialogFeedbackText" VerticalAlignment="Center" Foreground="{DynamicResource SecondaryTextBrush}"/>
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                <Button Content="{loc:Loc TextBB9DBB406DCB}" Click="CancelButton_Click" Padding="16,7" Margin="0,0,8,0"/>
+        <DockPanel Grid.Row="2" Margin="0,12,0,0">
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="{loc:Loc TextBB9DBB406DCB}" IsCancel="True" Click="CancelButton_Click" Padding="16,7" Margin="0,0,8,0"/>
                 <Button Content="{loc:Loc TextAEF7CD5B2081}" Click="SaveButton_Click" Style="{DynamicResource PrimaryButtonStyle}" Padding="20,7"/>
             </StackPanel>
+            <TextBlock x:Name="DialogFeedbackText" TextWrapping="Wrap" VerticalAlignment="Center" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,12,0"/>
         </DockPanel>
     </Grid>
 </Window>

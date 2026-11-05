@@ -9,120 +9,15 @@ using ConectaTI.App.Security;
 
 namespace ConectaTI.App.Services.ImportExport;
 
-public class CsvColumnMapping
-{
-    public int NameColumnIndex { get; set; } = -1;
-    public int ClientColumnIndex { get; set; } = -1;
-    public int GroupColumnIndex { get; set; } = -1;
-    public int EnvironmentColumnIndex { get; set; } = -1;
-    public int ProtocolColumnIndex { get; set; } = -1;
-    public int HostColumnIndex { get; set; } = -1;
-    public int PortColumnIndex { get; set; } = -1;
-    public int UsernameColumnIndex { get; set; } = -1;
-    public int DomainColumnIndex { get; set; } = -1;
-    public int PrivateKeyPathColumnIndex { get; set; } = -1;
-    public int VpnNameColumnIndex { get; set; } = -1;
-    public int VpnAppColumnIndex { get; set; } = -1;
-    public int VpnServerColumnIndex { get; set; } = -1;
-    public int VpnNotesColumnIndex { get; set; } = -1;
-    public int TagsColumnIndex { get; set; } = -1;
-    public int NotesColumnIndex { get; set; } = -1;
-    public int FavoriteColumnIndex { get; set; } = -1;
-}
-
-public class ParsedCsvDocument
-{
-    public char Delimiter { get; init; } = ';';
-    public List<string> Headers { get; init; } = new();
-    public List<string[]> Rows { get; init; } = new();
-    public CsvColumnMapping SuggestedMapping { get; init; } = new();
-}
-
-public class ImportPreviewItem : CommunityToolkit.Mvvm.ComponentModel.ObservableObject
-{
-    public int RowNumber { get; init; }
-    public ConnectionEntry Entry { get; init; } = new();
-    public bool IsValid { get; init; }
-    public bool IsDuplicate { get; init; }
-    public string? ExistingConnectionId { get; init; }
-    private string _statusText = string.Empty;
-    private LocalizedMessage? _statusMessage;
-    public string StatusText { get => L.Render(_statusMessage, _statusText); init { _statusText = value; _statusMessage = L.Capture(value); } }
-    public bool IsSelected { get; set; } = true;
-    public string? RecoveredPlainPassword { get; init; }
-    internal string? SourceCredentialKey { get; init; }
-    internal SavedCredential? SourceCredentialMetadata { get; init; }
-    public string PasswordDisplay => !string.IsNullOrEmpty(RecoveredPlainPassword) ? "••••••••" : L.Text("(nenhuma)");
-    private string _unrecoveredFields = string.Empty;
-    public string UnrecoveredFields { get => L.Refresh(_unrecoveredFields); init => _unrecoveredFields = value; }
-    public void RefreshDisplayProperties() { Entry.RefreshDisplayProperties(); OnPropertyChanged(nameof(StatusText)); OnPropertyChanged(nameof(UnrecoveredFields)); OnPropertyChanged(nameof(PasswordDisplay)); }
-}
-
-public class ImportPreviewResult
-{
-    internal List<PortableCredentialRecord> StandaloneCredentials { get; init; } = new();
-    public int StandaloneCredentialCount => StandaloneCredentials.Count;
-    public string SourceFormat { get; init; } = string.Empty;
-    public string DiagnosticMessage { get; init; } = string.Empty;
-    public List<ImportPreviewItem> Items { get; init; } = new();
-    public int ValidCount => Items.Count(i => i.IsValid);
-    public int InvalidCount => Items.Count(i => !i.IsValid);
-    public int DuplicateCount => Items.Count(i => i.IsValid && i.IsDuplicate);
-}
-
-public record ImportExecutionReport(
-    int InsertedCount,
-    int UpdatedCount,
-    int IgnoredDuplicateCount,
-    int InvalidSkippedCount,
-    string PreImportBackupPath)
-{
-    public int CredentialsImportedCount { get; init; }
-    public int FoundCount { get; init; }
-    public int DuplicatedCount { get; init; }
-    public int UnselectedCount { get; init; }
-    public int IgnoredCount => IgnoredDuplicateCount + UnselectedCount;
-    public string Outcome { get; init; } = "Completed";
-    public bool CleanupPending { get; init; }
-    public int StandaloneCredentialsImported { get; init; }
-    public int StandaloneCredentialsIgnored { get; init; }
-}
-
-public class PortableEncryptedBundle
-{
-    public bool IncludesPasswords { get; set; } = true;
-    public string FormatVersion { get; set; } = "ConectaTI-Portable-1.0";
-    public DateTime ExportedAtUtc { get; set; } = DateTime.UtcNow;
-    public List<ConnectionEntry> Connections { get; set; } = new();
-    public List<PortableCredentialRecord> Credentials { get; set; } = new();
-}
-
-public class PortableCredentialRecord
-{
-    public string Id { get; set; } = string.Empty;
-    public string Name { get; set; } = string.Empty;
-    public string Username { get; set; } = string.Empty;
-    public string Domain { get; set; } = string.Empty;
-    public string Notes { get; set; } = string.Empty;
-    public string PlainSecretForEncryptedBundleOnly { get; set; } = string.Empty;
-}
-
 /// <summary>
-/// Serviço completo de Importação (CSV, JSON, AutoPuTTY não criptografado),
-/// Exportação (CSV/JSON sem senhas por padrão) e Pacote Criptografado Portátil (AES-256-GCM + PBKDF2).
-/// Cria backup consistente do SQLite antes de qualquer importação.
+/// Coordinates format detection, previews and portable transfer. Native field mapping lives in codecs.
+/// Commit creates its consistent backup and keeps credentials/connections in one SQLite transaction.
 /// </summary>
 public partial class ImportExportService
 {
     private readonly SqliteRepository _repository;
     private readonly CredentialVaultService _vaultService;
     private readonly AppLogger _logger;
-
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        WriteIndented = true,
-        PropertyNameCaseInsensitive = true
-    };
 
     public ImportExportService(
         SqliteRepository repository,
@@ -142,43 +37,7 @@ public partial class ImportExportService
     {
         await Task.Run(() =>
         {
-            var sb = new StringBuilder();
-            var headers = new[]
-            {
-                "Nome", "Cliente", "Grupo", "Ambiente", "Protocolo",
-                "Host", "Porta", "Usuario", "Dominio", "ChavePrivada",
-                "VpnNome", "VpnAplicativo", "VpnServidor", "VpnObservacoes",
-                "Tags", "Observacoes", "Favorito"
-            };
-            sb.AppendLine(string.Join(";", headers.Select(EscapeCsvField)));
-
-            foreach (var c in connections)
-            {
-                var row = new[]
-                {
-                    c.Name,
-                    c.ClientName,
-                    c.GroupName,
-                    c.Environment.ToInvariantDisplayName(),
-                    c.Protocol.ToString(),
-                    c.Host,
-                    c.Port.ToString(CultureInfo.InvariantCulture),
-                    c.Username,
-                    c.Domain,
-                    c.PrivateKeyPath,
-                    c.VpnName,
-                    c.VpnApp,
-                    c.VpnServer,
-                    c.VpnNotes,
-                    c.Tags,
-                    c.Notes,
-                    c.IsFavorite ? "Sim" : "Não"
-                };
-                sb.AppendLine(string.Join(";", row.Select(EscapeCsvField)));
-            }
-
-            // Grava em UTF-8 com BOM para preservação perfeita de acentos no Windows/Excel
-            File.WriteAllText(filePath, sb.ToString(), new UTF8Encoding(true));
+            File.WriteAllText(filePath, ConnectionCsvCodec.Write(connections), new UTF8Encoding(true));
             _logger.Info("Export", $"Exportação CSV concluída (sem senhas) para '{filePath}'.");
         });
     }
@@ -187,15 +46,7 @@ public partial class ImportExportService
     {
         await Task.Run(() =>
         {
-            // Clona registros limpando CredentialId caso o usuário queira apenas os cadastros puros sem segredos
-            var sanitized = connections.Select(c =>
-            {
-                var clone = c.Clone();
-                return clone;
-            }).ToList();
-
-            var json = JsonSerializer.Serialize(sanitized, JsonOptions);
-            File.WriteAllText(filePath, json, new UTF8Encoding(true));
+            File.WriteAllText(filePath, ConnectionJsonCodec.Write(connections), new UTF8Encoding(true));
             _logger.Info("Export", $"Exportação JSON concluída (sem senhas) para '{filePath}'.");
         });
     }
@@ -204,38 +55,7 @@ public partial class ImportExportService
     {
         await Task.Run(() =>
         {
-            var doc = new XDocument(
-                new XDeclaration("1.0", "utf-8", "yes"),
-                new XElement("ConectaTI",
-                    new XAttribute("Version", "1.0"),
-                    new XAttribute("ExportedAtUtc", DateTime.UtcNow.ToString("o")),
-                    new XElement("Connections",
-                        connections.Select(c => new XElement("Connection",
-                            new XElement("Id", c.Id),
-                            new XElement("Name", c.Name),
-                            new XElement("Client", c.ClientName),
-                            new XElement("Group", c.GroupName),
-                            new XElement("Environment", c.Environment.ToString()),
-                            new XElement("Protocol", c.Protocol.ToString()),
-                            new XElement("SshClient", c.SshClient.ToString()),
-                            new XElement("Host", c.Host),
-                            new XElement("Port", c.Port),
-                            new XElement("Username", c.Username),
-                            new XElement("Domain", c.Domain),
-                            new XElement("PrivateKeyPath", c.PrivateKeyPath),
-                            new XElement("VpnName", c.VpnName),
-                            new XElement("VpnApp", c.VpnApp),
-                            new XElement("VpnServer", c.VpnServer),
-                            new XElement("VpnNotes", c.VpnNotes),
-                            new XElement("Tags", c.Tags),
-                            new XElement("Notes", c.Notes),
-                            new XElement("IsFavorite", c.IsFavorite)
-                        ))
-                    )
-                )
-            );
-
-            doc.Save(filePath);
+            ConnectionXmlCodec.Write(connections).Save(filePath);
             _logger.Info("Export", $"Exportação XML próprio ConectaTI concluída para '{filePath}'.");
         });
     }
@@ -297,7 +117,7 @@ public partial class ImportExportService
                 if(blocked>0)throw new InvalidOperationException(L.Format("Exportação impedida: {0} credencial(is) selecionada(s) indisponível(is). Nenhum arquivo foi gerado. Importe um backup com senhas, migre o formato anterior ou informe uma nova senha.",blocked));
             }
             else foreach(var entry in selected)entry.CredentialId=null;
-            json=JsonSerializer.SerializeToUtf8Bytes(bundle,JsonOptions);
+            json=JsonSerializer.SerializeToUtf8Bytes(bundle,ConnectionJsonCodec.JsonOptions);
             ImportLimits.CheckCount(selected.Count);
             if(json.Length>ImportLimits.MaxFileBytes-8192)throw new InvalidDataException(L.Text("O arquivo excede o limite de 32 MB."));
             var bytes=includePasswords
@@ -347,7 +167,7 @@ public partial class ImportExportService
             var bytes = metadataOnly ? encrypted[8..] : CredentialVaultService.DecryptPortablePayload(encrypted, transportPassword);
             try
             {
-                var result=JsonSerializer.Deserialize<PortableEncryptedBundle>(bytes, JsonOptions)
+                var result=JsonSerializer.Deserialize<PortableEncryptedBundle>(bytes, ConnectionJsonCodec.JsonOptions)
                     ?? throw new InvalidDataException(L.Text("Não foi possível ler o conteúdo do pacote criptografado."));
                 ValidateTransferBundle(result,metadataOnly);
                 return result;
@@ -402,149 +222,15 @@ public partial class ImportExportService
         return ParseCsvContent(content);
     }
 
-    public ParsedCsvDocument ParseCsvContent(string csvContent)
-    {
-        if (string.IsNullOrWhiteSpace(csvContent))
-            return new ParsedCsvDocument();
-
-        var delimiter = DetectCsvDelimiter(csvContent);
-        var allRows = ParseCsvRecords(csvContent, delimiter);
-        if (allRows.Count == 0)
-            return new ParsedCsvDocument { Delimiter = delimiter };
-
-        var headers = allRows[0].Select((h, idx) => string.IsNullOrWhiteSpace(h) ? $"Coluna {idx + 1}" : h.Trim()).ToList();
-        var dataRows = allRows.Skip(1).Where(r => r.Any(cell => !string.IsNullOrWhiteSpace(cell))).ToList();
-        var mapping = SuggestColumnMapping(headers);
-
-        return new ParsedCsvDocument
-        {
-            Delimiter = delimiter,
-            Headers = headers,
-            Rows = dataRows,
-            SuggestedMapping = mapping
-        };
-    }
-
-    public static CsvColumnMapping SuggestColumnMapping(IReadOnlyList<string> headers)
-    {
-        var map = new CsvColumnMapping();
-        for (var i = 0; i < headers.Count; i++)
-        {
-            var h = NormalizeHeaderName(headers[i]);
-            switch (h)
-            {
-                case "nome" or "name" or "identificacao" or "servidor" or "server" or "title" or "titulo":
-                    if (map.NameColumnIndex < 0) map.NameColumnIndex = i;
-                    break;
-                case "cliente" or "client" or "empresa" or "company" or "customer" or "organizacao":
-                    if (map.ClientColumnIndex < 0) map.ClientColumnIndex = i;
-                    break;
-                case "grupo" or "group" or "pasta" or "folder" or "categoria":
-                    if (map.GroupColumnIndex < 0) map.GroupColumnIndex = i;
-                    break;
-                case "ambiente" or "environment" or "env":
-                    if (map.EnvironmentColumnIndex < 0) map.EnvironmentColumnIndex = i;
-                    break;
-                case "protocolo" or "protocol" or "tipo" or "type":
-                    if (map.ProtocolColumnIndex < 0) map.ProtocolColumnIndex = i;
-                    break;
-                case "host" or "hostname" or "ip" or "endereco" or "address" or "destino":
-                    if (map.HostColumnIndex < 0) map.HostColumnIndex = i;
-                    break;
-                case "porta" or "port":
-                    if (map.PortColumnIndex < 0) map.PortColumnIndex = i;
-                    break;
-                case "usuario" or "user" or "username" or "login":
-                    if (map.UsernameColumnIndex < 0) map.UsernameColumnIndex = i;
-                    break;
-                case "dominio" or "domain":
-                    if (map.DomainColumnIndex < 0) map.DomainColumnIndex = i;
-                    break;
-                case "chaveprivada" or "privatekey" or "privatekeypath" or "chave" or "keypath":
-                    if (map.PrivateKeyPathColumnIndex < 0) map.PrivateKeyPathColumnIndex = i;
-                    break;
-                case "vpnnome" or "vpnname" or "nomevpn" or "nomedavpn":
-                    if (map.VpnNameColumnIndex < 0) map.VpnNameColumnIndex = i;
-                    break;
-                case "vpnapp" or "vpnaplicativo" or "aplicativovpn" or "vpnclient" or "vpncliente":
-                    if (map.VpnAppColumnIndex < 0) map.VpnAppColumnIndex = i;
-                    break;
-                case "vpnservidor" or "vpnserver" or "servidorvpn" or "vpnhost" or "vpnip" or "servidorip":
-                    if (map.VpnServerColumnIndex < 0) map.VpnServerColumnIndex = i;
-                    break;
-                case "vpnobservacoes" or "vpnnotes" or "observacoesvpn" or "vpnobs" or "observacoesdavpn":
-                    if (map.VpnNotesColumnIndex < 0) map.VpnNotesColumnIndex = i;
-                    break;
-                case "tags" or "tag" or "etiquetas":
-                    if (map.TagsColumnIndex < 0) map.TagsColumnIndex = i;
-                    break;
-                case "observacoes" or "observacao" or "notes" or "descricao" or "comentarios":
-                    if (map.NotesColumnIndex < 0) map.NotesColumnIndex = i;
-                    break;
-                case "favorito" or "favorite" or "isfavorite":
-                    if (map.FavoriteColumnIndex < 0) map.FavoriteColumnIndex = i;
-                    break;
-            }
-        }
-        return map;
-    }
+    public ParsedCsvDocument ParseCsvContent(string csvContent) => ConnectionCsvCodec.Parse(csvContent);
+    public static CsvColumnMapping SuggestColumnMapping(IReadOnlyList<string> headers) => ConnectionCsvCodec.SuggestMapping(headers);
 
     public ImportPreviewResult BuildCsvPreview(
         ParsedCsvDocument doc,
         CsvColumnMapping mapping,
         IReadOnlyList<ConnectionEntry> existingConnections)
     {
-        var candidates = new List<ConnectionEntry>();
-        foreach (var row in doc.Rows)
-        {
-            var protoStr = GetCell(row, mapping.ProtocolColumnIndex);
-            var proto = EnumDisplayExtensions.ParseProtocol(protoStr);
-
-            var portStr = GetCell(row, mapping.PortColumnIndex);
-            var port = string.IsNullOrWhiteSpace(portStr)
-                ? proto.GetDefaultPort()
-                : (int.TryParse(portStr.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsedPort) ? parsedPort : -1);
-
-            var favStr = GetCell(row, mapping.FavoriteColumnIndex).ToLowerInvariant();
-            var isFav = favStr is "sim" or "true" or "1" or "yes" or "s";
-
-            var client = GetCell(row, mapping.ClientColumnIndex);
-            if (string.IsNullOrWhiteSpace(client))
-                client = "Geral";
-
-            var group = GetCell(row, mapping.GroupColumnIndex);
-            if (string.IsNullOrWhiteSpace(group))
-                group = "Geral";
-
-            var host = GetCell(row, mapping.HostColumnIndex);
-            var name = GetCell(row, mapping.NameColumnIndex);
-            if (string.IsNullOrWhiteSpace(name) && !string.IsNullOrWhiteSpace(host))
-                name = host;
-
-            candidates.Add(new ConnectionEntry
-            {
-                Id = Guid.NewGuid().ToString("D"),
-                Name = name,
-                ClientName = client,
-                GroupName = group,
-                Environment = EnumDisplayExtensions.ParseEnvironment(GetCell(row, mapping.EnvironmentColumnIndex)),
-                Protocol = proto,
-                Host = host,
-                Port = port,
-                Username = GetCell(row, mapping.UsernameColumnIndex),
-                Domain = GetCell(row, mapping.DomainColumnIndex),
-                PrivateKeyPath = GetCell(row, mapping.PrivateKeyPathColumnIndex),
-                VpnName = GetCell(row, mapping.VpnNameColumnIndex),
-                VpnApp = GetCell(row, mapping.VpnAppColumnIndex),
-                VpnServer = GetCell(row, mapping.VpnServerColumnIndex),
-                VpnNotes = GetCell(row, mapping.VpnNotesColumnIndex),
-                Tags = GetCell(row, mapping.TagsColumnIndex),
-                Notes = GetCell(row, mapping.NotesColumnIndex),
-                IsFavorite = isFav
-            });
-        }
-
-        return BuildPreviewFromCandidates(candidates, existingConnections, L.Format("CSV ({0} linhas)", (doc.Rows.Count)));
+        return BuildPreviewFromCandidates(ConnectionCsvCodec.ReadEntries(doc, mapping), existingConnections, L.Format("CSV ({0} linhas)", doc.Rows.Count));
     }
 
     // =========================================================================
@@ -562,7 +248,7 @@ public partial class ImportExportService
         List<ConnectionEntry>? list;
         try
         {
-            list = JsonSerializer.Deserialize<List<ConnectionEntry>>(jsonContent, JsonOptions);
+            list = ConnectionJsonCodec.Read(jsonContent);
         }
         catch (Exception ex) when (ex is System.Xml.XmlException or System.Text.Json.JsonException)
         {
@@ -668,59 +354,7 @@ public partial class ImportExportService
         {
             try
             {
-                var doc = ImportLimits.ReadXml(text);
-                var candidates = new List<ConnectionEntry>();
-                foreach (var node in doc.Descendants().Where(e => e.Name.LocalName.Equals("Connection", StringComparison.OrdinalIgnoreCase)))
-                {
-                    AutoPuttyCodec.CheckReadProgress(candidates.Count + 1);
-                    var name = GetXmlValue(node, "Name");
-                    var client = GetXmlValue(node, "Client", "ClientName");
-                    var group = GetXmlValue(node, "Group", "GroupName");
-                    var protoStr = GetXmlValue(node, "Protocol");
-                    var proto = EnumDisplayExtensions.ParseProtocol(protoStr);
-                    var sshPrefStr = GetXmlValue(node, "SshPreference");
-                    var sshPref = Enum.TryParse<SshClientPreference>(sshPrefStr, true, out var sp) ? sp : SshClientPreference.Putty;
-                    var host = GetXmlValue(node, "Host");
-                    var portStr = GetXmlValue(node, "Port");
-                    var port = int.TryParse(portStr, out var p) ? p : proto.GetDefaultPort();
-                    var user = GetXmlValue(node, "Username", "User");
-                    var domain = GetXmlValue(node, "Domain");
-                    var keyPath = GetXmlValue(node, "PrivateKeyPath", "PrivateKey");
-                    var vpnName = GetXmlValue(node, "VpnName", "VPNName", "Vpn");
-                    var vpnApp = GetXmlValue(node, "VpnApp", "VPNApp", "VpnApplication", "AplicativoVpn");
-                    var vpnServer = GetXmlValue(node, "VpnServer", "VPNServer", "VpnHost", "ServidorVpn");
-                    var vpnNotes = GetXmlValue(node, "VpnNotes", "VPNNotes", "ObservacoesVpn");
-                    var tags = GetXmlValue(node, "Tags");
-                    var notes = GetXmlValue(node, "Notes");
-                    var favStr = GetXmlValue(node, "IsFavorite");
-                    var isFav = bool.TryParse(favStr, out var fav) && fav;
-                    var envStr = GetXmlValue(node, "Environment");
-                    var env = EnumDisplayExtensions.ParseEnvironment(envStr);
-
-                    candidates.Add(new ConnectionEntry
-                    {
-                        Id = Guid.NewGuid().ToString("D"),
-                        Name = string.IsNullOrWhiteSpace(name) ? host : name,
-                        ClientName = string.IsNullOrWhiteSpace(client) ? "Geral" : client,
-                        GroupName = string.IsNullOrWhiteSpace(group) ? "Geral" : group,
-                        Environment = env,
-                        Protocol = proto,
-                        SshClient = sshPref,
-                        Host = host,
-                        Port = port,
-                        Username = user,
-                        Domain = domain,
-                        PrivateKeyPath = keyPath,
-                        VpnName = vpnName,
-                        VpnApp = vpnApp,
-                        VpnServer = vpnServer,
-                        VpnNotes = vpnNotes,
-                        Tags = tags,
-                        Notes = notes,
-                        IsFavorite = isFav
-                    });
-                }
-
+                var candidates = ConnectionXmlCodec.Read(text);
                 return BuildPreviewFromCandidates(candidates, existingConnections, L.Format("ConectaTI XML ({0} conexões)", (candidates.Count)));
             }
             catch (Exception ex) when (ex is System.Xml.XmlException)
@@ -817,24 +451,24 @@ public partial class ImportExportService
                 e.Name.LocalName.Equals("Session", StringComparison.OrdinalIgnoreCase) ||
                 e.Name.LocalName.Equals("Item", StringComparison.OrdinalIgnoreCase)))
             {
-                var host = GetXmlValue(node, "Host", "Hostname", "IP", "Address", "ServerName");
-                var name = GetXmlValue(node, "Name", "DisplayName", "Title", "Description");
+                var host = ConnectionXmlCodec.GetValue(node, "Host", "Hostname", "IP", "Address", "ServerName");
+                var name = ConnectionXmlCodec.GetValue(node, "Name", "DisplayName", "Title", "Description");
                 if (string.IsNullOrWhiteSpace(host) && string.IsNullOrWhiteSpace(name))
                     continue;
 
-                var group = GetXmlValue(node, "Group", "Folder", "Category", "Parent");
-                var client = GetXmlValue(node, "Client", "Company", "Customer");
-                var protoStr = GetXmlValue(node, "Protocol", "Type", "ConnectionType");
+                var group = ConnectionXmlCodec.GetValue(node, "Group", "Folder", "Category", "Parent");
+                var client = ConnectionXmlCodec.GetValue(node, "Client", "Company", "Customer");
+                var protoStr = ConnectionXmlCodec.GetValue(node, "Protocol", "Type", "ConnectionType");
                 var proto = EnumDisplayExtensions.ParseProtocol(protoStr);
-                var portStr = GetXmlValue(node, "Port");
+                var portStr = ConnectionXmlCodec.GetValue(node, "Port");
                 var port = int.TryParse(portStr, out var p) ? p : proto.GetDefaultPort();
-                var user = GetXmlValue(node, "Username", "User", "Login");
-                var domain = GetXmlValue(node, "Domain");
-                var keyPath = GetXmlValue(node, "PrivateKey", "KeyFile", "PrivateKeyPath");
-                var vpnName = GetXmlValue(node, "VpnName", "VPNName", "Vpn");
-                var vpnApp = GetXmlValue(node, "VpnApp", "VPNApp", "VpnClient");
-                var vpnServer = GetXmlValue(node, "VpnServer", "VPNServer", "VpnHost");
-                var vpnNotes = GetXmlValue(node, "VpnNotes", "VPNNotes");
+                var user = ConnectionXmlCodec.GetValue(node, "Username", "User", "Login");
+                var domain = ConnectionXmlCodec.GetValue(node, "Domain");
+                var keyPath = ConnectionXmlCodec.GetValue(node, "PrivateKey", "KeyFile", "PrivateKeyPath");
+                var vpnName = ConnectionXmlCodec.GetValue(node, "VpnName", "VPNName", "Vpn");
+                var vpnApp = ConnectionXmlCodec.GetValue(node, "VpnApp", "VPNApp", "VpnClient");
+                var vpnServer = ConnectionXmlCodec.GetValue(node, "VpnServer", "VPNServer", "VpnHost");
+                var vpnNotes = ConnectionXmlCodec.GetValue(node, "VpnNotes", "VPNNotes");
 
                 candidates.Add(new ConnectionEntry
                 {
@@ -945,131 +579,7 @@ public partial class ImportExportService
         }
     }
 
-    private static char DetectCsvDelimiter(string content)
-    {
-        var firstLineEnd = content.IndexOfAny(['\r', '\n']);
-        var firstLine = firstLineEnd >= 0 ? content[..firstLineEnd] : content;
-        var semicolons = firstLine.Count(c => c == ';');
-        var commas = firstLine.Count(c => c == ',');
-        return semicolons >= commas ? ';' : ',';
-    }
-
-    public static List<string[]> ParseCsvRecords(string content, char delimiter)
-    {
-        if (content.Length > ImportLimits.MaxFileBytes) throw new InvalidDataException(L.Text("O arquivo excede o limite de 32 MB."));
-        var rows = new List<string[]>();
-        var currentRow = new List<string>();
-        var currentCell = new StringBuilder();
-        var inQuotes = false;
-
-        for (var i = 0; i < content.Length; i++)
-        {
-            if (i % 4096 == 0) AutoPuttyCodec.CheckReadProgress(Math.Max(0, rows.Count - 1));
-            if (currentCell.Length > ImportLimits.MaxFieldCharacters || currentRow.Count > 256) throw new InvalidDataException(L.Text("Um campo do arquivo excede o limite permitido."));
-            var c = content[i];
-            if (inQuotes)
-            {
-                if (c == '"')
-                {
-                    if (i + 1 < content.Length && content[i + 1] == '"')
-                    {
-                        currentCell.Append('"');
-                        i++;
-                    }
-                    else
-                    {
-                        inQuotes = false;
-                    }
-                }
-                else
-                {
-                    currentCell.Append(c);
-                }
-            }
-            else
-            {
-                if (c == '"')
-                {
-                    inQuotes = true;
-                }
-                else if (c == delimiter)
-                {
-                    currentRow.Add(currentCell.ToString());
-                    currentCell.Clear();
-                }
-                else if (c == '\r' || c == '\n')
-                {
-                    if (c == '\r' && i + 1 < content.Length && content[i + 1] == '\n')
-                        i++;
-
-                    currentRow.Add(currentCell.ToString());
-                    currentCell.Clear();
-                    rows.Add(currentRow.ToArray());
-                    ImportLimits.CheckCount(Math.Max(0, rows.Count - 1));
-                    currentRow = new List<string>();
-                }
-                else
-                {
-                    currentCell.Append(c);
-                }
-            }
-        }
-
-        if (currentCell.Length > 0 || currentRow.Count > 0)
-        {
-            currentRow.Add(currentCell.ToString());
-            rows.Add(currentRow.ToArray());
-        }
-
-        return rows;
-    }
-
-    private static string EscapeCsvField(string? value)
-    {
-        var s = value ?? string.Empty;
-        if (s.Contains(';') || s.Contains(',') || s.Contains('"') || s.Contains('\r') || s.Contains('\n'))
-        {
-            return $"\"{s.Replace("\"", "\"\"")}\"";
-        }
-        return s;
-    }
-
-    private static string GetCell(string[] row, int index)
-    {
-        if (index < 0 || index >= row.Length)
-            return string.Empty;
-        return row[index]?.Trim() ?? string.Empty;
-    }
-
-    private static string NormalizeHeaderName(string header)
-    {
-        var formD = header.Trim().ToLowerInvariant().Normalize(NormalizationForm.FormD);
-        var sb = new StringBuilder();
-        foreach (var ch in formD)
-        {
-            var cat = CharUnicodeInfo.GetUnicodeCategory(ch);
-            if (cat != UnicodeCategory.NonSpacingMark && char.IsLetterOrDigit(ch))
-            {
-                sb.Append(ch);
-            }
-        }
-        return sb.ToString();
-    }
-
-    private static string GetXmlValue(XElement element, params string[] candidateNames)
-    {
-        foreach (var name in candidateNames)
-        {
-            var attr = element.Attributes().FirstOrDefault(a => a.Name.LocalName.Equals(name, StringComparison.OrdinalIgnoreCase));
-            if (attr != null && !string.IsNullOrWhiteSpace(attr.Value))
-                return attr.Value.Trim();
-
-            var child = element.Elements().FirstOrDefault(e => e.Name.LocalName.Equals(name, StringComparison.OrdinalIgnoreCase));
-            if (child != null && !string.IsNullOrWhiteSpace(child.Value))
-                return child.Value.Trim();
-        }
-        return string.Empty;
-    }
+    public static List<string[]> ParseCsvRecords(string content, char delimiter) => CsvRecordCodec.Parse(content, delimiter);
 
     private static List<ConnectionEntry> ParseIniStyleAutoPutty(string text)
     {
@@ -1139,3 +649,6 @@ public partial class ImportExportService
         return list;
     }
 }
+
+
+

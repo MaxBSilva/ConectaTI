@@ -15,7 +15,7 @@ public partial class MainViewModel : ILanguageObserver
             StatusMessage = L.Render(_statusTranslation, StatusMessage);
             DiagnosticResultTitle = L.Refresh(DiagnosticResultTitle);
             DiagnosticResultDetails = L.Refresh(DiagnosticResultDetails);
-            foreach (var entry in _allConnections.Concat(_trashConnections).Concat(_editSessions.Values.Select(s => s.Entry))) entry.RefreshDisplayProperties();
+            foreach (var entry in _connectionsOutsideTrash.Concat(_connectionsInTrash).Concat(EditSessions.Values.Select(s => s.Entry))) entry.RefreshDisplayProperties();
             foreach (var node in NavigationNodes) node.RefreshDisplayProperties();
             OnPropertyChanged(string.Empty);
         }

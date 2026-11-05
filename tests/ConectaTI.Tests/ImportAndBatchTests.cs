@@ -164,7 +164,7 @@ public sealed class ImportAndBatchTests(ITestOutputHelper output)
         var credentials=await f.Repository.GetAllCredentialsAsync();
         Assert.Equal(222,credentials.Count);
         Assert.All(credentials,c=>Assert.Equal(CredentialSecretStorage.SqliteDpapi,c.SecretStorage));
-        f.Vault.Lock();
+        f.Vault.Lock(); 
         foreach(var credential in credentials) Assert.Equal("Synthetic#SóTeste2026",await f.Vault.ReadSecretAsync(credential));
         f.Integrity();
     }

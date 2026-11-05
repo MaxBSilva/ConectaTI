@@ -1374,12 +1374,17 @@ public class ConectaTITests : IDisposable
                     }
                 }
 
-                await ResponsiveUiScenarios.VerifyAsync(mainWin, vm);
                 await ImprovementsUiScenarios.VerifyAsync(mainWin, vm);
-                await KeyboardNavigationUiScenarios.VerifyAsync(mainWin, vm);
                 vm.NewConnection();
                 var editorDlg = new ConectaTI.App.Views.ConnectionEditorDialog(vm);
                 var execDlg = new ConectaTI.App.Views.ExecutablesSettingsDialog(_settingsService, _vaultService, vm);
+                foreach (var mode in new[] { AppThemeMode.Light, AppThemeMode.Dark })
+                {
+                    ThemeService.ApplyTheme(mode, app.Resources);
+                    var fontLabel = (System.Windows.Controls.TextBlock)execDlg.FindName("FontSizeValueText");
+                    Assert.Same(app.Resources["PrimaryTextBrush"], fontLabel.Foreground);
+                    Assert.NotEqual(((System.Windows.Media.SolidColorBrush)app.Resources["SurfaceBrush"]).Color, ((System.Windows.Media.SolidColorBrush)fontLabel.Foreground).Color);
+                }
                 var credDlg = new ConectaTI.App.Views.CredentialsDialog(_repository, _vaultService);
                 var impExpDlg = new ConectaTI.App.Views.ImportExportDialog(_paths, _repository, importExport);
 
@@ -1388,7 +1393,7 @@ public class ConectaTITests : IDisposable
                 execDlg.Close();
                 credDlg.Close();
                 impExpDlg.Close();
-                app.Shutdown();
+                // StaTest owns the shared WPF Application lifetime.
         });
 
     [Fact]

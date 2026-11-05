@@ -6,11 +6,7 @@ namespace ConectaTI.App.ViewModels;
 public partial class MainViewModel
 {
     public void RecordOperationFailure(string stage, Exception exception) => _logger.RecordFailure(stage, exception);
-    partial void OnCurrentViewModeChanged(ConnectionViewMode value)
-    {
-        OnPropertyChanged(nameof(CanBatchEdit));
-        OnPropertyChanged(nameof(CurrentViewModeLabel));
-    }
+    partial void OnCurrentViewModeChanged(ConnectionViewMode value) => OnPropertyChanged(nameof(CanBatchEdit));
     public int SelectedAccessCount { get; private set; }
     public bool CanBatchEdit => SelectedAccessCount > 0 && !IsSaving && !IsTrashMode;
     public string SelectedAccessCountText => SelectedAccessCount == 1 ? L.Text("1 acesso selecionado") : L.Format("{0} acessos selecionados", (SelectedAccessCount));
@@ -25,8 +21,8 @@ public partial class MainViewModel
     public async Task<int> ApplyBatchEditAsync(IReadOnlyCollection<string> ids, BatchEditPatch patch)
     {
         if (IsSaving || IsTrashMode) return 0;
-        var selected = ids.Distinct().Where(id => _allConnections.Any(c => c.Id == id)).ToArray();
-        var submitted = selected.Where(id => _editSessions.ContainsKey(id)).ToDictionary(id => id, id => _editSessions[id].Entry.Clone());
+        var selected = ids.Distinct().Where(id => _connectionsOutsideTrash.Any(c => c.Id == id)).ToArray();
+        var submitted = selected.Where(id => EditSessions.ContainsKey(id)).ToDictionary(id => id, id => EditSessions[id].Entry.Clone());
         IsSaving = true;
         int count;
         try { count = await _repository.ApplyBatchEditAsync(selected, patch); }
@@ -37,10 +33,10 @@ public partial class MainViewModel
         {
             foreach (var id in selected)
             {
-                var persisted = _allConnections.First(c => c.Id == id).Clone();
+                var persisted = _connectionsOutsideTrash.First(c => c.Id == id).Clone();
                 ApplyPatch(persisted, patch);
                 ReplacePersistedEntry(persisted);
-                if (_editSessions.TryGetValue(id, out var session))
+                if (EditSessions.TryGetValue(id, out var session))
                 {
                     ApplyPatch(session.Baseline, patch);
                     var before = submitted.GetValueOrDefault(id);
@@ -50,7 +46,7 @@ public partial class MainViewModel
                         if (patch.ChangeGroup && session.Entry.GroupName == before.GroupName) session.Entry.GroupName = patch.Group;
                         if (patch.ChangeEnvironment && session.Entry.Environment == before.Environment) session.Entry.Environment = patch.Environment;
                     }
-                    session.Revision++;
+                    session.RecordFieldEdit();
                 }
             }
             _dataRevision++;

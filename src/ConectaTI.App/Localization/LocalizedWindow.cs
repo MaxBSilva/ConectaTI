@@ -37,7 +37,8 @@ public static class LocalizedWindow
         {
             if (!visited.Add(value)) return;
             if (value is TextBlock boundText) boundText.GetBindingExpression(TextBlock.TextProperty)?.UpdateTarget();
-            if (value is TextBlock text && text.Name.Length > 0 && !BindingOperations.IsDataBound(text, TextBlock.TextProperty)) text.Text = L.Refresh(text.Text);
+            if (value is System.Windows.Documents.Run boundRun) BindingOperations.GetBindingExpression(boundRun, System.Windows.Documents.Run.TextProperty)?.UpdateTarget();
+            if (value is TextBlock text && text.Name.Length > 0 && text.Inlines.Count <= 1 && !BindingOperations.IsDataBound(text, TextBlock.TextProperty)) text.Text = L.Refresh(text.Text);
             if (value is Window window && !BindingOperations.IsDataBound(window, Window.TitleProperty)) window.Title = L.Refresh(window.Title);
             if (value is DataGrid grid) foreach (var item in grid.Items.OfType<Services.ImportExport.ImportPreviewItem>()) item.RefreshDisplayProperties();
             if (value is Visual || value is System.Windows.Media.Media3D.Visual3D)

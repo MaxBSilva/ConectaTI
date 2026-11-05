@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using ConectaTI.App.Data;
+using ConectaTI.App.Editing;
 using ConectaTI.App.Helpers;
 using ConectaTI.App.Models;
 using ConectaTI.App.Security;
@@ -12,7 +13,11 @@ public partial class CredentialsDialog : Window
     private readonly SqliteRepository _repository;
     private readonly CredentialVaultService _vaultService;
     private SavedCredential? _currentEditing;
-    private CancellationTokenSource? _revealCts;
+    private readonly PasswordRevealLease _passwordReveal = new();
+    private long _generation;
+    private long _revision;
+    private bool _closed;
+    private bool _saving;
 
     public CredentialsDialog(SqliteRepository repository, CredentialVaultService vaultService)
     {
@@ -21,12 +26,39 @@ public partial class CredentialsDialog : Window
         _repository = repository;
         _vaultService = vaultService;
         Loaded += async (_, _) => await ReloadListAsync();
-        Closed += (_, _) => _revealCts?.Cancel();
+        Closed += (_, _) => { _closed = true; InvalidateReveal(); };
+        foreach (var box in new[] { CredNameBox, CredUserBox, CredDomainBox, CredNotesBox })
+            box.TextChanged += (_, _) => EditorChanged();
+        CredPasswordBox.PasswordChanged += (_, _) => EditorChanged();
     }
 
-    private async Task ReloadListAsync(string? selectId = null)
+    private void InvalidateReveal()
     {
+        _passwordReveal.Cancel();
+        _generation++;
+        RevealedSecretBox.Text = L.Text("Senha salva: ••••••••••••");
+        StatusText.Text = string.Empty;
+    }
+
+    private void EditorChanged()
+    {
+        _revision++;
+        InvalidateReveal();
+    }
+
+    private Func<bool> CaptureCurrent()
+    {
+        var guard = new EditorOperationGuard(() => new EditorOperationState(
+            _closed ? null : _currentEditing, _currentEditing?.Id, _currentEditing?.Id,
+            _generation, _revision, _revision));
+        return guard.IsCurrent;
+    }
+
+    private async Task<bool> ReloadListAsync(string? selectId = null)
+    {
+        var generation = _generation;
         var list = await _repository.GetAllCredentialsAsync();
+        if (_closed || generation != _generation) return false;
         CredentialsListBox.ItemsSource = list;
         if (!string.IsNullOrWhiteSpace(selectId))
         {
@@ -40,11 +72,12 @@ public partial class CredentialsDialog : Window
         {
             StartNewCredential();
         }
+        return true;
     }
 
     private void StartNewCredential()
     {
-        _revealCts?.Cancel();
+        InvalidateReveal();
         _currentEditing = new SavedCredential { Id = Guid.NewGuid().ToString("D") };
         CredNameBox.Text = string.Empty;
         CredUserBox.Text = string.Empty;
@@ -64,7 +97,7 @@ public partial class CredentialsDialog : Window
 
     private void CredentialsListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        _revealCts?.Cancel();
+        InvalidateReveal();
         if (CredentialsListBox.SelectedItem is SavedCredential cred)
         {
             _currentEditing = cred;
@@ -81,7 +114,11 @@ public partial class CredentialsDialog : Window
     }
 
     private async void SaveCredential_Click(object sender, RoutedEventArgs e)
+        => await SaveSelectedCredentialAsync();
+
+    internal async Task SaveSelectedCredentialAsync()
     {
+        if (_saving || _closed) return;
         if (_currentEditing == null)
             _currentEditing = new SavedCredential();
 
@@ -93,25 +130,32 @@ public partial class CredentialsDialog : Window
         }
 
         var norm = UserIdentityFormatter.Normalize(CredUserBox.Text, CredDomainBox.Text);
-        _currentEditing.Name = name;
-        _currentEditing.Username = norm.IsUpn ? norm.RawUsername : norm.CleanUsername;
-        _currentEditing.Domain = norm.IsUpn ? string.Empty : norm.Domain;
-        _currentEditing.Notes = CredNotesBox.Text.Trim();
+        var target = System.Text.Json.JsonSerializer.Deserialize<SavedCredential>(
+            System.Text.Json.JsonSerializer.Serialize(_currentEditing))!;
+        target.Name = name;
+        target.Username = norm.IsUpn ? norm.RawUsername : norm.CleanUsername;
+        target.Domain = norm.IsUpn ? string.Empty : norm.Domain;
+        target.Notes = CredNotesBox.Text.Trim();
 
         var replacement=CredPasswordBox.Password;
-        var target=_currentEditing;
+        var current = CaptureCurrent();
+        _saving = true;
         try
         {
             await _vaultService.SaveApplicationCredentialAsync(target,replacement);
-            if(_currentEditing?.Id==target.Id && CredPasswordBox.Password==replacement)CredPasswordBox.Clear();
-            StatusText.Text=L.Format("Credencial '{0}' salva com sucesso.",target.Name);
-            await ReloadListAsync(target.Id);
+            if (!current()) return;
+            CredPasswordBox.Clear();
+            current = CaptureCurrent();
+            if (await ReloadListAsync(target.Id))
+                StatusText.Text=L.Format("Credencial '{0}' salva com sucesso.",target.Name);
         }
         catch(Exception ex)
         {
+            if (!current()) return;
             _vaultService.RecordCredentialFailure(ex);
             StatusText.Text=CredentialVaultService.RecoveryMessage(ex);
         }
+        finally { _saving = false; }
     }
 
     private async void DeleteCredential_Click(object sender, RoutedEventArgs e)
@@ -129,12 +173,17 @@ public partial class CredentialsDialog : Window
         if (res != MessageBoxResult.Yes)
             return;
 
+        var current = CaptureCurrent();
         await _vaultService.DeleteApplicationCredentialAsync(_currentEditing.Id);
+        if (!current()) return;
         StatusText.Text = L.Text("Credencial excluída.");
         await ReloadListAsync();
     }
 
     private async void RevealCredPassword_Click(object sender, RoutedEventArgs e)
+        => await RevealSelectedPasswordAsync();
+
+    internal async Task RevealSelectedPasswordAsync()
     {
         if (_currentEditing == null || (_currentEditing.SecretStorage != CredentialSecretStorage.LegacyWindows && string.IsNullOrWhiteSpace(_currentEditing.ProtectedSecretBase64)))
         {
@@ -142,28 +191,32 @@ public partial class CredentialsDialog : Window
             return;
         }
 
-        _revealCts?.Cancel();
-        var cts = new CancellationTokenSource();
-        _revealCts = cts;
+        var target = _currentEditing;
+        var current = _passwordReveal.BeginRequest(CaptureCurrent());
 
         try
         {
-            var plain = await _vaultService.ReadSecretAsync(_currentEditing);
-            StorageText.Text = _currentEditing.StorageLocationDisplay;
+            var plain = await _vaultService.ReadSecretAsync(target);
+            if (!current()) return;
+            StorageText.Text = target.StorageLocationDisplay;
             RevealedSecretBox.Text = L.Text("Senha:") + " " + plain;
             StatusText.Text = L.Text("Senha revelada por 10 segundos.");
-            await Task.Delay(TimeSpan.FromSeconds(10), cts.Token);
-            if (!cts.IsCancellationRequested)
+            await _passwordReveal.ScheduleAutoHideAsync(TimeSpan.FromSeconds(10), token =>
             {
-                RevealedSecretBox.Text = L.Text("Senha salva: ••••••••••••");
-                StatusText.Text = L.Text("Senha ocultada novamente.");
-            }
+                if (current() && !token.IsCancellationRequested)
+                {
+                    RevealedSecretBox.Text = L.Text("Senha salva: ••••••••••••");
+                    StatusText.Text = L.Text("Senha ocultada novamente.");
+                }
+                return Task.CompletedTask;
+            });
         }
         catch (OperationCanceledException)
         {
         }
         catch (Exception ex)
         {
+            if (!current()) return;
             MessageBox.Show(this, CredentialVaultService.RecoveryMessage(ex), L.Text("Erro ao Revelar Senha"), MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }

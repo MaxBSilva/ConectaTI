@@ -19,10 +19,13 @@ public sealed class ConnectionPersistenceService(
         try
         {
             var entry = snapshot.Clone();
+            entry.RdpOptions.AdditionalProperties = RdpFileService.Sanitize(entry.RdpOptions.AdditionalProperties);
+            entry.RdpOptions.OriginalContent = RdpFileService.SanitizeOriginal(entry.RdpOptions.OriginalContent);
+            if (entry.Protocol == ConnectionProtocol.Rdp) RdpFileService.Build(entry);
             SavedCredential? staged = null;
             if (intent == PasswordEditIntent.Replace)
             {
-                if (password.Length == 0) throw new InvalidOperationException("A nova senha está vazia.");
+                if (password.Length == 0) throw new InvalidOperationException(L.Text("A nova senha está vazia."));
                 staged = new SavedCredential
                 {
                     Name = string.IsNullOrWhiteSpace(credentialName) ? $"{entry.ClientName} - {entry.Name}" : credentialName.Trim(),
@@ -59,3 +62,5 @@ public sealed class ConnectionPersistenceService(
         return Task.FromResult(true);
     }
 }
+
+

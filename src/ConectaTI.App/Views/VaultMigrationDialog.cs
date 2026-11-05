@@ -15,6 +15,7 @@ public sealed class VaultMigrationDialog : Window
         SetResourceReference(BackgroundProperty,"AppBackgroundBrush");
         SetResourceReference(ForegroundProperty,"PrimaryTextBrush");
         var panel=new StackPanel {Margin=new Thickness(20)};
+        panel.SetResourceReference(Panel.BackgroundProperty,"AppBackgroundBrush");
         panel.Children.Add(new TextBlock {Text=L.Text("Informe a senha mestra anterior uma única vez para migrar as senhas para a proteção automática deste usuário Windows. Cancelar preserva os dados e permite tentar novamente."),
             TextWrapping=TextWrapping.Wrap});
         panel.Children.Add(_password);

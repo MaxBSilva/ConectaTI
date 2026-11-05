@@ -250,7 +250,7 @@ public sealed partial class ApplicationVaultTests(ITestOutputHelper output)
             DELETE FROM SchemaMigrations WHERE Version>=6;
             """);
         f.Repository.InitializeAndMigrate();
-        Assert.Equal(8,f.Repository.GetSchemaVersion());
+        Assert.Equal(10,f.Repository.GetSchemaVersion());
         Assert.Single(Directory.GetFiles(f.Paths.BackupsDirectory,"pre-migration-v5-*.db"));
         var migrated=(await f.Repository.GetCredentialByIdAsync(credential.Id))!;
         Assert.Equal(credential.ProtectedSecretBase64,migrated.ProtectedSecretBase64);
@@ -307,3 +307,5 @@ public sealed partial class ApplicationVaultTests(ITestOutputHelper output)
         }
     }
 }
+
+

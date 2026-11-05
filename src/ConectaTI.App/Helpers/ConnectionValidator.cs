@@ -169,6 +169,12 @@ public static partial class ConnectionValidator
             }
         }
 
+        if (entry.Protocol == ConnectionProtocol.Rdp)
+        {
+            try { Services.RdpFileService.Build(entry); }
+            catch (FormatException ex) { errors.Add(ex.Message); }
+        }
         return errors;
     }
 }
+

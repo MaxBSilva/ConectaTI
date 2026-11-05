@@ -3,10 +3,12 @@ using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ConectaTI.App.Data;
+using ConectaTI.App.Editing;
 using ConectaTI.App.Helpers;
 using ConectaTI.App.Models;
 using ConectaTI.App.Security;
 using ConectaTI.App.Services;
+using ConectaTI.App.Services.Connections;
 using ConectaTI.App.Services.Diagnostics;
 using ConectaTI.App.Services.ImportExport;
 using ConectaTI.App.Services.Launchers;
@@ -24,33 +26,34 @@ public partial class MainViewModel : ObservableObject
     private readonly SettingsService _settingsService;
     private readonly SqliteRepository _repository;
     private readonly CredentialVaultService _vaultService;
-    private readonly ClipboardService _clipboardService;
+    private readonly ITextClipboard _clipboardService;
+    private readonly ConnectionCredentialService _credentials;
     private readonly ConnectionLauncherService _launcherService;
     private readonly ImportExportService _importExportService;
-    private readonly NetworkDiagnosticService _diagnosticService;
+    private readonly INetworkConnectivityProbe _diagnosticService;
     private readonly AppDiagnosticService _appDiagnosticService;
 
-    private List<ConnectionEntry> _allConnections = new();
-    private List<ConnectionEntry> _trashConnections = new();
-    private ConnectionEntry _originalSnapshot = new();
-    private CancellationTokenSource? _passwordRevealCts;
+    private List<ConnectionEntry> _connectionsOutsideTrash = new();
+    private List<ConnectionEntry> _connectionsInTrash = new();
+    private readonly PasswordRevealLease _passwordReveal = new();
     private CancellationTokenSource? _diagnosticCts;
     private bool _suppressSelectionGuard;
     private bool _updatingInlineFields;
-    private readonly Dictionary<string, ConnectionEditSession> _editSessions = new();
-    private ConnectionEditSession? _activeSession;
-    private long _editorGeneration;
+    private readonly ConnectionEditWorkspace _workspace = new();
+    private IReadOnlyDictionary<string, ConnectionEditSession> EditSessions => _workspace.Sessions;
+    private ConnectionEditSession? ActiveEditSession => _workspace.Active;
+    private long EditorGeneration => _workspace.Generation;
     private long _reloadGeneration;
     private long _dataRevision;
     private readonly ConnectionPersistenceService _persistence;
     private readonly System.Windows.Threading.Dispatcher? _uiDispatcher =
         SynchronizationContext.Current is System.Windows.Threading.DispatcherSynchronizationContext
             ? System.Windows.Threading.Dispatcher.CurrentDispatcher : null;
-    public ObservableCollection<ConnectionEntry> NewDrafts { get; } = new();
+    public ObservableCollection<ConnectionEntry> NewDrafts => _workspace.NewDrafts;
     [ObservableProperty] private ConnectionEntry? _selectedNewDraft;
     partial void OnSelectedNewDraftChanged(ConnectionEntry? value)
     {
-        if (!_suppressSelectionGuard && value != null && _editSessions.TryGetValue(value.Id, out var session))
+        if (!_suppressSelectionGuard && value != null && EditSessions.TryGetValue(value.Id, out var session))
         {
             CaptureSession();
             var previous = _suppressSelectionGuard;
@@ -60,12 +63,13 @@ public partial class MainViewModel : ObservableObject
         }
     }
     public bool HasPendingChanges => HasUnsavedChanges();
+    public bool HasAnyUnsavedDrafts => HasPendingChanges || EditSessions.Values.Any(d => d.IsDirty) || NewDrafts.Count > 0;
     public bool CanSave => !IsSaving && HasPendingChanges && !IsTrashMode;
     public bool CanDiscardChanges => !IsSaving && (HasPendingChanges || IsNewRecord);
     public string SaveButtonText => IsSaving ? L.Text("Salvando...") : HasPendingChanges ? L.Text("Salvar alterações") : L.Text("Salvar");
     public string PendingChangesText => HasPendingChanges
         ? L.Text("Alterações não salvas. Salve antes de fechar.")
-        : _editSessions.Values.Any(d => d.IsDirty) ? L.Text("Há rascunhos não salvos. Salve antes de fechar.") : string.Empty;
+        : EditSessions.Values.Any(d => d.IsDirty) ? L.Text("Há rascunhos não salvos. Salve antes de fechar.") : string.Empty;
 
     private void NotifyEditState()
     {
@@ -79,7 +83,7 @@ public partial class MainViewModel : ObservableObject
     private void EditingEntryChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (_suppressSelectionGuard) return;
-        if (_activeSession != null) _activeSession.Revision++;
+        if (ActiveEditSession != null) ActiveEditSession.RecordFieldEdit();
         if (!_updatingInlineFields)
         {
             var previous = _suppressSelectionGuard;
@@ -99,37 +103,28 @@ public partial class MainViewModel : ObservableObject
     }
     private void CaptureSession()
     {
-        if (_activeSession == null) return;
-        _activeSession.HostText = InlineHostAndPort;
-        _activeSession.UserText = InlineUserWithDomain;
-        _activeSession.Password = InlinePasswordInput;
-        _activeSession.CredentialName = InlineCredentialName;
+        if (ActiveEditSession == null) return;
+        ActiveEditSession.CaptureForm(InlineHostAndPort, InlineUserWithDomain, InlinePasswordInput, InlineCredentialName);
     }
     partial void OnEditingEntryChanged(ConnectionEntry? oldValue, ConnectionEntry newValue)
     {
-        if (_suppressSelectionGuard || _activeSession == null) return;
-        if (newValue.Id != _activeSession.Entry.Id)
+        if (_suppressSelectionGuard || ActiveEditSession == null) return;
+        if (newValue.Id != ActiveEditSession.Entry.Id)
             throw new InvalidOperationException(L.Text("Troque de acesso pela seleção, usando seu ID."));
         if (oldValue != null) oldValue.PropertyChanged -= EditingEntryChanged;
-        _activeSession.Entry = newValue;
-        _activeSession.Revision++;
+        ActiveEditSession.Entry = newValue;
+        ActiveEditSession.RecordFieldEdit();
         newValue.PropertyChanged += EditingEntryChanged;
         NotifyEditState();
     }
     partial void OnInlinePasswordInputChanged(string value)
     {
-        if (!_suppressSelectionGuard && _activeSession != null)
+        if (!_suppressSelectionGuard && ActiveEditSession != null)
         {
-            _activeSession.Password = value;
-            _activeSession.PasswordRevision++;
-            _activeSession.Revision++;
-            _activeSession.PasswordIntent = value.Length > 0
-                ? value == _activeSession.LoadedPassword ? PasswordEditIntent.Keep : PasswordEditIntent.Replace
-                : _activeSession.LoadedPassword != null && !string.IsNullOrEmpty(EditingEntry.CredentialId)
-                    ? PasswordEditIntent.Remove : PasswordEditIntent.Keep;
+            ActiveEditSession.UpdatePassword(value);
             var previous = _suppressSelectionGuard;
             _suppressSelectionGuard = true;
-            try { IsPasswordMarkedForRemoval = _activeSession.PasswordIntent == PasswordEditIntent.Remove; }
+            try { IsPasswordMarkedForRemoval = ActiveEditSession.PasswordIntent == PasswordEditIntent.Remove; }
             finally { _suppressSelectionGuard = previous; }
         }
         NotifyPasswordStatusProperties();
@@ -137,17 +132,15 @@ public partial class MainViewModel : ObservableObject
     // Called only for intentional edits, including erasing an actually revealed password.
     public void UpdatePasswordFromUser(string value)
     {
-        if (value == InlinePasswordInput && value.Length == 0 && _activeSession?.LoadedPassword != null)
+        if (value == InlinePasswordInput && value.Length == 0 && ActiveEditSession?.LoadedPassword != null)
             MarkPasswordForRemoval();
         else InlinePasswordInput = value;
     }
     public void ClearSessionDrafts()
     {
         HideRevealedPassword();
-        if (_activeSession != null) EditingEntry.PropertyChanged -= EditingEntryChanged;
-        _activeSession = null;
-        _editSessions.Clear();
-        NewDrafts.Clear();
+        if (ActiveEditSession != null) EditingEntry.PropertyChanged -= EditingEntryChanged;
+        _workspace.Clear();
         InlinePasswordInput = string.Empty;
     }
 
@@ -156,6 +149,7 @@ public partial class MainViewModel : ObservableObject
     public Func<string, string, bool>? ConfirmDeleteCallback { get; set; }
     public Action<string, string>? ShowErrorDialogCallback { get; set; }
     public Action? OpenExecutableSettingsCallback { get; set; }
+    public event Action? FilteredListUpdated;
 
     public ObservableCollection<NavigationNodeViewModel> NavigationNodes { get; } = new();
     [ObservableProperty]
@@ -306,6 +300,9 @@ public partial class MainViewModel : ObservableObject
     private ConnectionViewMode _currentViewMode = ConnectionViewMode.All;
 
     [ObservableProperty]
+    private ConnectionActivityFilter _currentActivityFilter = ConnectionActivityFilter.All;
+
+    [ObservableProperty]
     private int _trashCount;
 
     [ObservableProperty]
@@ -319,13 +316,6 @@ public partial class MainViewModel : ObservableObject
 
     public string FavoritesButtonLabel => L.Format("★ Favoritos ({0})", FavoritesCount);
     public string TrashButtonLabel => L.Format("🗑️ Lixeira ({0})", TrashCount);
-    public string CurrentViewModeLabel => CurrentViewMode switch
-    {
-        ConnectionViewMode.Favorites => FavoritesButtonLabel,
-        ConnectionViewMode.Recent => L.Text("🕒 Recentes"),
-        ConnectionViewMode.Trash => TrashButtonLabel,
-        _ => L.Text("Todos")
-    };
 
     public AppPaths Paths => _paths;
     public SettingsService SettingsService => _settingsService;
@@ -349,17 +339,28 @@ public partial class MainViewModel : ObservableObject
 
     private string? PasswordAvailabilityMessage => HasSavedPassword ? AvailableCredentials.FirstOrDefault(c=>c.Id==EditingEntry.CredentialId) is {} c
         ? _vaultService.AvailabilityMessage(c) : null : null;
-    public bool PasswordRecoveryFailed => _activeSession?.CredentialRecoveryFailed == true || PasswordAvailabilityMessage != null;
-    public bool HasPendingPasswordChange => IsPasswordMarkedForRemoval || _activeSession?.PasswordIntent == PasswordEditIntent.Replace;
+    public bool PasswordRecoveryFailed => ActiveEditSession?.CredentialRecoveryFailed == true || PasswordAvailabilityMessage != null;
+    public bool HasPendingPasswordChange => IsPasswordMarkedForRemoval || ActiveEditSession?.PasswordIntent == PasswordEditIntent.Replace;
     public System.Windows.Media.Brush PasswordStateBrush => HasPendingPasswordChange ? System.Windows.Media.Brushes.DarkGoldenrod
         : HasSavedPassword && !PasswordRecoveryFailed ? System.Windows.Media.Brushes.SeaGreen : System.Windows.Media.Brushes.IndianRed;
     public string SavedPasswordBadgeText => IsPasswordMarkedForRemoval ? L.Text("Remoção pendente — salvar")
-        : _activeSession?.PasswordIntent == PasswordEditIntent.Replace ? L.Text("Senha alterada — salvar")
-        : PasswordRecoveryFailed ? L.Refresh(_activeSession?.CredentialRecoveryMessage ?? PasswordAvailabilityMessage ?? L.Text("Falha ao recuperar credencial"))
+        : ActiveEditSession?.PasswordIntent == PasswordEditIntent.Replace ? L.Text("Senha alterada — salvar")
+        : PasswordRecoveryFailed ? L.Refresh(ActiveEditSession?.CredentialRecoveryMessage ?? PasswordAvailabilityMessage ?? L.Text("Falha ao recuperar credencial"))
         : HasSavedPassword ? L.Text("Senha salva") : L.Text("Sem senha salva");
+
+    public string PasswordStatusIcon => IsPasswordMarkedForRemoval ? "⊘"
+        : ActiveEditSession?.PasswordIntent == PasswordEditIntent.Replace ? "●"
+        : PasswordRecoveryFailed ? "⚠"
+        : HasSavedPassword ? "✓" : "○";
 
     public string ThemeToggleIcon => ThemeService.ResolveIsDark(_settingsService.Current.Theme) ? "☀️" : "🌙";
     public string ThemeToggleToolTip => ThemeService.ResolveIsDark(_settingsService.Current.Theme) ? L.Text("Mudar para tema claro") : L.Text("Mudar para tema escuro");
+
+    public void RefreshThemeProperties()
+    {
+        OnPropertyChanged(nameof(ThemeToggleIcon));
+        OnPropertyChanged(nameof(ThemeToggleToolTip));
+    }
 
     [RelayCommand]
     public void ToggleTheme()
@@ -369,8 +370,7 @@ public partial class MainViewModel : ObservableObject
         _settingsService.Current.Theme = newMode;
         _settingsService.Save();
         ThemeService.ApplyTheme(newMode);
-        OnPropertyChanged(nameof(ThemeToggleIcon));
-        OnPropertyChanged(nameof(ThemeToggleToolTip));
+        RefreshThemeProperties();
     }
 
     // Propriedades diretas de leitura para o painel direito de resumo da conexão selecionada
@@ -408,10 +408,10 @@ public partial class MainViewModel : ObservableObject
         SettingsService settingsService,
         SqliteRepository repository,
         CredentialVaultService vaultService,
-        ClipboardService clipboardService,
+        ITextClipboard clipboardService,
         ConnectionLauncherService launcherService,
         ImportExportService importExportService,
-        NetworkDiagnosticService diagnosticService)
+        INetworkConnectivityProbe diagnosticService)
     {
         LocalizationService.Current.Observe(this);
         _statusTranslation = L.Capture(StatusMessage);
@@ -424,11 +424,6 @@ public partial class MainViewModel : ObservableObject
         {
             void RefreshVaultState()
             {
-                if (IsLocked)
-                {
-                    foreach (var editSession in _editSessions.Values) editSession.LoadedPassword=null;
-                    HideRevealedPassword();
-                }
                 OnPropertyChanged(nameof(IsLocked));
                 NotifyPasswordStatusProperties();
             }
@@ -436,6 +431,7 @@ public partial class MainViewModel : ObservableObject
             else RefreshVaultState();
         };
         _clipboardService = clipboardService;
+        _credentials = new ConnectionCredentialService(repository, vaultService, clipboardService);
         _launcherService = launcherService;
         _importExportService = importExportService;
         _diagnosticService = diagnosticService;
@@ -473,15 +469,15 @@ public partial class MainViewModel : ObservableObject
         }
         var generation = ++_reloadGeneration;
         var dataRevision = _dataRevision;
-        var editorGeneration = _editorGeneration;
+        var editorGeneration = EditorGeneration;
         try
         {
             // Do not publish any partial result when one of the reads fails.
             var all = await _repository.GetAllConnectionsAsync(includeDeleted: true);
             var credentials = await _repository.GetAllCredentialsAsync();
             if (generation != _reloadGeneration || dataRevision != _dataRevision) return;
-            _allConnections = all.Where(c => !c.IsDeleted).ToList();
-            _trashConnections = all.Where(c => c.IsDeleted).ToList();
+            _connectionsOutsideTrash = all.Where(c => !c.IsDeleted).ToList();
+            _connectionsInTrash = all.Where(c => c.IsDeleted).ToList();
             var previous = _suppressSelectionGuard;
             _suppressSelectionGuard = true;
             try
@@ -492,7 +488,7 @@ public partial class MainViewModel : ObservableObject
                 RefreshCountsAndNavigation();
             }
             finally { _suppressSelectionGuard = previous; }
-            ApplyFilterAndSort(editorGeneration == _editorGeneration ? selectConnectionId : null);
+            ApplyFilterAndSort(editorGeneration == EditorGeneration ? selectConnectionId : null);
         }
         catch (Exception ex)
         {
@@ -503,16 +499,15 @@ public partial class MainViewModel : ObservableObject
 
     private void RefreshCountsAndNavigation()
     {
-        TotalConnectionsCount = _allConnections.Count;
-        TrashCount = _trashConnections.Count;
-        FavoritesCount = _allConnections.Count(c => c.IsFavorite);
+        TotalConnectionsCount = _connectionsOutsideTrash.Count;
+        TrashCount = _connectionsInTrash.Count;
+        FavoritesCount = _connectionsOutsideTrash.Count(c => c.IsFavorite);
         OnPropertyChanged(nameof(FavoritesButtonLabel));
         OnPropertyChanged(nameof(TrashButtonLabel));
-        OnPropertyChanged(nameof(CurrentViewModeLabel));
         RebuildNavigationAndClientFilters();
     }
 
-    public bool HasUnsavedChanges() => _activeSession?.IsDirty == true;
+    public bool HasUnsavedChanges() => ActiveEditSession?.IsDirty == true;
 
     // Compatibility entry points: navigation only retains the in-memory draft.
     public Task<bool> ConfirmCanLeaveCurrentEditAsync(string actionDescription = "trocar de registro")
@@ -525,7 +520,7 @@ public partial class MainViewModel : ObservableObject
 
     public Task<bool> RequestNavigateToConnectionAsync(ConnectionEntry? target)
     {
-        if (target?.Id == _activeSession?.Entry.Id) return Task.FromResult(true);
+        if (target?.Id == ActiveEditSession?.Entry.Id) return Task.FromResult(true);
         CaptureSession();
         var previous = _suppressSelectionGuard;
         _suppressSelectionGuard = true;
@@ -551,6 +546,18 @@ public partial class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(IsTrashMode));
         OnPropertyChanged(nameof(IsNotTrashMode));
         ApplyFilterAndSort();
+    }
+
+    [RelayCommand]
+    public async Task SetActivityFilterAsync(ConnectionActivityFilter filter)
+    {
+        if (CurrentActivityFilter == filter)
+            return;
+
+        if (!await ConfirmCanLeaveCurrentEditAsync(L.Text("trocar o filtro de situação")))
+            return;
+
+        CurrentActivityFilter = filter;
     }
 
     partial void OnSelectedConnectionTypeChanged(ConnectionTypeOption oldValue, ConnectionTypeOption newValue)
@@ -619,6 +626,7 @@ public partial class MainViewModel : ObservableObject
     }
 
     partial void OnSearchTextChanged(string value) { if (!_suppressSelectionGuard) ApplyFilterAndSort(); }
+    partial void OnCurrentActivityFilterChanged(ConnectionActivityFilter value) { if (!_suppressSelectionGuard) ApplyFilterAndSort(); }
     partial void OnSelectedClientFilterChanged(string value) { if (!_suppressSelectionGuard) ApplyFilterAndSort(); }
     partial void OnSelectedEnvironmentFilterChanged(string value) { if (!_suppressSelectionGuard) ApplyFilterAndSort(); }
     partial void OnSelectedProtocolFilterChanged(string value) { if (!_suppressSelectionGuard) ApplyFilterAndSort(); }
@@ -626,12 +634,9 @@ public partial class MainViewModel : ObservableObject
 
     partial void OnIsPasswordMarkedForRemovalChanged(bool value)
     {
-        if (!_suppressSelectionGuard && _activeSession != null)
+        if (!_suppressSelectionGuard && ActiveEditSession != null)
         {
-            _activeSession.PasswordIntent = value ? PasswordEditIntent.Remove
-                : InlinePasswordInput.Length > 0 ? PasswordEditIntent.Replace : PasswordEditIntent.Keep;
-            _activeSession.Revision++;
-            _activeSession.PasswordRevision++;
+            ActiveEditSession.SetPasswordRemovalIntent(value, InlinePasswordInput.Length > 0);
         }
         NotifyPasswordStatusProperties();
     }
@@ -660,7 +665,7 @@ public partial class MainViewModel : ObservableObject
     partial void OnSelectedConnectionChanged(ConnectionEntry? oldValue, ConnectionEntry? newValue)
     {
         if (_suppressSelectionGuard) return;
-        if (newValue?.Id == _activeSession?.Entry.Id) { NotifySelectedSummaryProperties(); return; }
+        if (newValue?.Id == ActiveEditSession?.Entry.Id) { NotifySelectedSummaryProperties(); return; }
         CaptureSession();
         LoadSelectedIntoViewer(newValue);
     }
@@ -668,15 +673,7 @@ public partial class MainViewModel : ObservableObject
     private void LoadSelectedIntoViewer(ConnectionEntry? entry)
     {
         if (entry == null) { LoadSession(null); return; }
-        if (!_editSessions.TryGetValue(entry.Id, out var session))
-            _editSessions[entry.Id] = session = new ConnectionEditSession(entry);
-        else if (!session.IsDirty && !IsSaving)
-        {
-            session.Entry = entry.Clone();
-            session.Baseline = entry.Clone();
-            session.HostText = HostPortParser.FormatDisplay(entry.Host, entry.Port, entry.Protocol);
-            session.UserText = UserIdentityFormatter.FormatDisplay(entry.Username, entry.Domain);
-        }
+        var session = _workspace.GetOrCreate(entry, IsSaving);
         LoadSession(session);
     }
 
@@ -686,14 +683,12 @@ public partial class MainViewModel : ObservableObject
         _suppressSelectionGuard = true;
         try
         {
-            _editorGeneration++;
             EditingEntry.PropertyChanged -= EditingEntryChanged;
             HideRevealedPassword();
-            _activeSession = session;
+            _workspace.Activate(session);
             DiagnosticResultTitle = string.Empty;
             DiagnosticResultDetails = string.Empty;
             EditingEntry = session?.Entry ?? new ConnectionEntry();
-            _originalSnapshot = session?.Baseline ?? EditingEntry.Clone();
             IsNewRecord = session?.IsNew == true;
             IsEditing = IsNewRecord;
             InlinePasswordInput = session?.Password ?? string.Empty;
@@ -714,7 +709,6 @@ public partial class MainViewModel : ObservableObject
 
     public void NotifySelectedSummaryProperties()
     {
-        CopyCompleteAccessCommand.NotifyCanExecuteChanged();
         OnPropertyChanged(nameof(CanCopySelectedAddress));
         OnPropertyChanged(nameof(CanCopyPersistedUser));
         OnPropertyChanged(nameof(HasSelectedConnection));
@@ -768,6 +762,7 @@ public partial class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(PasswordStatusText));
         OnPropertyChanged(nameof(PasswordFieldLabel));
         OnPropertyChanged(nameof(SavedPasswordBadgeText));
+        OnPropertyChanged(nameof(PasswordStatusIcon));
         OnPropertyChanged(nameof(PasswordStateBrush));
         OnPropertyChanged(nameof(PasswordRecoveryFailed));
         OnPropertyChanged(nameof(HasPendingPasswordChange));
@@ -782,91 +777,39 @@ public partial class MainViewModel : ObservableObject
 
     public void ApplyFilterAndSort(string? targetSelectId = null)
     {
-        IEnumerable<ConnectionEntry> query = CurrentViewMode == ConnectionViewMode.Trash
-            ? _trashConnections
-            : _allConnections;
-
-        if (CurrentViewMode == ConnectionViewMode.Favorites)
-        {
-            query = query.Where(c => c.IsFavorite);
-        }
-        else if (CurrentViewMode == ConnectionViewMode.Recent)
-        {
-            query = query.Where(c => c.LastOpenedAtUtc.HasValue);
-        }
-
-        if (SelectedNavigationNode is { Kind: NavigationNodeKind.Client or NavigationNodeKind.Group } node)
-        {
-            query = query.Where(c => string.Equals(c.ClientName.Trim(), node.ClientName, StringComparison.OrdinalIgnoreCase));
-            if (node.Kind == NavigationNodeKind.Group)
-                query = query.Where(c => string.Equals(string.IsNullOrWhiteSpace(c.GroupName) ? "Geral" : c.GroupName.Trim(), node.GroupName, StringComparison.OrdinalIgnoreCase));
-        }
-        if (!string.IsNullOrEmpty(SelectedClientFilter) && SelectedClientFilter != AllClientsFilterLabel)
-            query = query.Where(c => string.Equals(c.ClientName.Trim(), SelectedClientFilter, StringComparison.OrdinalIgnoreCase));
-        if (!string.IsNullOrEmpty(SelectedEnvironmentFilter) && SelectedEnvironmentFilter != AllEnvironmentsFilterLabel)
-            query = query.Where(c => c.Environment.ToInvariantDisplayName() == SelectedEnvironmentFilter);
-        if (!string.IsNullOrEmpty(SelectedProtocolFilter) && SelectedProtocolFilter != AllProtocolsFilterLabel)
-            query = query.Where(c => c.Protocol.ToInvariantDisplayName() == SelectedProtocolFilter);
-
-        if (!string.IsNullOrWhiteSpace(SearchText))
-        {
-            var terms = SearchText.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            foreach (var term in terms)
-            {
-                var cleanTerm = StringNormalizationHelper.RemoveDiacritics(term);
-                query = query.Where(c =>
-                    StringNormalizationHelper.RemoveDiacritics(c.Name).Contains(cleanTerm, StringComparison.OrdinalIgnoreCase) ||
-                    StringNormalizationHelper.RemoveDiacritics(c.ClientName).Contains(cleanTerm, StringComparison.OrdinalIgnoreCase) ||
-                    StringNormalizationHelper.RemoveDiacritics(c.GroupName).Contains(cleanTerm, StringComparison.OrdinalIgnoreCase) ||
-                    StringNormalizationHelper.RemoveDiacritics(c.Host).Contains(cleanTerm, StringComparison.OrdinalIgnoreCase) ||
-                    StringNormalizationHelper.RemoveDiacritics(c.Username).Contains(cleanTerm, StringComparison.OrdinalIgnoreCase) ||
-                    StringNormalizationHelper.RemoveDiacritics(c.Domain).Contains(cleanTerm, StringComparison.OrdinalIgnoreCase) ||
-                    StringNormalizationHelper.RemoveDiacritics(c.Tags).Contains(cleanTerm, StringComparison.OrdinalIgnoreCase));
-            }
-        }
-
-        var effectiveSort = CurrentViewMode == ConnectionViewMode.Recent || SelectedNavigationNode?.Kind == NavigationNodeKind.Recent
-            ? ConnectionSortOption.LastOpenedDesc
-            : SelectedSortOption;
-
-        query = effectiveSort switch
-        {
-            ConnectionSortOption.ClientAsc => query
-                .OrderBy(c => c.ClientName, StringComparer.OrdinalIgnoreCase)
-                .ThenBy(c => c.GroupName, StringComparer.OrdinalIgnoreCase)
-                .ThenBy(c => c.Name, StringComparer.OrdinalIgnoreCase),
-
-            ConnectionSortOption.LastOpenedDesc => query
-                .OrderByDescending(c => c.LastOpenedAtUtc ?? DateTime.MinValue)
-                .ThenBy(c => c.Name, StringComparer.OrdinalIgnoreCase),
-
-            _ => query
-                .OrderBy(c => c.Name, StringComparer.OrdinalIgnoreCase)
-                .ThenBy(c => c.ClientName, StringComparer.OrdinalIgnoreCase)
-        };
-
+        var node = SelectedNavigationNode;
+        var criteria = new ConnectionListCriteria(CurrentViewMode,
+            CurrentViewMode == ConnectionViewMode.Recent || node?.Kind == NavigationNodeKind.Recent ? ConnectionSortOption.LastOpenedDesc : SelectedSortOption,
+            SearchText, SelectedClientFilter == AllClientsFilterLabel ? null : SelectedClientFilter,
+            SelectedEnvironmentFilter == AllEnvironmentsFilterLabel ? null : SelectedEnvironmentFilter,
+            SelectedProtocolFilter == AllProtocolsFilterLabel ? null : SelectedProtocolFilter,
+            node is { Kind: NavigationNodeKind.Client or NavigationNodeKind.Group }
+                ? new ConnectionListScope(node.ClientName, node.GroupName, node.Kind == NavigationNodeKind.Group) : null,
+            CurrentActivityFilter);
+        var results = ConnectionListQuery.Apply(_connectionsOutsideTrash.Concat(_connectionsInTrash), criteria);
         var currentSelectedId = targetSelectId ?? SelectedConnection?.Id;
-        var results = query.ToList(); // Materialize before publishing a complete list.
         CaptureSession();
         var previous = _suppressSelectionGuard;
         _suppressSelectionGuard = true;
         try
         {
-            var next = results.FirstOrDefault(c => c.Id == currentSelectedId) ?? results.FirstOrDefault();
+            var next = ConnectionListQuery.SelectById(results, currentSelectedId);
             FilteredConnections = new ObservableCollection<ConnectionEntry>(results);
             FilteredConnectionsCount = results.Count;
-            if (_activeSession?.IsNew == true) SelectedConnection = null;
+            if (ActiveEditSession?.IsNew == true) SelectedConnection = null;
             else
             {
                 SelectedConnection = next;
-                if (next?.Id != _activeSession?.Entry.Id ||
-                    (_activeSession != null && !_activeSession.IsDirty && !IsSaving))
+                OnPropertyChanged(nameof(SelectedConnection));
+                if (next?.Id != ActiveEditSession?.Entry.Id ||
+                    (ActiveEditSession != null && !ActiveEditSession.IsDirty && !IsSaving))
                     LoadSelectedIntoViewer(next);
             }
         }
         finally { _suppressSelectionGuard = previous; }
         NotifySelectedSummaryProperties();
         NotifyEditState();
+        FilteredListUpdated?.Invoke();
     }
 
     private void RebuildNavigationAndClientFilters()
@@ -878,7 +821,7 @@ public partial class MainViewModel : ObservableObject
         var previousClientFilter = SelectedClientFilter;
         var previousNode = SelectedNavigationNode;
 
-        var distinctClients = _allConnections
+        var distinctClients = _connectionsOutsideTrash
             .Select(c => c.ClientName.Trim())
             .Where(c => !string.IsNullOrEmpty(c))
             .Distinct(StringComparer.OrdinalIgnoreCase)
@@ -902,7 +845,7 @@ public partial class MainViewModel : ObservableObject
         {
             Kind = NavigationNodeKind.All,
             Title = "Todas as Conexões",
-            Count = _allConnections.Count,
+            Count = _connectionsOutsideTrash.Count,
             IconText = "🌐"
         };
 
@@ -910,7 +853,7 @@ public partial class MainViewModel : ObservableObject
         {
             Kind = NavigationNodeKind.Favorites,
             Title = "Favoritos",
-            Count = _allConnections.Count(c => c.IsFavorite),
+            Count = _connectionsOutsideTrash.Count(c => c.IsFavorite),
             IconText = "★"
         };
 
@@ -918,7 +861,7 @@ public partial class MainViewModel : ObservableObject
         {
             Kind = NavigationNodeKind.Recent,
             Title = "Recentes",
-            Count = _allConnections.Count(c => c.LastOpenedAtUtc.HasValue),
+            Count = _connectionsOutsideTrash.Count(c => c.LastOpenedAtUtc.HasValue),
             IconText = "🕒"
         };
 
@@ -928,7 +871,7 @@ public partial class MainViewModel : ObservableObject
 
         foreach (var client in distinctClients)
         {
-            var clientConns = _allConnections
+            var clientConns = _connectionsOutsideTrash
                 .Where(c => string.Equals(c.ClientName.Trim(), client, StringComparison.OrdinalIgnoreCase))
                 .ToList();
 
@@ -1020,8 +963,7 @@ public partial class MainViewModel : ObservableObject
 
     private void OpenNewDraft(ConnectionEditSession session)
     {
-        _editSessions[session.Entry.Id] = session;
-        NewDrafts.Add(session.Entry);
+        _workspace.AddDraft(session);
         var previous = _suppressSelectionGuard;
         _suppressSelectionGuard = true;
         try { SelectedConnection = null; LoadSession(session); }
@@ -1033,23 +975,19 @@ public partial class MainViewModel : ObservableObject
     public void NewConnection() => NewConnectionInternal();
 
     [RelayCommand]
-    public void BeginEdit() { IsEditing = _activeSession != null; }
+    public void BeginEdit() { IsEditing = ActiveEditSession != null; }
 
     [RelayCommand]
     public void MarkPasswordForRemoval()
     {
-        if (_activeSession == null) return;
+        if (ActiveEditSession == null) return;
         var previous = _suppressSelectionGuard;
         _suppressSelectionGuard = true;
         try
         {
             InlinePasswordInput = string.Empty;
-            _activeSession.Password = string.Empty;
-            _activeSession.PasswordIntent = string.IsNullOrEmpty(EditingEntry.CredentialId)
-                ? PasswordEditIntent.Keep : PasswordEditIntent.Remove;
-            IsPasswordMarkedForRemoval = _activeSession.PasswordIntent == PasswordEditIntent.Remove;
-            _activeSession.Revision++;
-            _activeSession.PasswordRevision++;
+            ActiveEditSession.RequestPasswordRemoval();
+            IsPasswordMarkedForRemoval = ActiveEditSession.PasswordIntent == PasswordEditIntent.Remove;
             HideRevealedPassword();
         }
         finally { _suppressSelectionGuard = previous; }
@@ -1062,16 +1000,15 @@ public partial class MainViewModel : ObservableObject
         var dispatcher = _uiDispatcher;
         if (dispatcher != null && !dispatcher.CheckAccess())
             return await dispatcher.InvokeAsync(SaveConnectionAsync).Task.Unwrap();
-        if (IsSaving || _activeSession == null || !HasUnsavedChanges() || IsTrashMode) return false;
+        if (IsSaving || ActiveEditSession == null || !HasUnsavedChanges() || IsTrashMode) return false;
         CaptureSession();
         // All inputs and the identity are captured before the first asynchronous operation.
-        var session = _activeSession;
-        var snapshot = EditingEntry.Clone();
-        var revision = session.Revision;
-        var passwordRevision = session.PasswordRevision;
-        var password = session.Password;
-        var intent = session.PasswordIntent;
-        var credentialName = session.CredentialName;
+        var session = ActiveEditSession;
+        var submitted = session.CaptureSave();
+        var snapshot = submitted.Entry;
+        var password = submitted.Password;
+        var intent = submitted.Intent;
+        var credentialName = submitted.CredentialName;
         using var redaction = _logger.Redact([password]);
         IsSaving = true;
         try
@@ -1094,58 +1031,23 @@ public partial class MainViewModel : ObservableObject
             snapshot = result.Entry;
             _dataRevision++;
             CaptureSession();
-            session.Baseline = snapshot.Clone();
-            session.IsNew = false;
-            var unchanged = session.Revision == revision;
             var previousGuard = _suppressSelectionGuard;
             _suppressSelectionGuard = true;
             try
             {
-            if (unchanged)
-            {
-                // Detach the old editor before replacing its object.
-                if (ReferenceEquals(_activeSession, session))
+                if (session.Revision == submitted.Revision && ReferenceEquals(ActiveEditSession, session))
                     session.Entry.PropertyChanged -= EditingEntryChanged;
-                session.Entry = snapshot.Clone();
-            }
-            else
-            {
-                // Rebase only the committed credential link; keep every later field edit.
-                session.Entry.CredentialId = snapshot.CredentialId;
-                session.Entry.UpdatedAtUtc = snapshot.UpdatedAtUtc;
-            }
-            if (session.PasswordRevision == passwordRevision)
-            {
-                if (intent is PasswordEditIntent.Replace or PasswordEditIntent.Remove) { session.CredentialRecoveryFailed = false; session.CredentialRecoveryMessage = null; }
-                session.Password = string.Empty;
-                session.LoadedPassword = null;
-                session.PasswordIntent = PasswordEditIntent.Keep;
-            }
-            else
-            {
-                // A later password edit is relative to the secret just committed.
-                // In particular, erasing a submitted new password is still a removal.
-                if (intent == PasswordEditIntent.Replace) session.LoadedPassword = password;
-                else if (intent == PasswordEditIntent.Remove) session.LoadedPassword = null;
-                session.PasswordIntent = session.Password.Length == 0
-                    ? snapshot.CredentialId == null ? PasswordEditIntent.Keep : PasswordEditIntent.Remove
-                    : session.Password == session.LoadedPassword ? PasswordEditIntent.Keep : PasswordEditIntent.Replace;
-            }
-            if (unchanged)
-            {
-                session.HostText = HostPortParser.FormatDisplay(snapshot.Host, snapshot.Port, snapshot.Protocol);
-                session.UserText = UserIdentityFormatter.FormatDisplay(snapshot.Username, snapshot.Domain);
-            }
+                session.AcceptSave(submitted, snapshot);
             }
             finally { _suppressSelectionGuard = previousGuard; }
             NewDrafts.Remove(NewDrafts.FirstOrDefault(c => c.Id == snapshot.Id)!);
             ReplacePersistedEntry(snapshot);
-            if (ReferenceEquals(_activeSession, session)) LoadSession(session);
+            if (ReferenceEquals(ActiveEditSession, session)) LoadSession(session);
             var previous = _suppressSelectionGuard;
             _suppressSelectionGuard = true;
             try { RefreshCountsAndNavigation(); }
             finally { _suppressSelectionGuard = previous; }
-            ApplyFilterAndSort(ReferenceEquals(_activeSession, session) ? snapshot.Id : null);
+            ApplyFilterAndSort(ReferenceEquals(ActiveEditSession, session) ? snapshot.Id : null);
             StatusMessage = result.CleanupPending
                 ? L.Text("Conexão salva. Limpeza do cofre pendente; será tentada novamente.")
                 : L.Format("Conexão '{0}' salva.", (snapshot.Name));
@@ -1162,17 +1064,17 @@ public partial class MainViewModel : ObservableObject
 
     private void ReplacePersistedEntry(ConnectionEntry entry)
     {
-        _allConnections.RemoveAll(c => c.Id == entry.Id);
-        _trashConnections.RemoveAll(c => c.Id == entry.Id);
-        (entry.IsDeleted ? _trashConnections : _allConnections).Add(entry.Clone());
+        _connectionsOutsideTrash.RemoveAll(c => c.Id == entry.Id);
+        _connectionsInTrash.RemoveAll(c => c.Id == entry.Id);
+        (entry.IsDeleted ? _connectionsInTrash : _connectionsOutsideTrash).Add(entry.Clone());
     }
 
     [RelayCommand]
     public void CancelEdit()
     {
-        if (_activeSession == null || IsSaving) return;
-        var session = _activeSession;
-        _editSessions.Remove(session.Entry.Id);
+        if (ActiveEditSession == null || IsSaving) return;
+        var session = ActiveEditSession;
+        _workspace.Forget(session.Entry.Id);
         if (session.IsNew)
         {
             NewDrafts.Remove(session.Entry);
@@ -1181,7 +1083,7 @@ public partial class MainViewModel : ObservableObject
         }
         else
         {
-            var persisted = _allConnections.Concat(_trashConnections).FirstOrDefault(c => c.Id == session.Entry.Id);
+            var persisted = _connectionsOutsideTrash.Concat(_connectionsInTrash).FirstOrDefault(c => c.Id == session.Entry.Id);
             LoadSelectedIntoViewer(persisted);
         }
         StatusMessage = L.Text("Alterações descartadas.");
@@ -1257,7 +1159,7 @@ public partial class MainViewModel : ObservableObject
             return;
         }
 
-        var conflict = _allConnections.FirstOrDefault(c => string.Equals(c.Name, target.Name, StringComparison.OrdinalIgnoreCase));
+        var conflict = _connectionsOutsideTrash.FirstOrDefault(c => string.Equals(c.Name, target.Name, StringComparison.OrdinalIgnoreCase));
         if (conflict != null)
         {
             if (ConfirmDiscardUnsavedChangesCallback != null)
@@ -1285,7 +1187,7 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     public async Task EmptyTrashAsync()
     {
-        if (_trashConnections.Count == 0)
+        if (_connectionsInTrash.Count == 0)
         {
             StatusMessage = L.Text("A lixeira já está vazia.");
             return;
@@ -1295,7 +1197,7 @@ public partial class MainViewModel : ObservableObject
         {
             var confirmed = ConfirmDeleteCallback(
                 L.Text("Esvaziar Lixeira"),
-                L.Format("Deseja realmente excluir definitivamente todos os {0} itens da lixeira?\nEsta ação não poderá ser desfeita.", (_trashConnections.Count)));
+                L.Format("Deseja realmente excluir definitivamente todos os {0} itens da lixeira?\nEsta ação não poderá ser desfeita.", (_connectionsInTrash.Count)));
             if (!confirmed)
                 return;
         }
@@ -1335,7 +1237,7 @@ public partial class MainViewModel : ObservableObject
         }
 
         OnPropertyChanged(nameof(SelectedConnection));
-        var listed = _allConnections.FirstOrDefault(c => c.Id == target.Id);
+        var listed = _connectionsOutsideTrash.FirstOrDefault(c => c.Id == target.Id);
         if (listed != null) listed.LastOpenedAtUtc = target.LastOpenedAtUtc;
         if (EditingEntry.Id == target.Id) EditingEntry.LastOpenedAtUtc = target.LastOpenedAtUtc;
         OnPropertyChanged(nameof(EditingEntry));
@@ -1362,16 +1264,64 @@ public partial class MainViewModel : ObservableObject
     // =========================================================================
 
     [RelayCommand]
-    public Task CopyConnectionNameAsync() => CopyAccessFieldAsync(AccessCopyField.Name);
+    public async Task CopyConnectionNameAsync()
+    {
+        var name = !string.IsNullOrWhiteSpace(EditingEntry?.Name) ? EditingEntry.Name : SelectedConnection?.Name;
+        if (string.IsNullOrWhiteSpace(name))
+            return;
+
+        if (await _clipboardService.CopyTextWithRetryAsync(name))
+            StatusMessage = L.Text("Nome da conexão copiado");
+    }
 
     [RelayCommand]
-    public Task CopyHostAsync() => CopyAccessFieldAsync(AccessCopyField.Address);
+    public async Task CopyHostAsync()
+    {
+        var textToCopy = !string.IsNullOrWhiteSpace(InlineHostAndPort)
+            ? InlineHostAndPort
+            : HostPortParser.FormatDisplay(EditingEntry?.Host ?? SelectedConnection?.Host, EditingEntry?.Port ?? SelectedConnection?.Port ?? 0, EditingEntry?.Protocol ?? SelectedConnection?.Protocol ?? ConnectionProtocol.Rdp);
+
+        if (string.IsNullOrWhiteSpace(textToCopy))
+            return;
+
+        if (await _clipboardService.CopyTextWithRetryAsync(textToCopy))
+            StatusMessage = L.Text("Endereço copiado");
+    }
 
     [RelayCommand]
-    public Task CopyHostAndPortAsync() => CopyAccessFieldAsync(AccessCopyField.AddressWithPort);
+    public async Task CopyHostAndPortAsync()
+    {
+        var textToCopy = !string.IsNullOrWhiteSpace(InlineHostAndPort)
+            ? InlineHostAndPort
+            : HostPortParser.FormatDisplay(EditingEntry?.Host ?? SelectedConnection?.Host, EditingEntry?.Port ?? SelectedConnection?.Port ?? 0, EditingEntry?.Protocol ?? SelectedConnection?.Protocol ?? ConnectionProtocol.Rdp);
+
+        if (string.IsNullOrWhiteSpace(textToCopy))
+            return;
+
+        if (await _clipboardService.CopyTextWithRetryAsync(textToCopy))
+            StatusMessage = L.Text("Host:porta copiado");
+    }
 
     [RelayCommand]
-    public Task CopyUsernameAsync() => CopyAccessFieldAsync(AccessCopyField.User);
+    public async Task CopyUsernameAsync()
+    {
+        var textToCopy = !string.IsNullOrWhiteSpace(InlineUserWithDomain)
+            ? InlineUserWithDomain
+            : UserIdentityFormatter.FormatDisplay(EditingEntry?.Username ?? SelectedConnection?.Username, EditingEntry?.Domain ?? SelectedConnection?.Domain);
+
+        var credId = EditingEntry?.CredentialId ?? SelectedConnection?.CredentialId;
+        if (string.IsNullOrWhiteSpace(textToCopy) && !string.IsNullOrWhiteSpace(credId))
+        {
+            var cred = await _repository.GetCredentialByIdAsync(credId);
+            textToCopy = cred?.EffectiveUserDisplay ?? string.Empty;
+        }
+
+        if (string.IsNullOrWhiteSpace(textToCopy))
+            return;
+
+        if (await _clipboardService.CopyTextWithRetryAsync(textToCopy))
+            StatusMessage = L.Text("Usuário copiado");
+    }
 
     [RelayCommand]
     public async Task CopyVpnNameAsync()
@@ -1401,35 +1351,56 @@ public partial class MainViewModel : ObservableObject
             StatusMessage = L.Text("Servidor da VPN copiado");
     }
 
-    [RelayCommand]
-    public Task CopyPasswordAsync() => CopyAccessFieldAsync(AccessCopyField.Password);
-
-    private async Task<string?> RecoverPasswordAsync(SavedCredential credential)
-        => await RecoverPasswordAsync(credential, _activeSession);
-
-    private async Task<string?> RecoverPasswordAsync(SavedCredential credential, ConnectionEditSession? session)
+    private Func<bool> CaptureEditorGuard()
     {
-        try
-        {
-            var secret = await _vaultService.ReadSecretAsync(credential);
-            if (string.IsNullOrEmpty(secret)) throw new System.Security.Cryptography.CryptographicException(L.Text("Credencial salva ilegível."));
-            if (session != null) { session.CredentialRecoveryFailed = false; session.CredentialRecoveryMessage = null; }
-            NotifyPasswordStatusProperties();
-            return secret;
-        }
-        catch (Exception exception)
-        {
-            _logger.RecordFailure("Credentials.Read", exception);
-            if (session != null) { session.CredentialRecoveryFailed = true; session.CredentialRecoveryMessage = CredentialVaultService.RecoveryMessage(exception); }
-            if (session == _activeSession)
-            {
-                StatusMessage = CredentialVaultService.RecoveryMessage(exception);
-                NotifyPasswordStatusProperties();
-            }
-            return null;
-        }
+        var guard = new EditorOperationGuard(() => new EditorOperationState(
+            ActiveEditSession, EditingEntry.Id, EditingEntry.CredentialId, EditorGeneration,
+            ActiveEditSession?.Revision ?? 0, ActiveEditSession?.PasswordRevision ?? 0));
+        return guard.IsCurrent;
     }
 
+    [RelayCommand]
+    public async Task CopyPasswordAsync()
+    {
+        var current = CaptureEditorGuard();
+        if (!current() || IsPasswordMarkedForRemoval) return;
+        var clearSec = _settingsService.Current.ClipboardClearSeconds > 0 ? _settingsService.Current.ClipboardClearSeconds : 30;
+        var secret = InlinePasswordInput;
+        var credId = EditingEntry.CredentialId;
+        if (string.IsNullOrEmpty(secret))
+        {
+            if (string.IsNullOrWhiteSpace(credId)) { StatusMessage = L.Text("Nenhuma senha cadastrada."); return; }
+            secret = await ReadPasswordForEditorAsync(credId, current);
+        }
+        if (!current() || string.IsNullOrEmpty(secret)) return;
+        var copied = await _credentials.CopyPasswordAsync(secret, current, clearSec);
+        if (copied && current()) StatusMessage = L.Text("Senha copiada");
+    }
+
+    private async Task<string?> ReadPasswordForEditorAsync(string id, Func<bool> current)
+    {
+        var session = ActiveEditSession;
+        var result = await _credentials.ReadAsync(id, current);
+        if (!current() || result.Status is CredentialReadStatus.Obsolete or CredentialReadStatus.Cancelled) return null;
+        if (result.Status == CredentialReadStatus.Available && !string.IsNullOrEmpty(result.Secret))
+        {
+            if (session != null) { session.CredentialRecoveryFailed = false; session.CredentialRecoveryMessage = null; }
+            NotifyPasswordStatusProperties();
+            return result.Secret;
+        }
+        if (session != null) session.CredentialRecoveryFailed = true;
+        var error = result.Error ?? (result.Status == CredentialReadStatus.Available
+            ? new System.Security.Cryptography.CryptographicException(L.Text("Credencial salva ilegível.")) : null);
+        if (error != null && result.Credential != null)
+        {
+            _logger.RecordFailure("Credentials.Read", error);
+            if (session != null) session.CredentialRecoveryMessage = CredentialVaultService.RecoveryMessage(error);
+            StatusMessage = CredentialVaultService.RecoveryMessage(error);
+        }
+        else StatusMessage = L.Text("Falha ao recuperar credencial");
+        NotifyPasswordStatusProperties();
+        return null;
+    }
     [RelayCommand]
     public async Task TogglePasswordVisibilityAsync()
     {
@@ -1447,9 +1418,8 @@ public partial class MainViewModel : ObservableObject
         }
 
         if (IsPasswordMarkedForRemoval) return;
-        var generation = _editorGeneration;
-        var session = _activeSession;
-        var passwordRevision = session?.PasswordRevision;
+        var current = _passwordReveal.BeginRequest(CaptureEditorGuard());
+        var session = ActiveEditSession;
         var credId = EditingEntry?.CredentialId;
         if (string.IsNullOrWhiteSpace(credId))
         {
@@ -1458,23 +1428,8 @@ public partial class MainViewModel : ObservableObject
         }
 
 
-        var cred = await _repository.GetCredentialByIdAsync(credId);
-        if (cred == null)
-        {
-            if (_activeSession != null) _activeSession.CredentialRecoveryFailed = true;
-            StatusMessage = L.Text("Falha ao recuperar credencial");
-            NotifyPasswordStatusProperties();
-            return;
-        }
-
-        var secret = await RecoverPasswordAsync(cred);
-        if (generation != _editorGeneration || session != _activeSession || passwordRevision != session?.PasswordRevision) return;
-        if (string.IsNullOrEmpty(secret)) return;
-
-        _passwordRevealCts?.Cancel();
-        _passwordRevealCts?.Dispose();
-        var cts = new CancellationTokenSource();
-        _passwordRevealCts = cts;
+        var secret = await ReadPasswordForEditorAsync(credId, current);
+        if (!current() || string.IsNullOrEmpty(secret)) return;
 
         if (session != null) session.LoadedPassword = secret;
         RevealedPasswordText = secret;
@@ -1482,34 +1437,16 @@ public partial class MainViewModel : ObservableObject
         var seconds = Math.Max(5, _settingsService.Current.PasswordRevealSeconds);
         StatusMessage = L.Format("Senha exibida temporariamente por {0} segundos.", (seconds));
 
-        _ = ScheduleAutoHidePasswordAsync(seconds, cts.Token);
-    }
-
-    private async Task ScheduleAutoHidePasswordAsync(int seconds, CancellationToken token)
-    {
-        try
+        _ = _passwordReveal.ScheduleAutoHideAsync(TimeSpan.FromSeconds(seconds), async token =>
         {
-            await Task.Delay(TimeSpan.FromSeconds(seconds), token);
-            if (!token.IsCancellationRequested)
+            void HideIfCurrent()
             {
-                if (_uiDispatcher != null && !_uiDispatcher.CheckAccess())
-                {
-                    await _uiDispatcher.InvokeAsync(() =>
-                    {
-                        HideRevealedPassword();
-                        StatusMessage = L.Text("Senha ocultada novamente.");
-                    });
-                }
-                else
-                {
-                    HideRevealedPassword();
-                    StatusMessage = L.Text("Senha ocultada novamente.");
-                }
+                if (token.IsCancellationRequested) return;
+                HideRevealedPassword(); StatusMessage = L.Text("Senha ocultada novamente.");
             }
-        }
-        catch (OperationCanceledException)
-        {
-        }
+            if (_uiDispatcher != null && !_uiDispatcher.CheckAccess()) await _uiDispatcher.InvokeAsync(HideIfCurrent);
+            else HideIfCurrent();
+        });
     }
 
     [RelayCommand]
@@ -1520,9 +1457,7 @@ public partial class MainViewModel : ObservableObject
 
     public void HideRevealedPassword()
     {
-        _passwordRevealCts?.Cancel();
-        _passwordRevealCts?.Dispose();
-        _passwordRevealCts = null;
+        _passwordReveal.Cancel();
         RevealedPasswordText = string.Empty;
         IsPasswordRevealed = false;
     }
@@ -1541,6 +1476,7 @@ public partial class MainViewModel : ObservableObject
         if (target == null || string.IsNullOrWhiteSpace(target.Host))
             return;
 
+        var current = CaptureEditorGuard();
         _diagnosticCts?.Cancel();
         _diagnosticCts?.Dispose();
         var cts = new CancellationTokenSource();
@@ -1558,13 +1494,34 @@ public partial class MainViewModel : ObservableObject
                 timeoutMs: 4000,
                 cancellationToken: cts.Token);
 
+            if (!current()) return;
             DiagnosticResultTitle = result.SummaryTitle;
             DiagnosticResultDetails = result.DetailedMessage;
             StatusMessage = L.Format("Teste concluído: {0}", (result.SummaryTitle));
         }
+        catch (OperationCanceledException) when (cts.IsCancellationRequested)
+        {
+            if (current())
+            {
+                DiagnosticResultTitle = L.Text("Teste cancelado");
+                DiagnosticResultDetails = L.Text("O diagnóstico de rede foi cancelado pelo usuário.");
+                StatusMessage = DiagnosticResultTitle;
+            }
+        }
+        catch (Exception error)
+        {
+            if (!current()) return;
+            _logger.RecordFailure("Diagnostics.Network", error);
+            DiagnosticResultTitle = L.Text("Não foi possível testar a conexão.");
+            DiagnosticResultDetails = string.Empty;
+            StatusMessage = DiagnosticResultTitle;
+        }
         finally
         {
-            IsRunningDiagnostic = false;
+            if (ReferenceEquals(_diagnosticCts, cts))
+            {
+                _diagnosticCts = null; IsRunningDiagnostic = false; cts.Dispose();
+            }
         }
     }
 
@@ -1574,3 +1531,4 @@ public partial class MainViewModel : ObservableObject
         _diagnosticCts?.Cancel();
     }
 }
+

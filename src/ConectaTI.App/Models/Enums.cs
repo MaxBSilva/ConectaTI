@@ -1,7 +1,6 @@
 namespace ConectaTI.App.Models;
 
 public enum AppLanguage { Automatic, Portuguese, English, Spanish }
-public enum InterfaceDensity { Compact, Standard, Comfortable }
 
 public sealed class SelectableOption<T> : System.ComponentModel.INotifyPropertyChanged, ILanguageObserver
 {
@@ -29,6 +28,13 @@ public enum ConnectionViewMode
     Favorites = 1,
     Recent = 2,
     Trash = 3
+}
+
+public enum ConnectionActivityFilter
+{
+    All = 0,
+    Active = 1,
+    Inactive = 2
 }
 
 public enum ConnectionProtocol
