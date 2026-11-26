@@ -1,10 +1,10 @@
 # ConectaTI
 
-Versão **2.0.0 — 05/11/2026** (com evoluções preparadas para a próxima atualização). O painel **Textos rápidos** exibe a tecla de ativação configurada (**Scroll Lock** por padrão) e usa a mesma versão do executável `ConectaTI.exe`. Consulte [CONTEXTO.md](CONTEXTO.md) e [ARQUITETURA.md](ARQUITETURA.md).
+Versão **2.1.0**. O painel **Textos rápidos** exibe a tecla de ativação configurada (**Scroll Lock** por padrão) e usa a mesma versão do executável `ConectaTI.exe`. Consulte [CONTEXTO.md](CONTEXTO.md) e [ARQUITETURA.md](ARQUITETURA.md).
 
 Em **Configurações → Geral** ou no painel **Textos rápidos**, use **Buscar atualizações** para consultar a Release estável em `MaxBSilva/ConectaTI`. As Releases usam os anexos `ConectaTI-<versão>-win-x64.zip` e `release-manifest.json` (gerados automaticamente por `tools/Publish-Release.ps1` e pelo workflow `.github/workflows/release.yml`). O ZIP contém apenas `ConectaTI.exe`.
 
-## Novidades preparadas para a próxima versão
+## Novidades da 2.1.0
 
 - **Abrir até 3 sites no navegador padrão ao iniciar o Windows**: Em **Configurações → Geral → Inicialização com o Windows e sites automáticos**, configure até 3 endereços (`Site 1`, `Site 2`, `Site 3`), ative/desative a inicialização junto ao Windows (`--windows-startup`) e use **Abrir sites agora** para testar imediatamente. Endereços sem esquema recebem `https://` automaticamente; apenas URLs `http://` e `https://` são aceitas.
 - **Alterar o botão padrão (`Scroll Lock`) de Textos rápidos**: No rodapé do painel lateral **Textos rápidos** ou em **Configurações → Atalhos**, clique no campo da tecla de abertura para definir outra tecla dedicada (`Pause`, `Insert`, `F1–F12`, `Num Lock`) ou combinação com `Ctrl`/`Alt` (`Ctrl+Espaço`, `Ctrl+Shift+Q`, etc.), com botão **Padrão** para restaurar `Scroll Lock`. A escolha fica salva em `%APPDATA%\HotKeyText\textos.xml` (`AtalhoAtivacao`).

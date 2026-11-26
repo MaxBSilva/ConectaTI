@@ -91,7 +91,7 @@ jobs:
         shell: pwsh
         run: |
           $ver = "${{ steps.mode.outputs.version }}"
-          .\tools\Publish-Release.ps1 -Version $ver -Overwrite
+          .\tools\Publish-Release.ps1 -VersionOverride $ver -Overwrite
 
       - name: Publicar GitHub Release oficial para o AppUpdateService
         if: steps.mode.outputs.should_release == 'true'
