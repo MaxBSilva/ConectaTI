@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - "feat/**"
     tags:
       - "v*.*.*"
   pull_request:
@@ -64,12 +65,26 @@ jobs:
             "should_release=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
           }
 
-      - name: Compilar e executar suíte completa de testes (CI)
+      - name: Compilar, executar suíte completa de testes Windows e gerar prévia portátil (CI)
         if: steps.mode.outputs.should_release != 'true'
         shell: pwsh
         run: |
           dotnet build ConectaTI.slnx -c Release
           dotnet test ConectaTI.slnx -c Release --no-build --logger "trx;LogFileName=ci-tests.trx" --results-directory artifacts/test-results
+          dotnet publish src/ConectaTI.App/ConectaTI.App.csproj -c Release -r win-x64 --self-contained true `
+            -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true `
+            -p:EnableCompressionInSingleFile=true -p:DebugType=None -p:DebugSymbols=false `
+            -o artifacts/preview-win-x64
+
+      - name: Anexar executável de prévia e resultado dos testes na execução do GitHub Actions
+        if: steps.mode.outputs.should_release != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ConectaTI-preview-win-x64
+          path: |
+            artifacts/preview-win-x64/ConectaTI.exe
+            artifacts/test-results/ci-tests.trx
+          retention-days: 14
 
       - name: Gerar pacote portátil win-x64 + release-manifest.json (com testes)
         if: steps.mode.outputs.should_release == 'true'
