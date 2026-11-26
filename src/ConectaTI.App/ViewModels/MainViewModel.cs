@@ -1270,7 +1270,7 @@ public partial class MainViewModel : ObservableObject
     {
         var id = SelectedConnection?.Id;
         if (id == null) { StatusMessage = "Salve o novo cadastro antes de conectar."; return; }
-        var draftVpnSnapshot = EditingEntry?.Id == id && EditingEntry.HasVpnConfigured ? EditingEntry.Clone() : null;
+        var draftVpnSnapshot = EditingEntry.Id == id && EditingEntry.HasVpnConfigured ? EditingEntry.Clone() : null;
         var target = await _repository.GetConnectionByIdAsync(id);
         if (target == null || target.IsDeleted) return;
 
