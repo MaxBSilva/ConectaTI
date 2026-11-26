@@ -7,6 +7,7 @@ using System.Windows.Media;
 using System.Windows.Threading;
 using ConectaTI.App.Models;
 using ConectaTI.App.Services;
+using ConectaTI.App.Services.Launchers;
 using ConectaTI.App.Services.Updates;
 using ConectaTI.App.ViewModels;
 using ConectaTI.App.Views;
@@ -148,6 +149,16 @@ public partial class MainWindow : Window
         _vm.ShowErrorDialogCallback = (title, message) =>
         {
             MessageBox.Show(this, message, title, MessageBoxButton.OK, MessageBoxImage.Warning);
+        };
+
+        _vm.PromptUnreachableVpnCallback = (entry, probe, resolvedClientName) =>
+        {
+            var dlg = new VpnPromptDialog(entry, probe, resolvedClientName, _vm.ClipboardService)
+            {
+                Owner = this
+            };
+            dlg.ShowDialog();
+            return dlg.Decision;
         };
 
         _vm.OpenExecutableSettingsCallback = () => OpenSettingsDialog(initialTabIndex: ExecutablesSettingsDialog.TabClientsIndex);
@@ -789,6 +800,57 @@ public partial class MainWindow : Window
     private async void MenuCopyPassword_Click(object sender, RoutedEventArgs e)
     {
         await _vm.CopyPasswordAsync();
+    }
+
+    private void MenuOpenVpn_Click(object sender, RoutedEventArgs e)
+    {
+        _vm.OpenVpnClient();
+    }
+
+    private void OpenVpnQuickButton_Click(object sender, RoutedEventArgs e)
+    {
+        e.Handled = true;
+        _vm.OpenVpnClient();
+    }
+
+    private void VpnAppPresetButton_Click(object sender, RoutedEventArgs e)
+    {
+        var menu = new ContextMenu
+        {
+            PlacementTarget = VpnAppPresetButton,
+            Placement = PlacementMode.Bottom
+        };
+
+        foreach (var preset in VpnClientLauncherService.CommonVpnClientPresets)
+        {
+            var label = preset == "VPN do Windows" ? L.Text("VPN do Windows") : preset;
+            var item = new MenuItem { Header = label };
+            var captured = preset;
+            item.Click += (_, _) =>
+            {
+                _vm.EditingEntry.VpnApp = captured;
+                VpnAppTextBox.Focus();
+                VpnAppTextBox.CaretIndex = VpnAppTextBox.Text.Length;
+            };
+            menu.Items.Add(item);
+        }
+
+        menu.IsOpen = true;
+    }
+
+    private void BrowseVpnApp_Click(object sender, RoutedEventArgs e)
+    {
+        var dlg = new OpenFileDialog
+        {
+            Title = L.Text("Selecionar Cliente VPN"),
+            Filter = L.Text("Clientes VPN (*.exe;*.lnk)|*.exe;*.lnk|Todos os arquivos (*.*)|*.*"),
+            CheckFileExists = true
+        };
+
+        if (dlg.ShowDialog(this) == true)
+        {
+            _vm.EditingEntry.VpnApp = dlg.FileName;
+        }
     }
 
     // =========================================================================

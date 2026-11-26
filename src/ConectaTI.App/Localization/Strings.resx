@@ -2420,4 +2420,35 @@ Deseja salvar mesmo assim?</value>
   <data name="TextA62B7CBD14CD" xml:space="preserve"><value>Todos os atalhos foram restaurados para o padrão.</value></data>
   <data name="Text62A7C768E9E7" xml:space="preserve"><value>Use uma tecla dedicada (Scroll Lock, Pause, Insert, F1–F12) ou combine com Ctrl/Alt (ex.: Ctrl+Espaço).</value></data>
   <data name="Text1467CB51BB23" xml:space="preserve"><value>Tecla de abertura dos Textos rápidos definida para {0}.</value></data>
+  <data name="TextD91E5194CC39" xml:space="preserve"><value>Abrir VPN</value></data>
+  <data name="TextB01CF5C41F26" xml:space="preserve"><value>Abrir Aplicativo VPN</value></data>
+  <data name="Text44FC34BE069B" xml:space="preserve"><value>Abrir o cliente VPN configurado para este acesso</value></data>
+  <data name="Text57349A09D81B" xml:space="preserve"><value>Sugerir aplicativos VPN comuns</value></data>
+  <data name="Text0D4B69604D7F" xml:space="preserve"><value>Selecionar executável do cliente VPN (.exe)</value></data>
+  <data name="TextE4777097B0BD" xml:space="preserve"><value>Avisar e sugerir abertura da VPN quando o servidor não responder ao conectar</value></data>
+  <data name="TextF8AAF49EFAAD" xml:space="preserve"><value>VPN do Windows</value></data>
+  <data name="Text8C65BDCF8D22" xml:space="preserve"><value>Cliente VPN '{0}' não localizado automaticamente.</value></data>
+  <data name="Text95779C3EE3C2" xml:space="preserve"><value>Não foi possível localizar o cliente VPN '{0}' neste computador.
+
+Dica: no bloco 'VPN do cliente', use o botão '...' ao lado de Aplicativo para indicar o executável ou abra as Configurações de VPN do Windows.</value></data>
+  <data name="Text7A920BEB06B7" xml:space="preserve"><value>Não foi possível iniciar {0}.</value></data>
+  <data name="TextEF3A27081F0D" xml:space="preserve"><value>Falha ao iniciar '{0}'.</value></data>
+  <data name="TextC67EF8F8929F" xml:space="preserve"><value>Cliente VPN aberto: {0}</value></data>
+  <data name="Text7D794D995DD9" xml:space="preserve"><value>Erro ao abrir {0}.</value></data>
+  <data name="Text59180F195EA1" xml:space="preserve"><value>OpenVPN GUI ativo na bandeja do Windows (clique com o botão direito no ícone perto do relógio para conectar).</value></data>
+  <data name="TextA5B8C495A089" xml:space="preserve"><value>ConectaTI — VPN do Cliente</value></data>
+  <data name="TextD39AD131DC90" xml:space="preserve"><value>Servidor sem resposta — VPN configurada para este cliente</value></data>
+  <data name="TextA8ACEECDB34D" xml:space="preserve"><value>O acesso '{0}' ({1}:{2}) não respondeu na verificação rápida ({3}). Caso a VPN esteja desconectada, abra o cliente VPN antes de iniciar a sessão.</value></data>
+  <data name="Text42BA50C053EA" xml:space="preserve"><value>Copiado: {0}</value></data>
+  <data name="TextCA871AA8C342" xml:space="preserve"><value>Conectar mesmo assim</value></data>
+  <data name="Text23384D3738AA" xml:space="preserve"><value>Selecione um acesso ou preencha o bloco VPN do cliente.</value></data>
+  <data name="Text73317A294F9F" xml:space="preserve"><value>Cliente VPN não localizado</value></data>
+  <data name="Text05755BBFCA8E" xml:space="preserve"><value>{0}
+
+Deseja abrir as Configurações de VPN do Windows agora?</value></data>
+  <data name="TextAF7C07B00465" xml:space="preserve"><value>Cliente VPN</value></data>
+  <data name="TextCC5F5BB0A279" xml:space="preserve"><value>Verificando resposta de {0}:{1}...</value></data>
+  <data name="Text574D07D0305F" xml:space="preserve"><value>Conexão cancelada.</value></data>
+  <data name="TextD000264CFDC2" xml:space="preserve"><value>Selecionar Cliente VPN</value></data>
+  <data name="Text92B4105381AD" xml:space="preserve"><value>Clientes VPN (*.exe;*.lnk)|*.exe;*.lnk|Todos os arquivos (*.*)|*.*</value></data>
 </root>

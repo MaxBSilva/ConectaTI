@@ -427,6 +427,7 @@
                             <MenuItem Header="{loc:Loc Text4164CBC3F186}" Click="MenuDelete_Click" Visibility="{Binding IsTrashMode, Converter={StaticResource BoolToVis}}"/>
                             <MenuItem Header="{loc:Loc TextD7017B73BD1E}" Click="MenuEmptyTrash_Click" Visibility="{Binding IsTrashMode, Converter={StaticResource BoolToVis}}"/>
                             <Separator/>
+                            <MenuItem Header="{loc:Loc TextD91E5194CC39}" Click="MenuOpenVpn_Click" IsEnabled="{Binding CanOpenVpnClient}"/>
                             <MenuItem Header="{loc:Loc TextE5F454CC6361}" Click="MenuTestConnection_Click"/>
                             <MenuItem Header="{loc:Loc Text51FC562A8C0A}" Click="MenuCopyAddressOnly_Click" IsEnabled="{Binding CanCopySelectedAddress}"/>
                             <MenuItem Header="{loc:Loc TextF401E192756A}" Click="MenuCopyPersistedUser_Click" IsEnabled="{Binding CanCopyPersistedUser}"/>
@@ -909,6 +910,7 @@
                                         <MenuItem Header="{loc:Loc Text38101476AF05}" Click="MenuDuplicate_Click"/>
                                         <MenuItem Header="{loc:Loc Text138CC6F361D2}" Click="MenuDelete_Click"/>
                                         <Separator/>
+                                        <MenuItem Header="{loc:Loc TextD91E5194CC39}" Click="MenuOpenVpn_Click" IsEnabled="{Binding CanOpenVpnClient}"/>
                                         <MenuItem Header="{loc:Loc TextE5F454CC6361}" Click="MenuTestConnection_Click"/>
                                         <MenuItem Header="{loc:Loc Text94B925D07059}" Click="MenuCopyHostPort_Click"/>
                                     </ContextMenu>
@@ -1097,6 +1099,16 @@
                                   Margin="0,0,0,10">
                             <Expander.Header>
                                 <DockPanel HorizontalAlignment="Stretch">
+                                    <Button x:Name="OpenVpnHeaderButton"
+                                            DockPanel.Dock="Right"
+                                            Content="{loc:Loc TextD91E5194CC39}"
+                                            Click="OpenVpnQuickButton_Click"
+                                            Visibility="{Binding EditingEntry.HasVpnConfigured, Converter={StaticResource BoolToVis}}"
+                                            Padding="9,2"
+                                            Margin="10,0,0,0"
+                                            FontSize="{DynamicResource Font11}"
+                                            FontWeight="SemiBold"
+                                            ToolTip="{loc:Loc Text44FC34BE069B}"/>
                                     <TextBlock TextWrapping="Wrap" Text="{loc:Loc Text0120E59D18C6}" FontWeight="SemiBold" VerticalAlignment="Center"/>
                                     <TextBlock Text="{Binding EditingEntry.VpnStatusBadge}"
                                                Foreground="{DynamicResource SuccessBrush}"
@@ -1130,10 +1142,32 @@
 
                                     <!-- Aplicativo -->
                                     <TextBlock TextWrapping="Wrap" Text="{loc:Loc Text23ECCE63EAEA}" FontSize="{DynamicResource Font11}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,2"/>
-                                    <TextBox Text="{Binding EditingEntry.VpnApp, UpdateSourceTrigger=PropertyChanged}"
-                                             FontSize="{DynamicResource Font12}"
-                                             Padding="5,3"
-                                             Margin="0,0,0,8"/>
+                                    <Grid Margin="0,0,0,8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBox x:Name="VpnAppTextBox"
+                                                 Grid.Column="0"
+                                                 Text="{Binding EditingEntry.VpnApp, UpdateSourceTrigger=PropertyChanged}"
+                                                 FontSize="{DynamicResource Font12}"
+                                                 Padding="5,3"/>
+                                        <Button x:Name="VpnAppPresetButton"
+                                                Grid.Column="1"
+                                                Content="▾"
+                                                Click="VpnAppPresetButton_Click"
+                                                Padding="7,3"
+                                                Margin="4,0,0,0"
+                                                ToolTip="{loc:Loc Text57349A09D81B}"/>
+                                        <Button x:Name="BrowseVpnAppButton"
+                                                Grid.Column="2"
+                                                Content="..."
+                                                Click="BrowseVpnApp_Click"
+                                                Padding="8,3"
+                                                Margin="4,0,0,0"
+                                                ToolTip="{loc:Loc Text0D4B69604D7F}"/>
+                                    </Grid>
 
                                     <!-- Servidor / IP[:porta] -->
                                     <TextBlock TextWrapping="Wrap" Text="{loc:Loc Text28E4CE98A862}" FontSize="{DynamicResource Font11}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,2"/>
@@ -1164,7 +1198,16 @@
                                              AcceptsReturn="True"
                                              VerticalContentAlignment="Top"
                                              VerticalScrollBarVisibility="Auto"
-                                             FontSize="{DynamicResource Font12}"/>
+                                             FontSize="{DynamicResource Font12}"
+                                             Margin="0,0,0,8"/>
+
+                                    <Button x:Name="OpenVpnCardButton"
+                                            Content="{loc:Loc TextB01CF5C41F26}"
+                                            Command="{Binding OpenVpnClientCommand}"
+                                            HorizontalAlignment="Left"
+                                            Padding="12,5"
+                                            FontWeight="SemiBold"
+                                            ToolTip="{loc:Loc Text44FC34BE069B}"/>
                                 </StackPanel>
                             </Border>
                         </Expander>

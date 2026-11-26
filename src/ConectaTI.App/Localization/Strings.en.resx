@@ -2420,4 +2420,35 @@ Save anyway?</value>
   <data name="TextA62B7CBD14CD" xml:space="preserve"><value>All shortcuts have been restored to defaults.</value></data>
   <data name="Text62A7C768E9E7" xml:space="preserve"><value>Use a dedicated key (Scroll Lock, Pause, Insert, F1–F12) or combine with Ctrl/Alt (e.g., Ctrl+Space).</value></data>
   <data name="Text1467CB51BB23" xml:space="preserve"><value>Quick Texts trigger key set to {0}.</value></data>
+  <data name="TextD91E5194CC39" xml:space="preserve"><value>Open VPN</value></data>
+  <data name="TextB01CF5C41F26" xml:space="preserve"><value>Open VPN Application</value></data>
+  <data name="Text44FC34BE069B" xml:space="preserve"><value>Open the VPN client configured for this connection</value></data>
+  <data name="Text57349A09D81B" xml:space="preserve"><value>Suggest common VPN applications</value></data>
+  <data name="Text0D4B69604D7F" xml:space="preserve"><value>Select VPN client executable (.exe)</value></data>
+  <data name="TextE4777097B0BD" xml:space="preserve"><value>Warn and suggest opening VPN when server does not respond on connect</value></data>
+  <data name="TextF8AAF49EFAAD" xml:space="preserve"><value>Windows VPN</value></data>
+  <data name="Text8C65BDCF8D22" xml:space="preserve"><value>VPN client '{0}' not found automatically.</value></data>
+  <data name="Text95779C3EE3C2" xml:space="preserve"><value>Could not locate VPN client '{0}' on this computer.
+
+Tip: in the 'Client VPN' block, use the '...' button next to Application to select the executable or open Windows VPN Settings.</value></data>
+  <data name="Text7A920BEB06B7" xml:space="preserve"><value>Could not start {0}.</value></data>
+  <data name="TextEF3A27081F0D" xml:space="preserve"><value>Failed to start '{0}'.</value></data>
+  <data name="TextC67EF8F8929F" xml:space="preserve"><value>VPN client opened: {0}</value></data>
+  <data name="Text7D794D995DD9" xml:space="preserve"><value>Error opening {0}.</value></data>
+  <data name="Text59180F195EA1" xml:space="preserve"><value>OpenVPN GUI active in the Windows system tray (right-click the icon near the clock to connect).</value></data>
+  <data name="TextA5B8C495A089" xml:space="preserve"><value>ConectaTI — Client VPN</value></data>
+  <data name="TextD39AD131DC90" xml:space="preserve"><value>Server not responding — VPN configured for this client</value></data>
+  <data name="TextA8ACEECDB34D" xml:space="preserve"><value>Connection '{0}' ({1}:{2}) did not respond during quick check ({3}). If the VPN is disconnected, open the VPN client before starting the session.</value></data>
+  <data name="Text42BA50C053EA" xml:space="preserve"><value>Copied: {0}</value></data>
+  <data name="TextCA871AA8C342" xml:space="preserve"><value>Connect anyway</value></data>
+  <data name="Text23384D3738AA" xml:space="preserve"><value>Select a connection or fill in the Client VPN block.</value></data>
+  <data name="Text73317A294F9F" xml:space="preserve"><value>VPN client not found</value></data>
+  <data name="Text05755BBFCA8E" xml:space="preserve"><value>{0}
+
+Would you like to open Windows VPN Settings now?</value></data>
+  <data name="TextAF7C07B00465" xml:space="preserve"><value>VPN Client</value></data>
+  <data name="TextCC5F5BB0A279" xml:space="preserve"><value>Checking response from {0}:{1}...</value></data>
+  <data name="Text574D07D0305F" xml:space="preserve"><value>Connection canceled.</value></data>
+  <data name="TextD000264CFDC2" xml:space="preserve"><value>Select VPN Client</value></data>
+  <data name="Text92B4105381AD" xml:space="preserve"><value>VPN Clients (*.exe;*.lnk)|*.exe;*.lnk|All files (*.*)|*.*</value></data>
 </root>

@@ -22,6 +22,9 @@ public class AppSettings
     // Integração opcional do RDP com o Gerenciador de Credenciais do Windows (TERMSRV/host)
     public bool RegisterRdpCredentialsInWindowsVault { get; set; } = true;
 
+    // Verifica conectividade rápida e sugere abrir a VPN quando o servidor não responde
+    public bool CheckVpnBeforeConnect { get; set; } = true;
+
     // Segurança, Bloqueio e Área de Transferência
     public int AutoLockIdleMinutes { get; set; } = 10;
     public int ClipboardClearSeconds { get; set; } = 30;

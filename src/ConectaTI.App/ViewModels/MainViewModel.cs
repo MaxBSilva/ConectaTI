@@ -29,6 +29,7 @@ public partial class MainViewModel : ObservableObject
     private readonly ITextClipboard _clipboardService;
     private readonly ConnectionCredentialService _credentials;
     private readonly ConnectionLauncherService _launcherService;
+    private readonly VpnClientLauncherService _vpnLauncherService;
     private readonly ImportExportService _importExportService;
     private readonly INetworkConnectivityProbe _diagnosticService;
     private readonly AppDiagnosticService _appDiagnosticService;
@@ -100,6 +101,12 @@ public partial class MainViewModel : ObservableObject
         CaptureSession();
         NotifyEditState();
         if (e.PropertyName == nameof(ConnectionEntry.CredentialId)) NotifyPasswordStatusProperties();
+        if (e.PropertyName is nameof(ConnectionEntry.VpnName) or nameof(ConnectionEntry.VpnApp) or nameof(ConnectionEntry.VpnServer) or nameof(ConnectionEntry.VpnNotes) or nameof(ConnectionEntry.HasVpnConfigured))
+        {
+            OnPropertyChanged(nameof(CanCopyVpnName));
+            OnPropertyChanged(nameof(CanCopyVpnServer));
+            OnPropertyChanged(nameof(CanOpenVpnClient));
+        }
     }
     private void CaptureSession()
     {
@@ -147,6 +154,7 @@ public partial class MainViewModel : ObservableObject
     public Func<string, UnsavedChangesChoice>? ConfirmUnsavedChangesCallback { get; set; }
     public Func<string, bool>? ConfirmDiscardUnsavedChangesCallback { get; set; }
     public Func<string, string, bool>? ConfirmDeleteCallback { get; set; }
+    public Func<ConnectionEntry, NetworkDiagnosticResult, string, VpnUnreachableDecision>? PromptUnreachableVpnCallback { get; set; }
     public Action<string, string>? ShowErrorDialogCallback { get; set; }
     public Action? OpenExecutableSettingsCallback { get; set; }
     public event Action? FilteredListUpdated;
@@ -396,6 +404,8 @@ public partial class MainViewModel : ObservableObject
     public bool ShowCopyPasswordOption => SelectedHasSavedPassword;
     public bool CanCopyVpnName => !string.IsNullOrWhiteSpace(EditingEntry?.VpnName) || (SelectedConnection != null && !string.IsNullOrWhiteSpace(SelectedConnection.VpnName));
     public bool CanCopyVpnServer => !string.IsNullOrWhiteSpace(EditingEntry?.VpnServer) || (SelectedConnection != null && !string.IsNullOrWhiteSpace(SelectedConnection.VpnServer));
+    public bool CanOpenVpnClient => (EditingEntry?.HasVpnConfigured == true) || (SelectedConnection?.HasVpnConfigured == true);
+    public VpnClientLauncherService VpnLauncherService => _vpnLauncherService;
 
     public string PasswordStatusText => SavedPasswordBadgeText;
 
@@ -412,7 +422,8 @@ public partial class MainViewModel : ObservableObject
         ITextClipboard clipboardService,
         ConnectionLauncherService launcherService,
         ImportExportService importExportService,
-        INetworkConnectivityProbe diagnosticService)
+        INetworkConnectivityProbe diagnosticService,
+        VpnClientLauncherService? vpnLauncherService = null)
     {
         LocalizationService.Current.Observe(this);
         _statusTranslation = L.Capture(StatusMessage);
@@ -434,6 +445,7 @@ public partial class MainViewModel : ObservableObject
         _clipboardService = clipboardService;
         _credentials = new ConnectionCredentialService(repository, vaultService, clipboardService);
         _launcherService = launcherService;
+        _vpnLauncherService = vpnLauncherService ?? new VpnClientLauncherService(logger);
         _importExportService = importExportService;
         _diagnosticService = diagnosticService;
         _persistence = new ConnectionPersistenceService(repository, vaultService, logger);
@@ -732,6 +744,7 @@ public partial class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(ShowCopyPasswordOption));
         OnPropertyChanged(nameof(CanCopyVpnName));
         OnPropertyChanged(nameof(CanCopyVpnServer));
+        OnPropertyChanged(nameof(CanOpenVpnClient));
     }
 
     public void NotifyProtocolChanged(ConnectionProtocol oldProtocol, ConnectionProtocol newProtocol)
@@ -1209,13 +1222,87 @@ public partial class MainViewModel : ObservableObject
     }
 
     [RelayCommand]
+    public void OpenVpnClient()
+    {
+        var source = EditingEntry?.HasVpnConfigured == true
+            ? EditingEntry
+            : (SelectedConnection?.HasVpnConfigured == true ? SelectedConnection : EditingEntry);
+        OpenVpnForEntry(source);
+    }
+
+    public VpnLaunchOutcome OpenVpnForEntry(ConnectionEntry? source)
+    {
+        if (source == null)
+        {
+            var msg = L.Text("Selecione um acesso ou preencha o bloco VPN do cliente.");
+            StatusMessage = msg;
+            return new VpnLaunchOutcome(false, false, string.Empty, msg);
+        }
+
+        var outcome = _vpnLauncherService.Launch(source);
+        StatusMessage = outcome.StatusMessage;
+
+        if (!outcome.Started)
+        {
+            if (ConfirmDeleteCallback != null)
+            {
+                var openWinVpn = ConfirmDeleteCallback(
+                    L.Text("Cliente VPN não localizado"),
+                    L.Format("{0}\n\nDeseja abrir as Configurações de VPN do Windows agora?", outcome.ErrorMessage ?? outcome.StatusMessage));
+                if (openWinVpn)
+                {
+                    var fallback = _vpnLauncherService.LaunchWindowsVpnSettingsFallback();
+                    StatusMessage = fallback.StatusMessage;
+                    return fallback;
+                }
+            }
+            else
+            {
+                ShowErrorDialogCallback?.Invoke(L.Text("Cliente VPN"), outcome.ErrorMessage ?? outcome.StatusMessage);
+            }
+        }
+
+        return outcome;
+    }
+
+    [RelayCommand]
     public async Task ConnectAsync()
     {
         var id = SelectedConnection?.Id;
         if (id == null) { StatusMessage = "Salve o novo cadastro antes de conectar."; return; }
+        var draftVpnSnapshot = EditingEntry?.Id == id && EditingEntry.HasVpnConfigured ? EditingEntry.Clone() : null;
         var target = await _repository.GetConnectionByIdAsync(id);
         if (target == null || target.IsDeleted) return;
 
+        var vpnSource = target.HasVpnConfigured ? target : draftVpnSnapshot;
+        if (_settingsService.Current.CheckVpnBeforeConnect &&
+            vpnSource is { HasVpnConfigured: true } &&
+            PromptUnreachableVpnCallback != null)
+        {
+            var useRdpGatewayAlways = target.Protocol == ConnectionProtocol.Rdp &&
+                                      !string.IsNullOrWhiteSpace(target.RdpOptions.GatewayHostname) &&
+                                      target.RdpOptions.GatewayUsageMethod == 1;
+            var probeHost = useRdpGatewayAlways ? target.RdpOptions.GatewayHostname : target.Host;
+            var probePort = useRdpGatewayAlways ? 443 : target.Port;
+
+            StatusMessage = L.Format("Verificando resposta de {0}:{1}...", probeHost, probePort);
+            var probe = await _diagnosticService.TestConnectivityAsync(probeHost, probePort, timeoutMs: 1200);
+            if (!probe.TcpPortReachable)
+            {
+                var resolvedVpn = _vpnLauncherService.Resolve(vpnSource);
+                var decision = PromptUnreachableVpnCallback(vpnSource, probe, resolvedVpn.DisplayClientName);
+                if (decision == VpnUnreachableDecision.Cancel)
+                {
+                    StatusMessage = L.Text("Conexão cancelada.");
+                    return;
+                }
+                if (decision == VpnUnreachableDecision.OpenVpn)
+                {
+                    OpenVpnForEntry(vpnSource);
+                    return;
+                }
+            }
+        }
 
         var result = await _launcherService.LaunchAsync(target);
         StatusMessage = result.StatusMessage;

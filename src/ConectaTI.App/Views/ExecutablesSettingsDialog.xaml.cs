@@ -130,6 +130,7 @@ public partial class ExecutablesSettingsDialog : Window
         };
 
         RegisterRdpVaultCheck.IsChecked = s.RegisterRdpCredentialsInWindowsVault;
+        CheckVpnBeforeConnectCheck.IsChecked = s.CheckVpnBeforeConnect;
         ClipboardClearSecondsBox.Text = s.ClipboardClearSeconds.ToString();
         RevealSecondsBox.Text = s.PasswordRevealSeconds.ToString();
 
@@ -674,6 +675,7 @@ public partial class ExecutablesSettingsDialog : Window
         };
 
         s.RegisterRdpCredentialsInWindowsVault = RegisterRdpVaultCheck.IsChecked == true;
+        s.CheckVpnBeforeConnect = CheckVpnBeforeConnectCheck.IsChecked == true;
         s.OpenStartupWebsites = OpenStartupWebsitesCheck.IsChecked == true;
         s.StartupWebsite1 = normSite1;
         s.StartupWebsite2 = normSite2;

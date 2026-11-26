@@ -83,6 +83,10 @@
 
                                 <CheckBox x:Name="RegisterRdpVaultCheck"
                                           Content="{loc:Loc Text6B93836F2497}"
+                                          Margin="0,0,0,6"/>
+
+                                <CheckBox x:Name="CheckVpnBeforeConnectCheck"
+                                          Content="{loc:Loc TextE4777097B0BD}"
                                           Margin="0,0,0,2"/>
                             </StackPanel>
                         </Border>
