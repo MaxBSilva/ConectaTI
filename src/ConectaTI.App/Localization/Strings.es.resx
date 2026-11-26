@@ -2373,4 +2373,51 @@ Se desactivó la contraseña maestra.</value>
   <data name="TextEB780EFF17CA" xml:space="preserve"><value>HotKeyText v1.3.0 — Atajo rápido de textos vía Scroll Lock (código fuente original por Vinícius da Veiga en viniciusdaveigaa/HotKeyText, integrado y compilado en ConectaTI).</value></data>
   <data name="TextEDFCC7E87CB1" xml:space="preserve"><value>Restaurar versión anterior</value></data>
   <data name="TextD777C3638E29" xml:space="preserve"><value>Scroll Lock - versión {0}</value></data>
+  <data name="Text0C642BC97FEE" xml:space="preserve"><value>Copiar datos de acceso</value></data>
+  <data name="Text84A9AD23B007" xml:space="preserve"><value>Copiar Contraseña</value></data>
+  <data name="TextCF8AE51FE56B" xml:space="preserve"><value>Copiar usuario y dominio formateados</value></data>
+  <data name="TextA31BAC5D484E" xml:space="preserve"><value>Copiar contraseña almacenada de esta credencial</value></data>
+  <data name="TextBDDCE79F9036" xml:space="preserve"><value>Copia nombre, usuario/dominio, contraseña guardada y notas de la credencial</value></data>
+  <data name="Text44FCB12C4897" xml:space="preserve"><value>Credencial</value></data>
+  <data name="Text12EFB3934092" xml:space="preserve"><value>Ningún usuario informado en esta credencial.</value></data>
+  <data name="TextC7519A63BC88" xml:space="preserve"><value>Usuario copiado.</value></data>
+  <data name="TextC2F0149D8B23" xml:space="preserve"><value>No fue posible acceder al portapapeles.</value></data>
+  <data name="Text15274CB26AF4" xml:space="preserve"><value>Contraseña copiada (limpieza automática en {0}s).</value></data>
+  <data name="TextE4ADEB170A1A" xml:space="preserve"><value>Ninguna información completada para copiar.</value></data>
+  <data name="TextFC55ACA8F617" xml:space="preserve"><value>Datos de acceso copiados (limpieza automática en {0}s).</value></data>
+  <data name="TextA5D10589B96B" xml:space="preserve"><value>Datos de acceso copiados.</value></data>
+  <data name="Text1A4CB168ACCF" xml:space="preserve"><value>Inicio con Windows y sitios automáticos</value></data>
+  <data name="Text233441F77C68" xml:space="preserve"><value>Inicia junto con Windows y abre hasta 3 sitios en el navegador predeterminado (ej.: mesa de ayuda, monitoreo o portal interno).</value></data>
+  <data name="TextD4281ADAC641" xml:space="preserve"><value>Iniciar ConectaTI junto con Windows</value></data>
+  <data name="Text84DECD6AD6C4" xml:space="preserve"><value>Abrir automáticamente los sitios de abajo al iniciar Windows</value></data>
+  <data name="TextACBD26C13DD7" xml:space="preserve"><value>Sitio 1</value></data>
+  <data name="TextDF8496D3FCBF" xml:space="preserve"><value>Sitio 2</value></data>
+  <data name="TextD5C4E50ADDE9" xml:space="preserve"><value>Sitio 3</value></data>
+  <data name="TextE51D940F5D3B" xml:space="preserve"><value>Ej.: https://soporte.empresa.com</value></data>
+  <data name="Text110D350991CB" xml:space="preserve"><value>Ej.: https://monitoreo.empresa.com</value></data>
+  <data name="Text3E5D0C87475E" xml:space="preserve"><value>Ej.: https://intranet.empresa.com</value></data>
+  <data name="Text8ACC529B96F8" xml:space="preserve"><value>Abrir sitios ahora</value></data>
+  <data name="TextA46949E2E9B7" xml:space="preserve"><value>La dirección ingresada en el Sitio {0} no es una URL HTTP/HTTPS válida.</value></data>
+  <data name="Text3C5A21884BAE" xml:space="preserve"><value>Ingrese al menos un sitio (Sitio 1 a 3) para abrir en el navegador.</value></data>
+  <data name="Text30A62C460C88" xml:space="preserve"><value>{0} sitio(s) abierto(s) en el navegador predeterminado.</value></data>
+  <data name="Text4549473EDDE7" xml:space="preserve"><value>Restaurar predeterminados</value></data>
+  <data name="TextE3193131D44A" xml:space="preserve"><value>Restaura todos los atajos configurables al valor predeterminado original</value></data>
+  <data name="Text0758C00E6EA0" xml:space="preserve"><value>Predeterminado</value></data>
+  <data name="TextFB9843DB7123" xml:space="preserve"><value>Restaurar atajo predeterminado</value></data>
+  <data name="Text64A9F8E77C6A" xml:space="preserve"><value>Tecla para abrir Textos rápidos</value></data>
+  <data name="Text738C4A51E37C" xml:space="preserve"><value>Presione una tecla dedicada (ej.: Scroll Lock, Pause, Insert, F8–F12) o combinación con Ctrl/Alt (ej.: Ctrl+Espacio).</value></data>
+  <data name="Text589F01A36BD9" xml:space="preserve"><value>Tecla de apertura:</value></data>
+  <data name="Text966A3E719813" xml:space="preserve"><value>Haga clic y presione la nueva tecla o combinación</value></data>
+  <data name="Text6C4AABABAB72" xml:space="preserve"><value>{0} - versión {1}</value></data>
+  <data name="TextDDDBABD62B67" xml:space="preserve"><value>Textos rápidos ({0})</value></data>
+  <data name="Text3DC601082287" xml:space="preserve"><value>Panel de Textos rápidos abierto ({0} y atajos activos en el proceso de ConectaTI).</value></data>
+  <data name="Text7851B0AEC749" xml:space="preserve"><value>Panel de Textos rápidos contraído ({0} y los atajos continúan activos).</value></data>
+  <data name="Text04DFCBA5F2A3" xml:space="preserve"><value>Atajo restaurado al valor predeterminado.</value></data>
+  <data name="Text6AA54C3BDD92" xml:space="preserve"><value>Los atajos estándar de edición (Ctrl+C, Ctrl+V, Ctrl+X, Ctrl+A, Ctrl+Z) están reservados.</value></data>
+  <data name="Text2115C3BE9893" xml:space="preserve"><value>Use F1–F12 o combine la tecla con Ctrl o Alt (ej.: Ctrl+Shift+N).</value></data>
+  <data name="TextCA5871768F59" xml:space="preserve"><value>El atajo '{0}' ya está en uso por '{1}'.</value></data>
+  <data name="TextB499EE57074A" xml:space="preserve"><value>Atajo actualizado a {0}.</value></data>
+  <data name="TextA62B7CBD14CD" xml:space="preserve"><value>Todos los atajos fueron restaurados al valor predeterminado.</value></data>
+  <data name="Text62A7C768E9E7" xml:space="preserve"><value>Use una tecla dedicada (Scroll Lock, Pause, Insert, F1–F12) o combine con Ctrl/Alt (ej.: Ctrl+Espacio).</value></data>
+  <data name="Text1467CB51BB23" xml:space="preserve"><value>Tecla de apertura de Textos rápidos definida como {0}.</value></data>
 </root>

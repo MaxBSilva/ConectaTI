@@ -32,6 +32,15 @@ public class AppSettings
     public string MasterPasswordSaltBase64 { get; set; } = string.Empty;
     public string MasterPasswordVerifierBase64 { get; set; } = string.Empty;
 
+    // Inicialização com o Windows e até 3 sites automáticos no navegador padrão
+    public bool OpenStartupWebsites { get; set; } = true;
+    public string StartupWebsite1 { get; set; } = string.Empty;
+    public string StartupWebsite2 { get; set; } = string.Empty;
+    public string StartupWebsite3 { get; set; } = string.Empty;
+
+    // Atalhos personalizados da janela principal (chave = ActionId, valor = combinação ex.: "Ctrl+Shift+N")
+    public Dictionary<string, string> CustomShortcuts { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
     // Geometria da janela e painéis
     public double WindowLeft { get; set; } = double.NaN;
     public double WindowTop { get; set; } = double.NaN;

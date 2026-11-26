@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 using ConectaTI.App.Models;
 using ConectaTI.App.Security;
@@ -27,6 +28,7 @@ public partial class ExecutablesSettingsDialog : Window
     private readonly CredentialVaultService _vaultService;
     private readonly MainViewModel? _mainViewModel;
     private readonly AppUpdateService _updateService;
+    private readonly HotKeyTextService? _quickTextsService;
     private UpdateCheckResult? _latestUpdateCheck;
     private bool _suppressThemeEvent;
     private bool _loadingPreferences = true;
@@ -40,7 +42,8 @@ public partial class ExecutablesSettingsDialog : Window
         MainViewModel? mainViewModel = null,
         int initialTabIndex = 0,
         bool autoCheckUpdatesOnLoad = false,
-        AppUpdateService? updateService = null)
+        AppUpdateService? updateService = null,
+        HotKeyTextService? quickTextsService = null)
     {
         InitializeComponent();
         LocalizedWindow.Attach(this);
@@ -48,6 +51,7 @@ public partial class ExecutablesSettingsDialog : Window
         _vaultService = vaultService;
         _mainViewModel = mainViewModel;
         _updateService = updateService ?? new AppUpdateService();
+        _quickTextsService = quickTextsService;
 
         if (initialTabIndex >= 0 && initialTabIndex < SettingsTabs.Items.Count)
         {
@@ -57,9 +61,31 @@ public partial class ExecutablesSettingsDialog : Window
         LoadCurrentValues();
         _loadingPreferences = false;
 
+        Loaded += (_, _) =>
+        {
+            SyncStartWithWindowsCheckFromOwnerOrRegistry();
+            RefreshShortcutsTabUI();
+        };
+
         if (autoCheckUpdatesOnLoad)
         {
             Loaded += async (_, _) => await TriggerUpdateCheckAsync(showMessageBox: true);
+        }
+    }
+
+    private HotKeyTextService? ResolveQuickTextsService()
+        => _quickTextsService ?? (Owner as MainWindow)?.QuickTextsService;
+
+    private void SyncStartWithWindowsCheckFromOwnerOrRegistry()
+    {
+        var qts = ResolveQuickTextsService();
+        if (qts is not null)
+        {
+            StartWithWindowsSettingsCheck.IsChecked = qts.StartWithWindows;
+        }
+        else if (Application.Current is App { IsIsolatedHost: false })
+        {
+            StartWithWindowsSettingsCheck.IsChecked = HotKeyTextService.GetDefaultStartWithWindows();
         }
     }
 
@@ -107,7 +133,13 @@ public partial class ExecutablesSettingsDialog : Window
         ClipboardClearSecondsBox.Text = s.ClipboardClearSeconds.ToString();
         RevealSecondsBox.Text = s.PasswordRevealSeconds.ToString();
 
-        ShortcutsItemsControl.ItemsSource = KeyboardShortcutsCatalog.GetAll();
+        OpenStartupWebsitesCheck.IsChecked = s.OpenStartupWebsites;
+        StartupSite1Box.Text = s.StartupWebsite1;
+        StartupSite2Box.Text = s.StartupWebsite2;
+        StartupSite3Box.Text = s.StartupWebsite3;
+        SyncStartWithWindowsCheckFromOwnerOrRegistry();
+
+        RefreshShortcutsTabUI();
         UpdateMasterPasswordStatus();
         RefreshUpdateSectionState();
         ValidateAllExecutableBoxes();
@@ -186,7 +218,7 @@ public partial class ExecutablesSettingsDialog : Window
         _settingsService.Current.Language = (AppLanguage)LanguageCombo.SelectedIndex;
         _settingsService.Save();
         LocalizationService.Current.SetLanguage(_settingsService.Current.Language);
-        ShortcutsItemsControl.ItemsSource = KeyboardShortcutsCatalog.GetAll();
+        RefreshShortcutsTabUI();
         UpdateMasterPasswordStatus();
         RefreshUpdateSectionState();
         ValidateAllExecutableBoxes();
@@ -333,7 +365,11 @@ public partial class ExecutablesSettingsDialog : Window
         if (_mainViewModel == null)
             return;
 
-        var dlg = new CredentialsDialog(_mainViewModel.Repository, _vaultService)
+        var dlg = new CredentialsDialog(
+            _mainViewModel.Repository,
+            _vaultService,
+            _mainViewModel.ClipboardService,
+            _settingsService)
         {
             Owner = this
         };
@@ -375,8 +411,237 @@ public partial class ExecutablesSettingsDialog : Window
         }
     }
 
+    private void OpenStartupWebsitesNow_Click(object sender, RoutedEventArgs e)
+    {
+        if (!StartupWebsitesService.ValidateSettingsInputs(
+                StartupSite1Box.Text,
+                StartupSite2Box.Text,
+                StartupSite3Box.Text,
+                out var norm1,
+                out var norm2,
+                out var norm3,
+                out var invalidSlot))
+        {
+            MessageBox.Show(
+                this,
+                L.Format("O endereço informado no Site {0} não é uma URL HTTP/HTTPS válida.", invalidSlot),
+                L.Text("Validação"),
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            return;
+        }
+
+        StartupSite1Box.Text = norm1;
+        StartupSite2Box.Text = norm2;
+        StartupSite3Box.Text = norm3;
+
+        var previewSettings = new AppSettings
+        {
+            OpenStartupWebsites = true,
+            StartupWebsite1 = norm1,
+            StartupWebsite2 = norm2,
+            StartupWebsite3 = norm3
+        };
+
+        if (StartupWebsitesService.GetConfiguredUrls(previewSettings).Count == 0)
+        {
+            DialogFeedbackText.Text = L.Text("Informe ao menos um site (Site 1 a 3) para abrir no navegador.");
+            return;
+        }
+
+        var opened = StartupWebsitesService.LaunchConfiguredWebsites(previewSettings);
+        DialogFeedbackText.Text = L.Format("{0} site(s) aberto(s) no navegador padrão.", opened);
+    }
+
+    private void RefreshShortcutsTabUI()
+    {
+        ShortcutsItemsControl.ItemsSource = KeyboardShortcutsCatalog.GetAll(_settingsService.Current);
+        var qts = ResolveQuickTextsService();
+        var triggerDisplay = qts?.EffectiveTriggerDisplay ?? HotKeyTextService.DefaultTriggerShortcut;
+        SettingsQuickTextsTriggerBox.Text = triggerDisplay;
+        ResetQuickTextsTriggerButton.IsEnabled = !string.Equals(
+            triggerDisplay,
+            HotKeyTextService.DefaultTriggerShortcut,
+            StringComparison.OrdinalIgnoreCase);
+    }
+
+    private void CustomShortcutBox_GotKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
+    {
+        if (ResolveQuickTextsService() is { } qts)
+            qts.IsCapturingShortcut = true;
+    }
+
+    private void CustomShortcutBox_LostKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
+    {
+        if (ResolveQuickTextsService() is { } qts)
+            qts.IsCapturingShortcut = false;
+    }
+
+    private void CustomShortcutBox_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (sender is not TextBox { Tag: string actionId } || string.IsNullOrWhiteSpace(actionId))
+            return;
+
+        var key = e.Key == Key.System ? e.SystemKey : e.Key;
+        if (key == Key.Tab && (Keyboard.Modifiers == ModifierKeys.None || Keyboard.Modifiers == ModifierKeys.Shift))
+            return;
+
+        e.Handled = true;
+        if (key == Key.Escape)
+        {
+            ResetAllShortcutsButton.Focus();
+            return;
+        }
+
+        if (key is Key.Back or Key.Delete && Keyboard.Modifiers == ModifierKeys.None)
+        {
+            KeyboardShortcutsCatalog.ResetActionShortcut(_settingsService.Current, actionId);
+            _settingsService.Save();
+            RefreshShortcutsTabUI();
+            DialogFeedbackText.Text = L.Text("Atalho restaurado para o padrão.");
+            return;
+        }
+
+        var vk = (uint)KeyInterop.VirtualKeyFromKey(key);
+        if (HotKeyTextService.EhModificador(vk))
+            return;
+
+        if (!KeyboardShortcutsCatalog.TryFormatShortcutFromKeyEvent(e, out var formatted, out var isReserved))
+        {
+            DialogFeedbackText.Text = isReserved
+                ? L.Text("Atalhos padrão de edição (Ctrl+C, Ctrl+V, Ctrl+X, Ctrl+A, Ctrl+Z) são reservados.")
+                : L.Text("Use F1–F12 ou combine a tecla com Ctrl ou Alt (ex.: Ctrl+Shift+N).");
+            return;
+        }
+
+        if (!KeyboardShortcutsCatalog.TryAssignShortcut(_settingsService.Current, actionId, formatted, out var conflictName))
+        {
+            DialogFeedbackText.Text = L.Format("O atalho '{0}' já está em uso por '{1}'.", formatted, conflictName ?? string.Empty);
+            return;
+        }
+
+        _settingsService.Save();
+        RefreshShortcutsTabUI();
+        DialogFeedbackText.Text = L.Format("Atalho atualizado para {0}.", formatted);
+    }
+
+    private void ResetSingleShortcut_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { Tag: string actionId } || string.IsNullOrWhiteSpace(actionId))
+            return;
+
+        KeyboardShortcutsCatalog.ResetActionShortcut(_settingsService.Current, actionId);
+        _settingsService.Save();
+        RefreshShortcutsTabUI();
+        DialogFeedbackText.Text = L.Text("Atalho restaurado para o padrão.");
+    }
+
+    private void ResetAllShortcuts_Click(object sender, RoutedEventArgs e)
+    {
+        KeyboardShortcutsCatalog.ResetAllShortcuts(_settingsService.Current);
+        _settingsService.Save();
+        if (ResolveQuickTextsService() is { } qts)
+            qts.ResetTriggerShortcutToDefault();
+        RefreshShortcutsTabUI();
+        DialogFeedbackText.Text = L.Text("Todos os atalhos foram restaurados para o padrão.");
+    }
+
+    private void SettingsQuickTextsTriggerBox_GotKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
+    {
+        if (ResolveQuickTextsService() is { } qts)
+            qts.IsCapturingTriggerShortcut = true;
+    }
+
+    private void SettingsQuickTextsTriggerBox_LostKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
+    {
+        if (ResolveQuickTextsService() is { } qts)
+            qts.IsCapturingTriggerShortcut = false;
+    }
+
+    private void SettingsQuickTextsTriggerBox_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        var key = e.Key == Key.System ? e.SystemKey : e.Key;
+        if (key == Key.Tab && (Keyboard.Modifiers == ModifierKeys.None || Keyboard.Modifiers == ModifierKeys.Shift))
+            return;
+
+        e.Handled = true;
+        if (key == Key.Escape)
+        {
+            ResetAllShortcutsButton.Focus();
+            return;
+        }
+
+        if (key is Key.Back or Key.Delete && Keyboard.Modifiers == ModifierKeys.None)
+        {
+            ApplyQuickTextsTriggerFromSettings(HotKeyTextService.DefaultTriggerShortcut);
+            return;
+        }
+
+        var vk = (uint)KeyInterop.VirtualKeyFromKey(key);
+        if (HotKeyTextService.EhModificador(vk))
+            return;
+
+        var ctrl = (Keyboard.Modifiers & ModifierKeys.Control) != 0;
+        var alt = (Keyboard.Modifiers & ModifierKeys.Alt) != 0;
+        var shift = (Keyboard.Modifiers & ModifierKeys.Shift) != 0;
+
+        if (!HotKeyTextService.TryFormatTriggerShortcut(ctrl, alt, shift, vk, out var formatted))
+        {
+            DialogFeedbackText.Text = L.Text("Use uma tecla dedicada (Scroll Lock, Pause, Insert, F1–F12) ou combine com Ctrl/Alt (ex.: Ctrl+Espaço).");
+            return;
+        }
+
+        ApplyQuickTextsTriggerFromSettings(formatted);
+    }
+
+    private void ResetQuickTextsTriggerButton_Click(object sender, RoutedEventArgs e)
+    {
+        ApplyQuickTextsTriggerFromSettings(HotKeyTextService.DefaultTriggerShortcut);
+    }
+
+    private void ApplyQuickTextsTriggerFromSettings(string shortcut)
+    {
+        if (ResolveQuickTextsService() is { } qts)
+        {
+            qts.SetTriggerShortcut(shortcut);
+        }
+        else if (Application.Current is App { IsIsolatedHost: false })
+        {
+            using var tempService = new HotKeyTextService(installGlobalHooks: false);
+            tempService.SetTriggerShortcut(shortcut);
+        }
+
+        RefreshShortcutsTabUI();
+        DialogFeedbackText.Text = L.Format("Tecla de abertura dos Textos rápidos definida para {0}.", shortcut);
+    }
+
     private void SaveButton_Click(object sender, RoutedEventArgs e)
     {
+        if (!StartupWebsitesService.ValidateSettingsInputs(
+                StartupSite1Box.Text,
+                StartupSite2Box.Text,
+                StartupSite3Box.Text,
+                out var normSite1,
+                out var normSite2,
+                out var normSite3,
+                out var invalidSiteSlot))
+        {
+            SettingsTabs.SelectedIndex = TabGeneralIndex;
+            MessageBox.Show(
+                this,
+                L.Format("O endereço informado no Site {0} não é uma URL HTTP/HTTPS válida.", invalidSiteSlot),
+                L.Text("Validação"),
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            (invalidSiteSlot switch
+            {
+                1 => StartupSite1Box,
+                2 => StartupSite2Box,
+                _ => StartupSite3Box
+            }).Focus();
+            return;
+        }
+
         var mstscCandidate = MstscPathBox.Text.Trim();
         if (!string.IsNullOrWhiteSpace(mstscCandidate) && !ExternalClientDetector.IsExecutableValid(mstscCandidate, out var resolvedMstsc))
         {
@@ -409,6 +674,20 @@ public partial class ExecutablesSettingsDialog : Window
         };
 
         s.RegisterRdpCredentialsInWindowsVault = RegisterRdpVaultCheck.IsChecked == true;
+        s.OpenStartupWebsites = OpenStartupWebsitesCheck.IsChecked == true;
+        s.StartupWebsite1 = normSite1;
+        s.StartupWebsite2 = normSite2;
+        s.StartupWebsite3 = normSite3;
+
+        var startWithWin = StartWithWindowsSettingsCheck.IsChecked == true;
+        if (ResolveQuickTextsService() is { } qts)
+        {
+            qts.StartWithWindows = startWithWin;
+        }
+        else if (Application.Current is App { IsIsolatedHost: false })
+        {
+            HotKeyTextService.SetDefaultStartWithWindows(startWithWin);
+        }
 
         if (int.TryParse(ClipboardClearSecondsBox.Text, out var clipSec))
             s.ClipboardClearSeconds = Math.Clamp(clipSec, 5, 300);

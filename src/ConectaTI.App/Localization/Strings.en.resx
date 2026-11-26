@@ -2373,4 +2373,51 @@ Save anyway?</value>
   <data name="TextA4F3AB73BFA2" xml:space="preserve"><value>Exclusive source: MaxBSilva/ConectaTI. Checks the latest stable Release, validates authenticity and integrity (SHA-256), and preserves database, credentials, settings, backups, and quick texts.</value></data>
   <data name="TextEB780EFF17CA" xml:space="preserve"><value>HotKeyText v1.3.0 — Quick text shortcuts via Scroll Lock (original source code by Vinícius da Veiga at viniciusdaveigaa/HotKeyText, integrated and compiled in ConectaTI).</value></data>
   <data name="TextEDFCC7E87CB1" xml:space="preserve"><value>Restore previous version</value></data>
+  <data name="Text0C642BC97FEE" xml:space="preserve"><value>Copy access details</value></data>
+  <data name="Text84A9AD23B007" xml:space="preserve"><value>Copy Password</value></data>
+  <data name="TextCF8AE51FE56B" xml:space="preserve"><value>Copy formatted username and domain</value></data>
+  <data name="TextA31BAC5D484E" xml:space="preserve"><value>Copy stored password for this credential</value></data>
+  <data name="TextBDDCE79F9036" xml:space="preserve"><value>Copies credential name, username/domain, saved password, and notes</value></data>
+  <data name="Text44FCB12C4897" xml:space="preserve"><value>Credential</value></data>
+  <data name="Text12EFB3934092" xml:space="preserve"><value>No username entered in this credential.</value></data>
+  <data name="TextC7519A63BC88" xml:space="preserve"><value>Username copied.</value></data>
+  <data name="TextC2F0149D8B23" xml:space="preserve"><value>Could not access the clipboard.</value></data>
+  <data name="Text15274CB26AF4" xml:space="preserve"><value>Password copied (auto-clear in {0}s).</value></data>
+  <data name="TextE4ADEB170A1A" xml:space="preserve"><value>No information filled in to copy.</value></data>
+  <data name="TextFC55ACA8F617" xml:space="preserve"><value>Access details copied (auto-clear in {0}s).</value></data>
+  <data name="TextA5D10589B96B" xml:space="preserve"><value>Access details copied.</value></data>
+  <data name="Text1A4CB168ACCF" xml:space="preserve"><value>Windows startup and automatic websites</value></data>
+  <data name="Text233441F77C68" xml:space="preserve"><value>Starts with Windows and opens up to 3 websites in the default browser (e.g., helpdesk, monitoring, or internal portal).</value></data>
+  <data name="TextD4281ADAC641" xml:space="preserve"><value>Start ConectaTI with Windows</value></data>
+  <data name="Text84DECD6AD6C4" xml:space="preserve"><value>Automatically open the websites below when Windows starts</value></data>
+  <data name="TextACBD26C13DD7" xml:space="preserve"><value>Website 1</value></data>
+  <data name="TextDF8496D3FCBF" xml:space="preserve"><value>Website 2</value></data>
+  <data name="TextD5C4E50ADDE9" xml:space="preserve"><value>Website 3</value></data>
+  <data name="TextE51D940F5D3B" xml:space="preserve"><value>E.g.: https://helpdesk.company.com</value></data>
+  <data name="Text110D350991CB" xml:space="preserve"><value>E.g.: https://monitoring.company.com</value></data>
+  <data name="Text3E5D0C87475E" xml:space="preserve"><value>E.g.: https://intranet.company.com</value></data>
+  <data name="Text8ACC529B96F8" xml:space="preserve"><value>Open websites now</value></data>
+  <data name="TextA46949E2E9B7" xml:space="preserve"><value>The address entered in Website {0} is not a valid HTTP/HTTPS URL.</value></data>
+  <data name="Text3C5A21884BAE" xml:space="preserve"><value>Enter at least one website (Website 1 to 3) to open in the browser.</value></data>
+  <data name="Text30A62C460C88" xml:space="preserve"><value>{0} website(s) opened in the default browser.</value></data>
+  <data name="Text4549473EDDE7" xml:space="preserve"><value>Restore defaults</value></data>
+  <data name="TextE3193131D44A" xml:space="preserve"><value>Restores all configurable shortcuts to their original defaults</value></data>
+  <data name="Text0758C00E6EA0" xml:space="preserve"><value>Default</value></data>
+  <data name="TextFB9843DB7123" xml:space="preserve"><value>Restore default shortcut</value></data>
+  <data name="Text64A9F8E77C6A" xml:space="preserve"><value>Shortcut to open Quick Texts</value></data>
+  <data name="Text738C4A51E37C" xml:space="preserve"><value>Press a dedicated key (e.g., Scroll Lock, Pause, Insert, F8–F12) or Ctrl/Alt combination (e.g., Ctrl+Space).</value></data>
+  <data name="Text589F01A36BD9" xml:space="preserve"><value>Trigger key:</value></data>
+  <data name="Text966A3E719813" xml:space="preserve"><value>Click and press the new key or combination</value></data>
+  <data name="Text6C4AABABAB72" xml:space="preserve"><value>{0} - version {1}</value></data>
+  <data name="TextDDDBABD62B67" xml:space="preserve"><value>Quick Texts ({0})</value></data>
+  <data name="Text3DC601082287" xml:space="preserve"><value>Quick Texts panel opened ({0} and shortcuts active in the ConectaTI process).</value></data>
+  <data name="Text7851B0AEC749" xml:space="preserve"><value>Quick Texts panel collapsed ({0} and shortcuts remain active).</value></data>
+  <data name="Text04DFCBA5F2A3" xml:space="preserve"><value>Shortcut restored to default.</value></data>
+  <data name="Text6AA54C3BDD92" xml:space="preserve"><value>Standard editing shortcuts (Ctrl+C, Ctrl+V, Ctrl+X, Ctrl+A, Ctrl+Z) are reserved.</value></data>
+  <data name="Text2115C3BE9893" xml:space="preserve"><value>Use F1–F12 or combine the key with Ctrl or Alt (e.g., Ctrl+Shift+N).</value></data>
+  <data name="TextCA5871768F59" xml:space="preserve"><value>Shortcut '{0}' is already in use by '{1}'.</value></data>
+  <data name="TextB499EE57074A" xml:space="preserve"><value>Shortcut updated to {0}.</value></data>
+  <data name="TextA62B7CBD14CD" xml:space="preserve"><value>All shortcuts have been restored to defaults.</value></data>
+  <data name="Text62A7C768E9E7" xml:space="preserve"><value>Use a dedicated key (Scroll Lock, Pause, Insert, F1–F12) or combine with Ctrl/Alt (e.g., Ctrl+Space).</value></data>
+  <data name="Text1467CB51BB23" xml:space="preserve"><value>Quick Texts trigger key set to {0}.</value></data>
 </root>

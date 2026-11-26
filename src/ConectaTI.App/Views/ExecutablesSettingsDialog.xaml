@@ -3,6 +3,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:loc="clr-namespace:ConectaTI.App.Localization"
+        xmlns:helpers="clr-namespace:ConectaTI.App.Helpers"
         Title="{loc:Loc Text5ADE38599061}"
         Icon="pack://application:,,,/ConectaTI;component/Assets/conectati.ico"
         Width="780" Height="650"
@@ -12,6 +13,9 @@
         Foreground="{DynamicResource PrimaryTextBrush}"
         UseLayoutRounding="True"
         SnapsToDevicePixels="True">
+    <Window.Resources>
+        <helpers:StringEmptyToVisibilityConverter x:Key="StringEmptyToVis"/>
+    </Window.Resources>
     <Grid Background="{DynamicResource AppBackgroundBrush}" Margin="16">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -141,7 +145,75 @@
                             </StackPanel>
                         </Border>
 
-                        <!-- Bloco 5: Textos rápidos integrados (HotKeyText por Vinícius da Veiga) -->
+                        <!-- Bloco 5: Inicialização com o Windows e sites automáticos (até 3 URLs) -->
+                        <Border Style="{DynamicResource SectionCardBorderStyle}" Margin="0,0,0,12">
+                            <StackPanel>
+                                <DockPanel Margin="0,0,0,4">
+                                    <Border DockPanel.Dock="Right" Background="{DynamicResource SubtleBadgeBackgroundBrush}" CornerRadius="3" Padding="6,2" VerticalAlignment="Center" Margin="8,0,0,0">
+                                        <TextBlock TextWrapping="Wrap" Text="{loc:Loc Text0C7F48135A18}" FontSize="{DynamicResource Font10_5}" Foreground="{DynamicResource SecondaryTextBrush}"/>
+                                    </Border>
+                                    <TextBlock TextWrapping="Wrap" Text="{loc:Loc Text1A4CB168ACCF}" FontSize="{DynamicResource Font13_5}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                </DockPanel>
+
+                                <TextBlock TextWrapping="Wrap" Text="{loc:Loc Text233441F77C68}"
+                                           FontSize="{DynamicResource Font12}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,8"/>
+
+                                <CheckBox x:Name="StartWithWindowsSettingsCheck"
+                                          Content="{loc:Loc TextD4281ADAC641}"
+                                          Margin="0,0,0,6"/>
+
+                                <CheckBox x:Name="OpenStartupWebsitesCheck"
+                                          Content="{loc:Loc Text84DECD6AD6C4}"
+                                          Margin="0,0,0,10"/>
+
+                                <!-- Site 1 -->
+                                <TextBlock Text="{loc:Loc TextACBD26C13DD7}" FontSize="{DynamicResource Font11_5}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,2"/>
+                                <Grid Margin="0,0,0,8">
+                                    <TextBox x:Name="StartupSite1Box"/>
+                                    <TextBlock Text="{loc:Loc TextE51D940F5D3B}"
+                                               Visibility="{Binding Text, ElementName=StartupSite1Box, Converter={StaticResource StringEmptyToVis}}"
+                                               IsHitTestVisible="False"
+                                               VerticalAlignment="Center"
+                                               Margin="8,0,0,0"
+                                               FontSize="{DynamicResource Font12}"
+                                               Foreground="{DynamicResource MutedTextBrush}"/>
+                                </Grid>
+
+                                <!-- Site 2 -->
+                                <TextBlock Text="{loc:Loc TextDF8496D3FCBF}" FontSize="{DynamicResource Font11_5}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,2"/>
+                                <Grid Margin="0,0,0,8">
+                                    <TextBox x:Name="StartupSite2Box"/>
+                                    <TextBlock Text="{loc:Loc Text110D350991CB}"
+                                               Visibility="{Binding Text, ElementName=StartupSite2Box, Converter={StaticResource StringEmptyToVis}}"
+                                               IsHitTestVisible="False"
+                                               VerticalAlignment="Center"
+                                               Margin="8,0,0,0"
+                                               FontSize="{DynamicResource Font12}"
+                                               Foreground="{DynamicResource MutedTextBrush}"/>
+                                </Grid>
+
+                                <!-- Site 3 -->
+                                <TextBlock Text="{loc:Loc TextD5C4E50ADDE9}" FontSize="{DynamicResource Font11_5}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,2"/>
+                                <Grid Margin="0,0,0,10">
+                                    <TextBox x:Name="StartupSite3Box"/>
+                                    <TextBlock Text="{loc:Loc Text3E5D0C87475E}"
+                                               Visibility="{Binding Text, ElementName=StartupSite3Box, Converter={StaticResource StringEmptyToVis}}"
+                                               IsHitTestVisible="False"
+                                               VerticalAlignment="Center"
+                                               Margin="8,0,0,0"
+                                               FontSize="{DynamicResource Font12}"
+                                               Foreground="{DynamicResource MutedTextBrush}"/>
+                                </Grid>
+
+                                <Button x:Name="OpenStartupWebsitesNowButton"
+                                        Content="{loc:Loc Text8ACC529B96F8}"
+                                        Click="OpenStartupWebsitesNow_Click"
+                                        HorizontalAlignment="Left"
+                                        Padding="12,6"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Bloco 6: Textos rápidos integrados (HotKeyText por Vinícius da Veiga) -->
                         <Border Style="{DynamicResource SectionCardBorderStyle}">
                             <StackPanel>
                                 <TextBlock TextWrapping="Wrap" Text="{loc:Loc TextAE29611184C1}" FontSize="{DynamicResource Font13_5}" FontWeight="SemiBold" Margin="0,0,0,4"/>
@@ -392,8 +464,60 @@
             <TabItem Header="{loc:Loc Text4F30B1F869E5}">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16">
                     <StackPanel>
-                        <TextBlock TextWrapping="Wrap" Text="{loc:Loc Text0B6358F3B7D3}" FontSize="{DynamicResource Font14}" FontWeight="SemiBold" Margin="0,0,0,4"/>
-                        <TextBlock TextWrapping="Wrap" Text="{loc:Loc Text9818D4913D2F}" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="{DynamicResource Font12}" Margin="0,0,0,12"/>
+                        <DockPanel Margin="0,0,0,10">
+                            <Button x:Name="ResetAllShortcutsButton"
+                                    DockPanel.Dock="Right"
+                                    Content="{loc:Loc Text4549473EDDE7}"
+                                    Click="ResetAllShortcuts_Click"
+                                    Padding="12,5"
+                                    Margin="8,0,0,0"
+                                    VerticalAlignment="Top"
+                                    ToolTip="{loc:Loc TextE3193131D44A}"/>
+                            <StackPanel>
+                                <TextBlock TextWrapping="Wrap" Text="{loc:Loc Text0B6358F3B7D3}" FontSize="{DynamicResource Font14}" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                                <TextBlock TextWrapping="Wrap" Text="{loc:Loc Text9818D4913D2F}" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="{DynamicResource Font12}"/>
+                            </StackPanel>
+                        </DockPanel>
+
+                        <!-- Atalho global de Textos rápidos (padrão: Scroll Lock) -->
+                        <Border Style="{DynamicResource SectionCardBorderStyle}" Margin="0,0,0,10">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="195"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid Grid.Column="0" VerticalAlignment="Center">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox x:Name="SettingsQuickTextsTriggerBox"
+                                             Grid.Column="0"
+                                             IsReadOnly="True"
+                                             Cursor="Hand"
+                                             TextAlignment="Center"
+                                             FontFamily="Consolas"
+                                             FontWeight="SemiBold"
+                                             FontSize="{DynamicResource Font11_5}"
+                                             GotKeyboardFocus="SettingsQuickTextsTriggerBox_GotKeyboardFocus"
+                                             LostKeyboardFocus="SettingsQuickTextsTriggerBox_LostKeyboardFocus"
+                                             PreviewKeyDown="SettingsQuickTextsTriggerBox_PreviewKeyDown"
+                                             ToolTip="{loc:Loc Text966A3E719813}"/>
+                                    <Button x:Name="ResetQuickTextsTriggerButton"
+                                            Grid.Column="1"
+                                            Content="{loc:Loc Text0758C00E6EA0}"
+                                            Click="ResetQuickTextsTriggerButton_Click"
+                                            Padding="7,4"
+                                            Margin="4,0,0,0"
+                                            FontSize="{DynamicResource Font11}"
+                                            ToolTip="{loc:Loc TextFB9843DB7123}"/>
+                                </Grid>
+                                <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock Text="{loc:Loc Text64A9F8E77C6A}" FontWeight="SemiBold" FontSize="{DynamicResource Font12_5}" TextWrapping="Wrap"/>
+                                    <TextBlock Text="{loc:Loc Text738C4A51E37C}" FontSize="{DynamicResource Font11_5}" Foreground="{DynamicResource SecondaryTextBrush}" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
 
                         <ItemsControl x:Name="ShortcutsItemsControl">
                             <ItemsControl.ItemTemplate>
@@ -406,10 +530,13 @@
                                             Margin="0,0,0,6">
                                         <Grid>
                                             <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="125"/>
+                                                <ColumnDefinition Width="195"/>
                                                 <ColumnDefinition Width="*"/>
                                             </Grid.ColumnDefinitions>
+
+                                            <!-- Exibição somente leitura para teclas de navegação nativas -->
                                             <Border Grid.Column="0"
+                                                    Visibility="{Binding ReadOnlyVisibility}"
                                                     Background="{DynamicResource SubtleBadgeBackgroundBrush}"
                                                     BorderBrush="{DynamicResource BorderBrush}"
                                                     BorderThickness="1"
@@ -424,6 +551,39 @@
                                                            Foreground="{DynamicResource PrimaryTextBrush}"
                                                            TextWrapping="Wrap"/>
                                             </Border>
+
+                                            <!-- Captura personalizável + botão Padrão para ações configuráveis -->
+                                            <Grid Grid.Column="0"
+                                                  Visibility="{Binding ConfigurableVisibility}"
+                                                  VerticalAlignment="Top">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBox Grid.Column="0"
+                                                         Text="{Binding Shortcut, Mode=OneWay}"
+                                                         Tag="{Binding ActionId}"
+                                                         IsReadOnly="True"
+                                                         Cursor="Hand"
+                                                         TextAlignment="Center"
+                                                         FontFamily="Consolas"
+                                                         FontWeight="SemiBold"
+                                                         FontSize="{DynamicResource Font11_5}"
+                                                         GotKeyboardFocus="CustomShortcutBox_GotKeyboardFocus"
+                                                         LostKeyboardFocus="CustomShortcutBox_LostKeyboardFocus"
+                                                         PreviewKeyDown="CustomShortcutBox_PreviewKeyDown"
+                                                         ToolTip="{loc:Loc Text966A3E719813}"/>
+                                                <Button Grid.Column="1"
+                                                        Content="{loc:Loc Text0758C00E6EA0}"
+                                                        Tag="{Binding ActionId}"
+                                                        IsEnabled="{Binding IsCustomized}"
+                                                        Click="ResetSingleShortcut_Click"
+                                                        Padding="7,4"
+                                                        Margin="4,0,0,0"
+                                                        FontSize="{DynamicResource Font11}"
+                                                        ToolTip="{loc:Loc TextFB9843DB7123}"/>
+                                            </Grid>
+
                                             <StackPanel Grid.Column="1" Margin="10,0,0,0">
                                                 <WrapPanel VerticalAlignment="Center">
                                                     <TextBlock Text="{Binding Action}" FontWeight="SemiBold" FontSize="{DynamicResource Font12_5}" TextWrapping="Wrap" Margin="0,0,8,0"/>

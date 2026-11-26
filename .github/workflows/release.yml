@@ -1,0 +1,106 @@
+name: Build, Testes Windows e Publicação de Release
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*.*.*"
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      publish_release:
+        description: "Publicar nova GitHub Release para os usuários?"
+        required: false
+        default: false
+        type: boolean
+      release_version:
+        description: "Versão da Release (ex.: 2.1.0 — obrigatório se publish_release = true)"
+        required: false
+        default: ""
+        type: string
+      draft_only:
+        description: "Criar apenas como rascunho (Draft) para revisão manual?"
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  windows-build-and-release:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Instalar .NET 10 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Determinar modo (Validação CI vs Publicação de Release)
+        id: mode
+        shell: pwsh
+        run: |
+          $isTag = "${{ github.ref }}" -match '^refs/tags/v(\d+\.\d+\.\d+)$'
+          $manualPublish = "${{ inputs.publish_release }}" -eq "true"
+
+          if ($isTag) {
+            $ver = $Matches[1]
+            "should_release=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            "version=$ver" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          } elseif ($manualPublish) {
+            $ver = "${{ inputs.release_version }}".Trim().TrimStart('v', 'V')
+            if ($ver -notmatch '^\d+\.\d+\.\d+$') {
+              throw "Informe uma versão semântica válida (ex.: 2.1.0) em release_version."
+            }
+            "should_release=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            "version=$ver" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          } else {
+            "should_release=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          }
+
+      - name: Compilar e executar suíte completa de testes (CI)
+        if: steps.mode.outputs.should_release != 'true'
+        shell: pwsh
+        run: |
+          dotnet build ConectaTI.slnx -c Release
+          dotnet test ConectaTI.slnx -c Release --no-build --logger "trx;LogFileName=ci-tests.trx" --results-directory artifacts/test-results
+
+      - name: Gerar pacote portátil win-x64 + release-manifest.json (com testes)
+        if: steps.mode.outputs.should_release == 'true'
+        shell: pwsh
+        run: |
+          $ver = "${{ steps.mode.outputs.version }}"
+          .\tools\Publish-Release.ps1 -Version $ver -Overwrite
+
+      - name: Publicar GitHub Release oficial para o AppUpdateService
+        if: steps.mode.outputs.should_release == 'true'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $ver = "${{ steps.mode.outputs.version }}"
+          $tag = "v$ver"
+          $zipPath = "dist/ConectaTI-$ver-win-x64.zip"
+          $manifestPath = "dist/release-manifest.json"
+          $draftFlag = if ("${{ inputs.draft_only }}" -eq "true") { @("--draft") } else { @() }
+
+          if (-not (Test-Path -LiteralPath $zipPath) -or -not (Test-Path -LiteralPath $manifestPath)) {
+            throw "Artefatos obrigatórios da Release não encontrados ($zipPath / $manifestPath)."
+          }
+
+          gh release view $tag *> $null
+          if ($LASTEXITCODE -eq 0) {
+            gh release upload $tag $zipPath $manifestPath --clobber
+          } else {
+            gh release create $tag $zipPath $manifestPath `
+              --target "${{ github.sha }}" `
+              --title "ConectaTI $tag" `
+              --generate-notes `
+              @draftFlag
+          }

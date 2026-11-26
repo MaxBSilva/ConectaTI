@@ -133,6 +133,9 @@ public sealed class HotKeyTextConfig
     [XmlElement("TemaEscuro")]
     public bool TemaEscuro { get; set; } = true;
 
+    [XmlElement("AtalhoAtivacao")]
+    public string AtalhoAtivacao { get; set; } = string.Empty;
+
     [XmlArray("Textos")]
     [XmlArrayItem("TextoItem")]
     public List<TextoItem> Textos { get; set; } = [];
@@ -323,6 +326,7 @@ public sealed class HotKeyTextService : IDisposable
     public const string AuthorCredit = "Vinícius da Veiga";
     public const string OriginReference = "viniciusdaveigaa/HotKeyText@7b5791b39e59c96a4203ed3a71ad7e73f8f125ac";
 
+    public const string DefaultTriggerShortcut = "Scroll Lock";
     public const string DefaultMutexName = "HotKeyText_InstanciaUnica";
     public const string DefaultOpenManagerEventName = "HotKeyText_AbrirGerenciador";
     public const string DefaultShutdownEventName = "HotKeyText_EncerrarParaAtualizacao";
@@ -347,6 +351,10 @@ public sealed class HotKeyTextService : IDisposable
     private IntPtr _msHook = IntPtr.Zero;
     private DispatcherTimer? _wtsPollingTimer;
     private QuickTextsPopupWindow? _popupWindow;
+    private uint _triggerVk = 0x91;
+    private bool _triggerCtrl;
+    private bool _triggerAlt;
+    private bool _triggerShift;
     private bool _scrollLockPressed;
     private int _isTyping;
     private bool _disposed;
@@ -356,10 +364,14 @@ public sealed class HotKeyTextService : IDisposable
     private IntPtr _popupTargetWindow = IntPtr.Zero;
 
     public HotKeyTextConfig Config { get; private set; } = new();
+    public string EffectiveTriggerDisplay { get; private set; } = DefaultTriggerShortcut;
+    public uint TriggerVirtualKey => _triggerVk;
+    public bool TriggerRequiresModifiers => _triggerCtrl || _triggerAlt || _triggerShift;
     public bool IsHookActive { get; private set; }
     public bool HasStandaloneConflict { get; private set; }
     public string ConflictMessage { get; private set; } = string.Empty;
     public bool IsCapturingShortcut { get; set; }
+    public bool IsCapturingTriggerShortcut { get; set; }
     public bool IsPopupOpen { get; private set; }
 
     /// <summary>
@@ -608,22 +620,91 @@ public sealed class HotKeyTextService : IDisposable
         return true;
     }
 
+    private bool AreCurrentModifiersMatchingTrigger()
+    {
+        var ctrl = (HotKeyNative.GetAsyncKeyState(0x11) & 0x8000) != 0;
+        var alt = (HotKeyNative.GetAsyncKeyState(0x12) & 0x8000) != 0;
+        var shift = (HotKeyNative.GetAsyncKeyState(0x10) & 0x8000) != 0;
+        return ctrl == _triggerCtrl && alt == _triggerAlt && shift == _triggerShift;
+    }
+
     private void OnWtsPollingTick(object? sender, EventArgs e)
     {
         CaptureCurrentForegroundAsTargetIfExternal();
 
-        if (IsCapturingShortcut)
+        if (IsCapturingShortcut || IsCapturingTriggerShortcut)
             return;
 
-        var down = (HotKeyNative.GetAsyncKeyState(0x91) & 0x8000) != 0;
-        if (down && !_scrollLockPressed)
+        var keyDown = (HotKeyNative.GetAsyncKeyState((int)_triggerVk) & 0x8000) != 0;
+        var fullMatch = keyDown && AreCurrentModifiersMatchingTrigger();
+        if (fullMatch && !_scrollLockPressed)
         {
             _scrollLockPressed = true;
             TogglePopup();
         }
-        else if (!down && _scrollLockPressed)
+        else if (!keyDown && _scrollLockPressed)
         {
             _scrollLockPressed = false;
+        }
+    }
+
+    public static string BuildStartupRegistryValue(string? exePathOverride = null)
+    {
+        var exePath = string.IsNullOrWhiteSpace(exePathOverride)
+            ? (Environment.ProcessPath ?? Path.Combine(AppContext.BaseDirectory, "ConectaTI.exe"))
+            : exePathOverride;
+        return $"\"{exePath}\" {StartupWebsitesService.WindowsStartupArg}";
+    }
+
+    public static bool GetDefaultStartWithWindows()
+    {
+        try
+        {
+            using var key = Registry.CurrentUser.OpenSubKey(RunRegistrySubKey, writable: false);
+            return key?.GetValue(DefaultRunValueName) is not null;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    public static void SetDefaultStartWithWindows(bool enabled)
+    {
+        try
+        {
+            using var key = Registry.CurrentUser.CreateSubKey(RunRegistrySubKey);
+            if (key is null) return;
+            if (enabled)
+            {
+                key.SetValue(DefaultRunValueName, BuildStartupRegistryValue());
+            }
+            else
+            {
+                key.DeleteValue(DefaultRunValueName, throwOnMissingValue: false);
+            }
+        }
+        catch
+        {
+            // Ignorado em ambientes restritos
+        }
+    }
+
+    public static void UpgradeStartupCommandIfPresent(string? customRunValueName = null)
+    {
+        var targetName = string.IsNullOrWhiteSpace(customRunValueName) ? DefaultRunValueName : customRunValueName!;
+        try
+        {
+            using var key = Registry.CurrentUser.OpenSubKey(RunRegistrySubKey, writable: true);
+            if (key?.GetValue(targetName) is string currentVal &&
+                !currentVal.Contains(StartupWebsitesService.WindowsStartupArg, StringComparison.OrdinalIgnoreCase))
+            {
+                key.SetValue(targetName, BuildStartupRegistryValue());
+            }
+        }
+        catch
+        {
+            // Ignorado em ambientes restritos
         }
     }
 
@@ -649,8 +730,7 @@ public sealed class HotKeyTextService : IDisposable
                 if (key is null) return;
                 if (value)
                 {
-                    var exePath = Environment.ProcessPath ?? Path.Combine(AppContext.BaseDirectory, "ConectaTI.exe");
-                    key.SetValue(_runValueName, $"\"{exePath}\"");
+                    key.SetValue(_runValueName, BuildStartupRegistryValue());
                 }
                 else
                 {
@@ -693,6 +773,7 @@ public sealed class HotKeyTextService : IDisposable
                 if (serializer.Deserialize(fs) is HotKeyTextConfig loaded)
                 {
                     loaded.Textos ??= [];
+                    loaded.AtalhoAtivacao ??= string.Empty;
                     for (var i = 0; i < loaded.Textos.Count; i++)
                     {
                         loaded.Textos[i].Atalho ??= string.Empty;
@@ -701,6 +782,7 @@ public sealed class HotKeyTextService : IDisposable
                         loaded.Textos[i].DisplayIndex = i;
                     }
                     Config = loaded;
+                    ApplyTriggerInternal(Config.AtalhoAtivacao);
                     return;
                 }
             }
@@ -714,6 +796,7 @@ public sealed class HotKeyTextService : IDisposable
         {
             ModoColar = false,
             TemaEscuro = true,
+            AtalhoAtivacao = string.Empty,
             Textos =
             [
                 new TextoItem
@@ -726,6 +809,7 @@ public sealed class HotKeyTextService : IDisposable
                 }
             ]
         };
+        ApplyTriggerInternal(Config.AtalhoAtivacao);
         Save();
     }
 
@@ -819,6 +903,225 @@ public sealed class HotKeyTextService : IDisposable
 
     public static bool EhModificador(uint vk)
         => vk == 0x10 || vk == 0x11 || vk == 0x12 || (vk >= 0xA0 && vk <= 0xA5) || vk == 0x5B || vk == 0x5C || vk == 0x14;
+
+    public static bool EhTeclaGatilhoDedicada(uint vk)
+        => vk is 0x91 or 0x13 or 0x2D or 0x90 or (>= 0x70 and <= 0x87);
+
+    public static string NomeDaTeclaGatilho(uint vk)
+    {
+        if (vk >= 0x70 && vk <= 0x87) return "F" + (vk - 0x6F);
+        return vk switch
+        {
+            0x91 => DefaultTriggerShortcut,
+            0x13 => "Pause",
+            0x2D => "Insert",
+            0x90 => "Num Lock",
+            0xC0 => "'",
+            _ => NomeDaTeclaBase(vk)
+        };
+    }
+
+    public static bool TryFormatTriggerShortcut(bool ctrl, bool alt, bool shift, uint vk, out string formatted)
+    {
+        formatted = string.Empty;
+        if (EhModificador(vk) || vk is 0x1B or 0x0D)
+            return false;
+
+        var baseName = NomeDaTeclaGatilho(vk);
+        if (string.IsNullOrEmpty(baseName))
+            return false;
+
+        if (!EhTeclaGatilhoDedicada(vk) && !ctrl && !alt)
+            return false;
+
+        var sb = new StringBuilder();
+        if (ctrl) sb.Append("Ctrl+");
+        if (alt) sb.Append("Alt+");
+        if (shift) sb.Append("Shift+");
+        sb.Append(baseName);
+        formatted = sb.ToString();
+        return true;
+    }
+
+    public static bool TryParseTriggerShortcut(
+        string? raw,
+        out bool ctrl,
+        out bool alt,
+        out bool shift,
+        out uint vk,
+        out string canonicalDisplay)
+    {
+        ctrl = false;
+        alt = false;
+        shift = false;
+        vk = 0x91;
+        canonicalDisplay = DefaultTriggerShortcut;
+
+        if (string.IsNullOrWhiteSpace(raw))
+            return true;
+
+        var trimmed = raw.Trim();
+        if (string.Equals(trimmed, DefaultTriggerShortcut, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(trimmed, "ScrollLock", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        var parts = trimmed.Split('+', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (parts.Length == 0)
+            return true;
+
+        string? baseToken = null;
+        for (var i = 0; i < parts.Length; i++)
+        {
+            var token = parts[i];
+            if (string.Equals(token, "Ctrl", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(token, "Control", StringComparison.OrdinalIgnoreCase))
+            {
+                ctrl = true;
+            }
+            else if (string.Equals(token, "Alt", StringComparison.OrdinalIgnoreCase))
+            {
+                alt = true;
+            }
+            else if (string.Equals(token, "Shift", StringComparison.OrdinalIgnoreCase))
+            {
+                shift = true;
+            }
+            else if (baseToken is null && i == parts.Length - 1)
+            {
+                baseToken = token;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        if (string.IsNullOrWhiteSpace(baseToken) || !TryMapTriggerTokenToVk(baseToken, out vk))
+            return false;
+
+        return TryFormatTriggerShortcut(ctrl, alt, shift, vk, out canonicalDisplay);
+    }
+
+    private static bool TryMapTriggerTokenToVk(string token, out uint vk)
+    {
+        vk = 0;
+        if (string.Equals(token, DefaultTriggerShortcut, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(token, "ScrollLock", StringComparison.OrdinalIgnoreCase))
+        {
+            vk = 0x91;
+            return true;
+        }
+        if (string.Equals(token, "Pause", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(token, "Break", StringComparison.OrdinalIgnoreCase))
+        {
+            vk = 0x13;
+            return true;
+        }
+        if (string.Equals(token, "Insert", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(token, "Ins", StringComparison.OrdinalIgnoreCase))
+        {
+            vk = 0x2D;
+            return true;
+        }
+        if (string.Equals(token, "Num Lock", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(token, "NumLock", StringComparison.OrdinalIgnoreCase))
+        {
+            vk = 0x90;
+            return true;
+        }
+        if (token.Length is 2 or 3 &&
+            (token[0] == 'F' || token[0] == 'f') &&
+            int.TryParse(token.AsSpan(1), out var fn) &&
+            fn >= 1 && fn <= 24)
+        {
+            vk = (uint)(0x6F + fn);
+            return true;
+        }
+        if (string.Equals(token, "Espaço", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(token, "Espaco", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(token, "Space", StringComparison.OrdinalIgnoreCase))
+        {
+            vk = 0x20;
+            return true;
+        }
+        if (string.Equals(token, "Tab", StringComparison.OrdinalIgnoreCase))
+        {
+            vk = 0x09;
+            return true;
+        }
+        if (token.Length == 1)
+        {
+            var c = char.ToUpperInvariant(token[0]);
+            if (c is >= '0' and <= '9' || c is >= 'A' and <= 'Z')
+            {
+                vk = c;
+                return true;
+            }
+            vk = c switch
+            {
+                '-' => 0xBD,
+                '=' => 0xBB,
+                ',' => 0xBC,
+                '.' => 0xBE,
+                '/' => 0xBF,
+                ';' => 0xBA,
+                '[' => 0xDB,
+                ']' => 0xDD,
+                '\'' => 0xC0,
+                _ => 0u
+            };
+            return vk != 0;
+        }
+        return false;
+    }
+
+    private void ApplyTriggerInternal(string? raw)
+    {
+        if (TryParseTriggerShortcut(raw, out var ctrl, out var alt, out var shift, out var vk, out var canonical))
+        {
+            _triggerCtrl = ctrl;
+            _triggerAlt = alt;
+            _triggerShift = shift;
+            _triggerVk = vk;
+            EffectiveTriggerDisplay = canonical;
+        }
+        else
+        {
+            _triggerCtrl = false;
+            _triggerAlt = false;
+            _triggerShift = false;
+            _triggerVk = 0x91;
+            EffectiveTriggerDisplay = DefaultTriggerShortcut;
+        }
+        _scrollLockPressed = false;
+        _popupWindow?.UpdateHeaderTitle();
+    }
+
+    public bool SetTriggerShortcut(string? shortcut)
+    {
+        if (!TryParseTriggerShortcut(shortcut, out var ctrl, out var alt, out var shift, out var vk, out var canonical))
+            return false;
+
+        _triggerCtrl = ctrl;
+        _triggerAlt = alt;
+        _triggerShift = shift;
+        _triggerVk = vk;
+        EffectiveTriggerDisplay = canonical;
+        _scrollLockPressed = false;
+
+        Config.AtalhoAtivacao = string.Equals(canonical, DefaultTriggerShortcut, StringComparison.OrdinalIgnoreCase)
+            ? string.Empty
+            : canonical;
+        Save();
+        _popupWindow?.UpdateHeaderTitle();
+        StateChanged?.Invoke();
+        return true;
+    }
+
+    public void ResetTriggerShortcutToDefault()
+        => SetTriggerShortcut(DefaultTriggerShortcut);
 
     public int IndicePorAtalho(string combo)
     {
@@ -932,25 +1235,31 @@ public sealed class HotKeyTextService : IDisposable
         if (nCode >= 0)
         {
             var k = Marshal.PtrToStructure<HotKeyNative.KBDLLHOOKSTRUCT>(lParam);
-            if (k.extra != SyntheticInputMark && !IsCapturingShortcut)
+            if (k.extra != SyntheticInputMark && !IsCapturingShortcut && !IsCapturingTriggerShortcut)
             {
                 var msg = wParam.ToInt32();
                 var down = msg is 0x0100 or 0x0104;
                 var up = msg is 0x0101 or 0x0105;
                 var vk = k.vkCode;
 
-                if (vk == 0x91) // Scroll Lock
+                if (vk == _triggerVk)
                 {
-                    if (down && !_scrollLockPressed)
+                    if (down && AreCurrentModifiersMatchingTrigger())
                     {
-                        _scrollLockPressed = true;
-                        _dispatcher.BeginInvoke(DispatcherPriority.Send, new Action(TogglePopup));
+                        if (!_scrollLockPressed)
+                        {
+                            _scrollLockPressed = true;
+                            _swallowedKeys.Add(vk);
+                            _dispatcher.BeginInvoke(DispatcherPriority.Send, new Action(TogglePopup));
+                        }
+                        return (IntPtr)1;
                     }
-                    else if (up)
+                    else if (up && _scrollLockPressed)
                     {
                         _scrollLockPressed = false;
+                        _swallowedKeys.Remove(vk);
+                        return (IntPtr)1;
                     }
-                    return (IntPtr)1;
                 }
 
                 if (up && _swallowedKeys.Remove(vk))
@@ -1556,6 +1865,7 @@ public sealed class HotKeyTextService : IDisposable
 internal sealed class QuickTextsPopupWindow : Window
 {
     private readonly HotKeyTextService _service;
+    private readonly TextBlock _titleText;
     private readonly StackPanel _itemsPanel;
     private readonly List<Border> _rowBorders = [];
 
@@ -1614,15 +1924,15 @@ internal sealed class QuickTextsPopupWindow : Window
         DockPanel.SetDock(badgeBorder, Dock.Left);
         headerDock.Children.Add(badgeBorder);
 
-        var titleText = new TextBlock
+        _titleText = new TextBlock
         {
-            Text = "Textos rápidos (Scroll Lock)",
+            Text = L.Format("Textos rápidos ({0})", _service.EffectiveTriggerDisplay),
             FontWeight = FontWeights.SemiBold,
             FontSize = 13,
             VerticalAlignment = VerticalAlignment.Center
         };
-        titleText.SetResourceReference(TextBlock.ForegroundProperty, "PrimaryTextBrush");
-        headerDock.Children.Add(titleText);
+        _titleText.SetResourceReference(TextBlock.ForegroundProperty, "PrimaryTextBrush");
+        headerDock.Children.Add(_titleText);
         rootStack.Children.Add(headerDock);
 
         _itemsPanel = new StackPanel();
@@ -1672,6 +1982,11 @@ internal sealed class QuickTextsPopupWindow : Window
         Content = outerBorder;
     }
 
+    public void UpdateHeaderTitle()
+    {
+        _titleText.Text = L.Format("Textos rápidos ({0})", _service.EffectiveTriggerDisplay);
+    }
+
     protected override void OnSourceInitialized(EventArgs e)
     {
         base.OnSourceInitialized(e);
@@ -1700,6 +2015,7 @@ internal sealed class QuickTextsPopupWindow : Window
 
     public void ShowPopup()
     {
+        UpdateHeaderTitle();
         RebuildItemsList();
 
         var workArea = SystemParameters.WorkArea;

@@ -321,6 +321,7 @@ public partial class MainViewModel : ObservableObject
     public SettingsService SettingsService => _settingsService;
     public SqliteRepository Repository => _repository;
     public CredentialVaultService VaultService => _vaultService;
+    public ITextClipboard ClipboardService => _clipboardService;
     public ImportExportService ImportExportService => _importExportService;
     public AppDiagnosticService AppDiagnosticService => _appDiagnosticService;
 

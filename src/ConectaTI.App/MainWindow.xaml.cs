@@ -75,7 +75,6 @@ public partial class MainWindow : Window
     public MainWindow(MainViewModel viewModel, HotKeyTextService? quickTextsService = null)
     {
         InitializeComponent();
-        QuickTextsSubheaderText.Text = L.Format("Scroll Lock - versão {0}", AppUpdateService.GetInstalledVersion());
         LocalizedWindow.Attach(this);
         _vm = viewModel;
         DataContext = _vm;
@@ -99,6 +98,7 @@ public partial class MainWindow : Window
                 installGlobalHooks: false);
         }
 
+        RefreshQuickTextsTriggerUI();
         _quickTextsService.AttachMainWindow(this);
         _quickTextsService.ManageRequestedFromPopup += () =>
         {
@@ -107,7 +107,11 @@ public partial class MainWindow : Window
             Activate();
             OpenQuickTextsPanel();
         };
-        _quickTextsService.StateChanged += () => Dispatcher.BeginInvoke(new Action(UpdateQuickTextsConflictBanner));
+        _quickTextsService.StateChanged += () => Dispatcher.BeginInvoke(new Action(() =>
+        {
+            UpdateQuickTextsConflictBanner();
+            RefreshQuickTextsTriggerUI();
+        }));
 
         _quickTextsSaveDebounceTimer = new DispatcherTimer
         {
@@ -405,86 +409,89 @@ public partial class MainWindow : Window
 
     private async void Window_PreviewKeyDown(object sender, KeyEventArgs e)
     {
-        if (Keyboard.Modifiers == ModifierKeys.Control)
+        if (QuickTextShortcutBox.IsKeyboardFocusWithin || QuickTextTriggerKeyBox.IsKeyboardFocusWithin)
+            return;
+
+        var actualKey = e.Key == Key.System ? e.SystemKey : e.Key;
+        if (KeyboardShortcutsCatalog.TryMatchAction(_vm.SettingsService.Current, actualKey, Keyboard.Modifiers, out var matchedAction))
         {
-            switch (e.Key)
+            switch (matchedAction)
             {
-                case Key.S:
+                case KeyboardShortcutsCatalog.ActionSaveConnection:
                     e.Handled = true;
                     await _vm.SaveConnectionAsync();
                     SyncPasswordControls();
-                    break;
+                    return;
 
-                case Key.N:
+                case KeyboardShortcutsCatalog.ActionNewConnection:
                     e.Handled = true;
                     NewConnectionButton_Click(this, new RoutedEventArgs());
-                    break;
+                    return;
 
-                case Key.F:
+                case KeyboardShortcutsCatalog.ActionSearchConnection:
                     e.Handled = true;
                     SearchTextBox.Focus();
                     SearchTextBox.SelectAll();
-                    break;
+                    return;
 
-                case Key.OemComma:
+                case KeyboardShortcutsCatalog.ActionOpenSettings:
                     e.Handled = true;
                     OpenSettingsDialog(initialTabIndex: ExecutablesSettingsDialog.TabGeneralIndex);
-                    break;
-            }
-        }
-        else if (Keyboard.Modifiers == ModifierKeys.None)
-        {
-            switch (e.Key)
-            {
-                case Key.F1:
+                    return;
+
+                case KeyboardShortcutsCatalog.ActionOpenShortcutsHelp:
                     e.Handled = true;
                     OpenSettingsDialog(initialTabIndex: ExecutablesSettingsDialog.TabShortcutsIndex);
-                    break;
+                    return;
 
-                case Key.F2:
+                case KeyboardShortcutsCatalog.ActionFocusConnectionName:
                     e.Handled = true;
                     ConnectionNameTextBox.Focus();
                     ConnectionNameTextBox.SelectAll();
-                    break;
+                    return;
+            }
+        }
 
-                case Key.Escape:
-                    if (MoreActionsMenu?.IsOpen == true || TopOverflowMenu?.IsOpen == true || ConnectionsListBox.ContextMenu?.IsOpen == true)
-                        return;
+        if (Keyboard.Modifiers == ModifierKeys.None && e.Key == Key.Escape)
+        {
+            if (MoreActionsMenu?.IsOpen == true || TopOverflowMenu?.IsOpen == true || ConnectionsListBox.ContextMenu?.IsOpen == true)
+                return;
 
-                    if (IsQuickTextsPanelOpen && QuickTextsSidePanel.IsKeyboardFocusWithin && !QuickTextShortcutBox.IsKeyboardFocusWithin)
-                    {
-                        e.Handled = true;
-                        CollapseQuickTextsPanel();
-                        return;
-                    }
+            if (IsQuickTextsPanelOpen &&
+                QuickTextsSidePanel.IsKeyboardFocusWithin &&
+                !QuickTextShortcutBox.IsKeyboardFocusWithin &&
+                !QuickTextTriggerKeyBox.IsKeyboardFocusWithin)
+            {
+                e.Handled = true;
+                CollapseQuickTextsPanel();
+                return;
+            }
 
-                    // Se o foco estiver na lista e houver busca incremental ativa, deixa o ListBox limpar a busca incremental
-                    if (ConnectionsListBox.IsKeyboardFocusWithin && _incrementalSearchBuffer.Length > 0)
-                        return;
+            // Se o foco estiver na lista e houver busca incremental ativa, deixa o ListBox limpar a busca incremental
+            if (ConnectionsListBox.IsKeyboardFocusWithin && _incrementalSearchBuffer.Length > 0)
+                return;
 
-                    if (SearchTextBox.IsKeyboardFocusWithin)
-                    {
-                        e.Handled = true;
-                        if (!string.IsNullOrEmpty(_vm.SearchText))
-                        {
-                            _vm.SearchText = string.Empty;
-                        }
-                        else if (ConnectionsListBox.Items.Count > 0)
-                        {
-                            var target = _vm.SelectedConnection ?? ConnectionsListBox.Items[0];
-                            Helpers.ConnectionListNavigation.SelectAndFocus(ConnectionsListBox, target);
-                            if (ConnectionsListBox.ItemContainerGenerator.ContainerFromItem(target) is ListBoxItem item)
-                                item.Focus();
-                        }
-                    }
-                    else if (RevealedPasswordTextBox.IsKeyboardFocusWithin && _vm.IsPasswordRevealed)
-                    {
-                        e.Handled = true;
-                        _vm.HideRevealedPassword();
-                        SyncPasswordControls();
-                        InlinePasswordBox.Focus();
-                    }
-                    break;
+            if (SearchTextBox.IsKeyboardFocusWithin)
+            {
+                e.Handled = true;
+                if (!string.IsNullOrEmpty(_vm.SearchText))
+                {
+                    _vm.SearchText = string.Empty;
+                }
+                else if (ConnectionsListBox.Items.Count > 0)
+                {
+                    var target = _vm.SelectedConnection ?? ConnectionsListBox.Items[0];
+                    Helpers.ConnectionListNavigation.SelectAndFocus(ConnectionsListBox, target);
+                    if (ConnectionsListBox.ItemContainerGenerator.ContainerFromItem(target) is ListBoxItem item)
+                        item.Focus();
+                }
+            }
+            else if (RevealedPasswordTextBox.IsKeyboardFocusWithin && _vm.IsPasswordRevealed)
+            {
+                e.Handled = true;
+                _vm.HideRevealedPassword();
+                SyncPasswordControls();
+                InlinePasswordBox.Focus();
             }
         }
     }
@@ -706,7 +713,7 @@ public partial class MainWindow : Window
 
     private async void OpenCredentialsFromHeader_Click(object sender, RoutedEventArgs e)
     {
-        var dlg = new CredentialsDialog(_vm.Repository, _vm.VaultService)
+        var dlg = new CredentialsDialog(_vm.Repository, _vm.VaultService, _vm.ClipboardService, _vm.SettingsService)
         {
             Owner = this
         };
@@ -788,6 +795,20 @@ public partial class MainWindow : Window
     // Painel Integrado de Textos Rápidos (HotKeyText in-process)
     // =========================================================================
 
+    private void RefreshQuickTextsTriggerUI()
+    {
+        if (_quickTextsService == null)
+            return;
+
+        var triggerDisplay = _quickTextsService.EffectiveTriggerDisplay;
+        QuickTextsSubheaderText.Text = L.Format("{0} - versão {1}", triggerDisplay, AppUpdateService.GetInstalledVersion());
+        QuickTextTriggerKeyBox.Text = triggerDisplay;
+        QuickTextDefaultTriggerButton.IsEnabled = !string.Equals(
+            triggerDisplay,
+            HotKeyTextService.DefaultTriggerShortcut,
+            StringComparison.OrdinalIgnoreCase);
+    }
+
     private void InitializeQuickTextsPanelState()
     {
         var previous = _isUpdatingQuickTextsInternally;
@@ -795,6 +816,7 @@ public partial class MainWindow : Window
         try
         {
             _quickTextsService.ReindexItems();
+            RefreshQuickTextsTriggerUI();
             QuickTextModeTypeRadio.IsChecked = !_quickTextsService.Config.ModoColar;
             QuickTextModePasteRadio.IsChecked = _quickTextsService.Config.ModoColar;
             QuickTextStartWithWindowsCheckBox.IsChecked = _quickTextsService.StartWithWindows;
@@ -847,7 +869,7 @@ public partial class MainWindow : Window
         }
         else
         {
-            _vm.StatusMessage = "Painel de Textos rápidos aberto (Scroll Lock e atalhos ativos no processo do ConectaTI).";
+            _vm.StatusMessage = L.Format("Painel de Textos rápidos aberto ({0} e atalhos ativos no processo do ConectaTI).", _quickTextsService.EffectiveTriggerDisplay);
         }
 
         Dispatcher.BeginInvoke(DispatcherPriority.Input, new Action(() =>
@@ -866,6 +888,7 @@ public partial class MainWindow : Window
 
         _quickTextsSaveDebounceTimer.Stop();
         _quickTextsService.IsCapturingShortcut = false;
+        _quickTextsService.IsCapturingTriggerShortcut = false;
         _quickTextsService.Save();
 
         IsQuickTextsPanelOpen = false;
@@ -874,7 +897,7 @@ public partial class MainWindow : Window
 
         _vm.StatusMessage = _quickTextsService.HasStandaloneConflict
             ? _quickTextsService.ConflictMessage
-            : "Painel de Textos rápidos recolhido (Scroll Lock e atalhos continuam ativos).";
+            : L.Format("Painel de Textos rápidos recolhido ({0} e atalhos continuam ativos).", _quickTextsService.EffectiveTriggerDisplay);
 
         var targetFocus = _elementFocusedBeforeQuickTexts;
         if (targetFocus is UIElement { IsVisible: true, IsEnabled: true } uiTarget)
@@ -1193,7 +1216,9 @@ public partial class MainWindow : Window
         }
 
         var vk = (uint)KeyInterop.VirtualKeyFromKey(key);
-        if (HotKeyTextService.EhModificador(vk) || vk is 0x1B or 0x0D or 0x91)
+        if (HotKeyTextService.EhModificador(vk) ||
+            vk is 0x1B or 0x0D ||
+            (vk == _quickTextsService.TriggerVirtualKey && !_quickTextsService.TriggerRequiresModifiers))
             return;
 
         var ctrl = (Keyboard.Modifiers & ModifierKeys.Control) != 0;
@@ -1215,6 +1240,65 @@ public partial class MainWindow : Window
 
         _quickTextsService.AssignShortcut(idx, string.Empty);
         QuickTextShortcutBox.Text = _quickTextsService.ObterAtalhoItem(idx);
+    }
+
+    private void QuickTextTriggerKeyBox_GotKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
+    {
+        _quickTextsService.IsCapturingTriggerShortcut = true;
+    }
+
+    private void QuickTextTriggerKeyBox_LostKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
+    {
+        _quickTextsService.IsCapturingTriggerShortcut = false;
+    }
+
+    private void QuickTextTriggerKeyBox_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        var key = e.Key == Key.System ? e.SystemKey : e.Key;
+        if (key == Key.Tab && (Keyboard.Modifiers == ModifierKeys.None || Keyboard.Modifiers == ModifierKeys.Shift))
+            return;
+
+        e.Handled = true;
+        if (key == Key.Escape)
+        {
+            QuickTextsListBox.Focus();
+            return;
+        }
+
+        if (key is Key.Back or Key.Delete && Keyboard.Modifiers == ModifierKeys.None)
+        {
+            _quickTextsService.ResetTriggerShortcutToDefault();
+            RefreshQuickTextsTriggerUI();
+            _vm.StatusMessage = L.Format("Tecla de abertura dos Textos rápidos definida para {0}.", _quickTextsService.EffectiveTriggerDisplay);
+            return;
+        }
+
+        var vk = (uint)KeyInterop.VirtualKeyFromKey(key);
+        if (HotKeyTextService.EhModificador(vk))
+            return;
+
+        var ctrl = (Keyboard.Modifiers & ModifierKeys.Control) != 0;
+        var alt = (Keyboard.Modifiers & ModifierKeys.Alt) != 0;
+        var shift = (Keyboard.Modifiers & ModifierKeys.Shift) != 0;
+
+        if (!HotKeyTextService.TryFormatTriggerShortcut(ctrl, alt, shift, vk, out var formatted))
+        {
+            _vm.StatusMessage = L.Text("Use uma tecla dedicada (Scroll Lock, Pause, Insert, F1–F12) ou combine com Ctrl/Alt (ex.: Ctrl+Espaço).");
+            return;
+        }
+
+        if (_quickTextsService.SetTriggerShortcut(formatted))
+        {
+            RefreshQuickTextsTriggerUI();
+            _vm.StatusMessage = L.Format("Tecla de abertura dos Textos rápidos definida para {0}.", _quickTextsService.EffectiveTriggerDisplay);
+        }
+    }
+
+    private void QuickTextDefaultTriggerButton_Click(object sender, RoutedEventArgs e)
+    {
+        _quickTextsService.ResetTriggerShortcutToDefault();
+        RefreshQuickTextsTriggerUI();
+        _vm.StatusMessage = L.Format("Tecla de abertura dos Textos rápidos definida para {0}.", _quickTextsService.EffectiveTriggerDisplay);
     }
 
     private void QuickTextModeRadio_Checked(object sender, RoutedEventArgs e)
@@ -1251,11 +1335,29 @@ public partial class MainWindow : Window
 
     private async void OpenSettingsDialog(int initialTabIndex, bool autoCheckUpdatesOnLoad = false)
     {
-        var dlg = new ExecutablesSettingsDialog(_vm.SettingsService, _vm.VaultService, _vm, initialTabIndex, autoCheckUpdatesOnLoad)
+        var dlg = new ExecutablesSettingsDialog(
+            _vm.SettingsService,
+            _vm.VaultService,
+            _vm,
+            initialTabIndex,
+            autoCheckUpdatesOnLoad,
+            quickTextsService: _quickTextsService)
         {
             Owner = this
         };
         dlg.ShowDialog();
+
+        var prevInternal = _isUpdatingQuickTextsInternally;
+        _isUpdatingQuickTextsInternally = true;
+        try
+        {
+            QuickTextStartWithWindowsCheckBox.IsChecked = _quickTextsService.StartWithWindows;
+            RefreshQuickTextsTriggerUI();
+        }
+        finally
+        {
+            _isUpdatingQuickTextsInternally = prevInternal;
+        }
 
         UpdateAdaptiveHeaderAndPaneBounds(RootLayoutGrid.ActualWidth > 0 ? RootLayoutGrid.ActualWidth : Width);
 

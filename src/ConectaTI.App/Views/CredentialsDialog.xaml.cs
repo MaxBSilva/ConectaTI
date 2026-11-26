@@ -1,10 +1,13 @@
+using System.Text;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using ConectaTI.App.Data;
 using ConectaTI.App.Editing;
 using ConectaTI.App.Helpers;
 using ConectaTI.App.Models;
 using ConectaTI.App.Security;
+using ConectaTI.App.Services;
 
 namespace ConectaTI.App.Views;
 
@@ -12,6 +15,8 @@ public partial class CredentialsDialog : Window
 {
     private readonly SqliteRepository _repository;
     private readonly CredentialVaultService _vaultService;
+    private readonly ITextClipboard _clipboardService;
+    private readonly SettingsService? _settingsService;
     private SavedCredential? _currentEditing;
     private readonly PasswordRevealLease _passwordReveal = new();
     private long _generation;
@@ -19,12 +24,18 @@ public partial class CredentialsDialog : Window
     private bool _closed;
     private bool _saving;
 
-    public CredentialsDialog(SqliteRepository repository, CredentialVaultService vaultService)
+    public CredentialsDialog(
+        SqliteRepository repository,
+        CredentialVaultService vaultService,
+        ITextClipboard? clipboardService = null,
+        SettingsService? settingsService = null)
     {
         InitializeComponent();
         LocalizedWindow.Attach(this);
         _repository = repository;
         _vaultService = vaultService;
+        _settingsService = settingsService;
+        _clipboardService = clipboardService ?? new ClipboardService(new AppLogger(new AppPaths()));
         Loaded += async (_, _) => await ReloadListAsync();
         Closed += (_, _) => { _closed = true; InvalidateReveal(); };
         foreach (var box in new[] { CredNameBox, CredUserBox, CredDomainBox, CredNotesBox })
@@ -53,6 +64,38 @@ public partial class CredentialsDialog : Window
             _generation, _revision, _revision));
         return guard.IsCurrent;
     }
+
+    private static bool HasStoredSecret(SavedCredential? cred)
+        => cred is not null &&
+           (cred.SecretStorage == CredentialSecretStorage.LegacyWindows ||
+            !string.IsNullOrWhiteSpace(cred.ProtectedSecretBase64));
+
+    public static string FormatCredentialAccessInfo(
+        string? name,
+        string? username,
+        string? domain,
+        string? password,
+        string? notes)
+    {
+        var sb = new StringBuilder();
+        var cleanName = (name ?? string.Empty).Trim();
+        var effectiveUser = UserIdentityFormatter.FormatDisplay(username ?? string.Empty, domain ?? string.Empty);
+        var cleanNotes = (notes ?? string.Empty).Trim();
+
+        if (!string.IsNullOrWhiteSpace(cleanName))
+            sb.AppendLine($"{L.Text("Credencial")}: {cleanName}");
+        if (!string.IsNullOrWhiteSpace(effectiveUser))
+            sb.AppendLine($"{L.Text("Usuário")}: {effectiveUser}");
+        if (!string.IsNullOrEmpty(password))
+            sb.AppendLine($"{L.Text("Senha")}: {password}");
+        if (!string.IsNullOrWhiteSpace(cleanNotes))
+            sb.AppendLine($"{L.Text("Observações")}: {cleanNotes}");
+
+        return sb.ToString().TrimEnd();
+    }
+
+    private int GetEffectiveClipboardClearSeconds()
+        => Math.Clamp(_settingsService?.Current.ClipboardClearSeconds ?? 30, 5, 300);
 
     private async Task<bool> ReloadListAsync(string? selectId = null)
     {
@@ -95,6 +138,15 @@ public partial class CredentialsDialog : Window
         StartNewCredential();
     }
 
+    private void CredentialsListBox_RightClick(object sender, MouseButtonEventArgs e)
+    {
+        if (ItemsControl.ContainerFromElement(CredentialsListBox, e.OriginalSource as DependencyObject) is ListBoxItem item)
+        {
+            if (!item.IsSelected)
+                CredentialsListBox.SelectedItem = item.DataContext;
+        }
+    }
+
     private void CredentialsListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         InvalidateReveal();
@@ -111,6 +163,144 @@ public partial class CredentialsDialog : Window
                 (cred.SecretStorage != CredentialSecretStorage.LegacyWindows && string.IsNullOrWhiteSpace(cred.ProtectedSecretBase64)
                     ? L.Text("Senha salva: (nenhuma)") : L.Text("Senha salva: ••••••••••••"));
         }
+    }
+
+    private async void CopyCredUser_Click(object sender, RoutedEventArgs e)
+        => await CopySelectedCredentialUserAsync();
+
+    internal async Task<bool> CopySelectedCredentialUserAsync()
+    {
+        if (_closed) return false;
+        var current = CaptureCurrent();
+        var userDisplay = UserIdentityFormatter.FormatDisplay(CredUserBox.Text, CredDomainBox.Text);
+        if (string.IsNullOrWhiteSpace(userDisplay))
+        {
+            StatusText.Text = L.Text("Nenhum usuário informado nesta credencial.");
+            return false;
+        }
+
+        var ok = await _clipboardService.CopyTextWithRetryAsync(userDisplay, isSecret: false, autoClearSeconds: 0, canCopy: current);
+        if (!current()) return false;
+        StatusText.Text = ok
+            ? L.Text("Usuário copiado.")
+            : L.Text("Não foi possível acessar a área de transferência.");
+        return ok;
+    }
+
+    private async void CopyCredPassword_Click(object sender, RoutedEventArgs e)
+        => await CopySelectedCredentialPasswordAsync();
+
+    internal async Task<bool> CopySelectedCredentialPasswordAsync()
+    {
+        if (_closed) return false;
+        var current = CaptureCurrent();
+        var target = _currentEditing;
+        var typedPassword = CredPasswordBox.Password;
+
+        string? secret = null;
+        if (!string.IsNullOrEmpty(typedPassword))
+        {
+            secret = typedPassword;
+        }
+        else if (HasStoredSecret(target))
+        {
+            try
+            {
+                secret = await _vaultService.ReadSecretAsync(target!);
+            }
+            catch (Exception ex)
+            {
+                if (!current()) return false;
+                _vaultService.RecordCredentialFailure(ex);
+                StatusText.Text = CredentialVaultService.RecoveryMessage(ex);
+                return false;
+            }
+        }
+
+        if (!current()) return false;
+
+        if (string.IsNullOrEmpty(secret))
+        {
+            StatusText.Text = L.Text("Esta credencial não possui senha armazenada.");
+            return false;
+        }
+
+        var clearSec = GetEffectiveClipboardClearSeconds();
+        var ok = await _clipboardService.CopyTextWithRetryAsync(
+            secret,
+            isSecret: true,
+            autoClearSeconds: clearSec,
+            canCopy: current);
+        if (!current()) return false;
+
+        StatusText.Text = ok
+            ? L.Format("Senha copiada (limpeza automática em {0}s).", clearSec)
+            : L.Text("Não foi possível acessar a área de transferência.");
+        return ok;
+    }
+
+    private async void CopyCredFullAccess_Click(object sender, RoutedEventArgs e)
+        => await CopySelectedCredentialAccessAsync();
+
+    internal async Task<bool> CopySelectedCredentialAccessAsync()
+    {
+        if (_closed) return false;
+        var current = CaptureCurrent();
+        var target = _currentEditing;
+        var name = CredNameBox.Text;
+        var rawUser = CredUserBox.Text;
+        var rawDomain = CredDomainBox.Text;
+        var typedPassword = CredPasswordBox.Password;
+        var notes = CredNotesBox.Text;
+
+        string? secret = null;
+        if (!string.IsNullOrEmpty(typedPassword))
+        {
+            secret = typedPassword;
+        }
+        else if (HasStoredSecret(target))
+        {
+            try
+            {
+                secret = await _vaultService.ReadSecretAsync(target!);
+            }
+            catch (Exception ex)
+            {
+                if (!current()) return false;
+                _vaultService.RecordCredentialFailure(ex);
+                StatusText.Text = CredentialVaultService.RecoveryMessage(ex);
+                return false;
+            }
+        }
+
+        if (!current()) return false;
+
+        var formatted = FormatCredentialAccessInfo(name, rawUser, rawDomain, secret, notes);
+        if (string.IsNullOrWhiteSpace(formatted))
+        {
+            StatusText.Text = L.Text("Nenhuma informação preenchida para copiar.");
+            return false;
+        }
+
+        var hasSecret = !string.IsNullOrEmpty(secret);
+        var clearSec = GetEffectiveClipboardClearSeconds();
+        var ok = await _clipboardService.CopyTextWithRetryAsync(
+            formatted,
+            isSecret: hasSecret,
+            autoClearSeconds: hasSecret ? clearSec : 0,
+            canCopy: current);
+        if (!current()) return false;
+
+        if (!ok)
+        {
+            StatusText.Text = L.Text("Não foi possível acessar a área de transferência.");
+            return false;
+        }
+
+        StatusText.Text = hasSecret
+            ? L.Format("Dados de acesso copiados (limpeza automática em {0}s).", clearSec)
+            : L.Text("Dados de acesso copiados.");
+        return true;
     }
 
     private async void SaveCredential_Click(object sender, RoutedEventArgs e)
@@ -137,23 +327,23 @@ public partial class CredentialsDialog : Window
         target.Domain = norm.IsUpn ? string.Empty : norm.Domain;
         target.Notes = CredNotesBox.Text.Trim();
 
-        var replacement=CredPasswordBox.Password;
+        var replacement = CredPasswordBox.Password;
         var current = CaptureCurrent();
         _saving = true;
         try
         {
-            await _vaultService.SaveApplicationCredentialAsync(target,replacement);
+            await _vaultService.SaveApplicationCredentialAsync(target, replacement);
             if (!current()) return;
             CredPasswordBox.Clear();
             current = CaptureCurrent();
             if (await ReloadListAsync(target.Id))
-                StatusText.Text=L.Format("Credencial '{0}' salva com sucesso.",target.Name);
+                StatusText.Text = L.Format("Credencial '{0}' salva com sucesso.", target.Name);
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
             if (!current()) return;
             _vaultService.RecordCredentialFailure(ex);
-            StatusText.Text=CredentialVaultService.RecoveryMessage(ex);
+            StatusText.Text = CredentialVaultService.RecoveryMessage(ex);
         }
         finally { _saving = false; }
     }
@@ -185,7 +375,7 @@ public partial class CredentialsDialog : Window
 
     internal async Task RevealSelectedPasswordAsync()
     {
-        if (_currentEditing == null || (_currentEditing.SecretStorage != CredentialSecretStorage.LegacyWindows && string.IsNullOrWhiteSpace(_currentEditing.ProtectedSecretBase64)))
+        if (_currentEditing == null || !HasStoredSecret(_currentEditing))
         {
             StatusText.Text = L.Text("Esta credencial não possui senha armazenada.");
             return;

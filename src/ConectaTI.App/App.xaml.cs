@@ -119,6 +119,15 @@ public partial class App : Application
         MainWindow = mainWindow;
         mainWindow.Show();
 
+        if (explicitDataDirectory == null)
+        {
+            HotKeyTextService.UpgradeStartupCommandIfPresent();
+            if (StartupWebsitesService.IsWindowsStartupInvocation(e.Args) && settings.OpenStartupWebsites)
+            {
+                StartupWebsitesService.LaunchConfiguredWebsites(settings, logger);
+            }
+        }
+
         if (Array.IndexOf(e.Args, "--check-updates") >= 0)
         {
             _ = mainWindow.Dispatcher.BeginInvoke(new Action(mainWindow.OpenUpdatesCheckFromExternalTrigger));

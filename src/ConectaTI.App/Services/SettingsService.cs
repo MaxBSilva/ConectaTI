@@ -37,6 +37,10 @@ public class SettingsService
                     {
                         loaded.ClipboardClearSeconds = 30;
                     }
+                    loaded.StartupWebsite1 ??= string.Empty;
+                    loaded.StartupWebsite2 ??= string.Empty;
+                    loaded.StartupWebsite3 ??= string.Empty;
+                    loaded.CustomShortcuts = KeyboardShortcutsCatalog.SanitizeCustomShortcuts(loaded.CustomShortcuts);
                     ViewPreferencesService.Normalize(loaded);
                     Current = loaded;
                     return Current;

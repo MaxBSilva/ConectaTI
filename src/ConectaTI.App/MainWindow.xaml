@@ -1416,13 +1416,40 @@
                         </Grid>
                     </Grid>
 
-                    <!-- 5: Rodapé com Modo (Digitar vs Colar) e Iniciar com o Windows -->
+                    <!-- 5: Rodapé com Tecla de abertura, Modo (Digitar vs Colar) e Iniciar com o Windows -->
                     <Border Grid.Row="5"
                             BorderBrush="{DynamicResource BorderBrush}"
                             BorderThickness="0,1,0,0"
                             Margin="0,8,0,0"
                             Padding="0,6,0,0">
                         <StackPanel>
+                            <TextBlock Text="{loc:Loc Text589F01A36BD9}" FontWeight="SemiBold" FontSize="{DynamicResource Font11}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,3"/>
+                            <Grid Margin="0,0,0,6">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBox x:Name="QuickTextTriggerKeyBox"
+                                         Grid.Column="0"
+                                         IsReadOnly="True"
+                                         Cursor="Hand"
+                                         TextAlignment="Center"
+                                         FontFamily="Consolas"
+                                         FontWeight="SemiBold"
+                                         FontSize="{DynamicResource Font11}"
+                                         GotKeyboardFocus="QuickTextTriggerKeyBox_GotKeyboardFocus"
+                                         LostKeyboardFocus="QuickTextTriggerKeyBox_LostKeyboardFocus"
+                                         PreviewKeyDown="QuickTextTriggerKeyBox_PreviewKeyDown"
+                                         ToolTip="{loc:Loc Text966A3E719813}"/>
+                                <Button x:Name="QuickTextDefaultTriggerButton"
+                                        Grid.Column="1"
+                                        Content="{loc:Loc Text0758C00E6EA0}"
+                                        Click="QuickTextDefaultTriggerButton_Click"
+                                        Padding="7,3"
+                                        Margin="4,0,0,0"
+                                        FontSize="{DynamicResource Font11}"
+                                        ToolTip="{loc:Loc TextFB9843DB7123}"/>
+                            </Grid>
                             <TextBlock Text="Modo de inserção:" FontWeight="SemiBold" FontSize="{DynamicResource Font11}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,3"/>
                             <RadioButton x:Name="QuickTextModeTypeRadio"
                                          Content="Digitar (usa Colar automaticamente em WTS/RDP)"
