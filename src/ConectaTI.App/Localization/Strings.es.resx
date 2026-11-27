@@ -2618,4 +2618,19 @@ Consejo: en el bloque 'VPN del cliente', use el botón '...' junto a Aplicación
   <data name="Text65AC03F1729E" xml:space="preserve">
     <value>OpenConnect GUI ya está conectado.</value>
   </data>
+  <data name="Text284A2EAF964F" xml:space="preserve">
+    <value>Ejecutar como Administrador</value>
+  </data>
+  <data name="TextF38AD52AB582" xml:space="preserve">
+    <value>Hay cambios o borradores sin guardar en memoria. ¿Desea descartarlos y reabrir ConectaTI como Administrador?</value>
+  </data>
+  <data name="TextE0E99FAE3330" xml:space="preserve">
+    <value>VPN de Windows '{0}' conectada.</value>
+  </data>
+  <data name="Text6A740CBF0D9D" xml:space="preserve">
+    <value>La ventana de la VPN se ejecuta como Administrador. Apruebe la confirmación o use 'Más ▾ → Ejecutar como Administrador' para conectar en 1 clic.</value>
+  </data>
+  <data name="Text8D200E408F3D" xml:space="preserve">
+    <value>La VPN de Windows ya está conectada.</value>
+  </data>
 </root>

@@ -790,10 +790,37 @@ public partial class MainWindow : Window
     {
         if (TopOverflowButton.ContextMenu != null)
         {
+            var isElevated = VpnElevationBridge.IsCurrentProcessElevated();
+            if (MenuRestartAsAdminItem != null)
+                MenuRestartAsAdminItem.Visibility = isElevated ? Visibility.Collapsed : Visibility.Visible;
+            if (MenuRestartAsAdminSeparator != null)
+                MenuRestartAsAdminSeparator.Visibility = isElevated ? Visibility.Collapsed : Visibility.Visible;
+
             TopOverflowButton.ContextMenu.PlacementTarget = TopOverflowButton;
             TopOverflowButton.ContextMenu.Placement = PlacementMode.Bottom;
             TopOverflowButton.ContextMenu.DataContext = DataContext;
             TopOverflowButton.ContextMenu.IsOpen = true;
+        }
+    }
+
+    private void RestartAsAdmin_Click(object sender, RoutedEventArgs e)
+    {
+        if (_vm.HasAnyUnsavedDrafts)
+        {
+            var confirm = MessageBox.Show(
+                this,
+                L.Text("Há alterações ou rascunhos não salvos em memória. Deseja descartá-los e reabrir o ConectaTI como Administrador?"),
+                L.Text("Executar como Administrador"),
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning);
+            if (confirm != MessageBoxResult.Yes)
+                return;
+        }
+
+        var explicitDir = (Application.Current as App)?.ExplicitDataDirectory;
+        if (VpnElevationBridge.TryRestartAsAdministrator(explicitDir))
+        {
+            Close();
         }
     }
 

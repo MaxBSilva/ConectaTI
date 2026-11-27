@@ -14,10 +14,19 @@ public partial class App : Application
 {
     private CredentialVaultService? _sessionVault;
     public bool IsIsolatedHost { get; set; }
+    public string? ExplicitDataDirectory { get; private set; }
+
     protected override async void OnStartup(StartupEventArgs e)
     {
         if (IsIsolatedHost) return;
         base.OnStartup(e);
+
+        // Modo auxiliar elevado efêmero para automação UIA de janelas VPN que rodam como Administrador (ex.: FortiClient)
+        if (await VpnElevationBridge.TryExecuteHelperModeAsync(e.Args))
+        {
+            Shutdown(0);
+            return;
+        }
 
         if (Array.IndexOf(e.Args, "--rollback-update") >= 0)
         {
@@ -44,6 +53,7 @@ public partial class App : Application
             }
             explicitDataDirectory = Path.GetFullPath(e.Args[directoryIndex + 1]);
         }
+        ExplicitDataDirectory = explicitDataDirectory;
         var paths = new AppPaths(explicitDataDirectory);
         if (!paths.IsDataDirectoryWritable)
         {

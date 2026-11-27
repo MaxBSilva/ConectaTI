@@ -2618,4 +2618,19 @@ Tip: in the 'Client VPN' section, use the '...' button next to Application to po
   <data name="Text65AC03F1729E" xml:space="preserve">
     <value>OpenConnect GUI is already connected.</value>
   </data>
+  <data name="Text284A2EAF964F" xml:space="preserve">
+    <value>Run as Administrator</value>
+  </data>
+  <data name="TextF38AD52AB582" xml:space="preserve">
+    <value>There are unsaved changes or drafts in memory. Do you want to discard them and reopen ConectaTI as Administrator?</value>
+  </data>
+  <data name="TextE0E99FAE3330" xml:space="preserve">
+    <value>Windows VPN '{0}' connected.</value>
+  </data>
+  <data name="Text6A740CBF0D9D" xml:space="preserve">
+    <value>The VPN window is running as Administrator. Approve the prompt or use 'More ▾ → Run as Administrator' for 1-click connect.</value>
+  </data>
+  <data name="Text8D200E408F3D" xml:space="preserve">
+    <value>Windows VPN is already connected.</value>
+  </data>
 </root>

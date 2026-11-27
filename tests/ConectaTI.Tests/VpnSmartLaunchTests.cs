@@ -421,6 +421,110 @@ public sealed class VpnSmartLaunchTests : IDisposable
         Assert.Equal(string.Empty, persisted!.Notes);
     }
 
+    [Fact]
+    public void SmartProfileLookup_MatchesByClientName_Server_DisambiguatesByConfiguredUser_AndNeverGuessesAmbiguousSharedUser()
+    {
+        var fakeProgFiles = Path.Combine(_paths.RootDirectory, "ProgSmart");
+        var fortiConsole = Path.Combine(fakeProgFiles, "Fortinet", "FortiClient", "FortiClientConsole.exe");
+        var fakeRasdial = Path.Combine(fakeProgFiles, "rasdial.exe");
+        var fakePbk = Path.Combine(_paths.RootDirectory, "smart-rasphone.pbk");
+        Directory.CreateDirectory(Path.GetDirectoryName(fortiConsole)!);
+        File.WriteAllText(fortiConsole, "MZ");
+        File.WriteAllText(fakeRasdial, "MZ");
+        File.WriteAllText(fakePbk, "[SigmaAgro Matriz]\nPhoneNumber=vpn.sigmaagro.example.test\n");
+
+        var simulatedProfiles = new[]
+        {
+            new DiscoveredVpnProfile("DeltaLog", "FortiClient", "vpn.deltalog.example.test:10443", ConfiguredUsername: "analista.comum"),
+            new DiscoveredVpnProfile("OmegaTextil - Operador A", "FortiClient", "vpn.omegatextil.example.test:10443", ConfiguredUsername: "operador.a"),
+            new DiscoveredVpnProfile("OmegaTextil - Operador B", "FortiClient", "vpn.omegatextil.example.test:10443", ConfiguredUsername: "operador.b"),
+            new DiscoveredVpnProfile("Kappa Sul", "FortiClient", "vpn.kappasul.example.test:10443", ConfiguredUsername: "analista.comum"),
+            new DiscoveredVpnProfile("Zeta Exclusivo", "FortiClient", "vpn.zeta.example.test:10443", ConfiguredUsername: "suporte.zeta")
+        };
+
+        var service = new VpnClientLauncherService(
+            customStarter: _ => true,
+            customProgramRoots: [fakeProgFiles],
+            customStartMenuRoots: [],
+            customRasPhonebookFiles: [fakePbk],
+            customDiscoveredProfiles: simulatedProfiles);
+
+        // 1. VpnName vazio: localiza automaticamente o túnel "DeltaLog" no FortiClient pelo ClientName do acesso
+        var byClientRes = service.Resolve(new ConnectionEntry
+        {
+            Name = "SRV-ERP-01",
+            ClientName = "DeltaLog",
+            VpnApp = "FortiClient"
+        });
+        Assert.Equal("DeltaLog", byClientRes.MatchedProfileName);
+        Assert.Equal(VpnAutomationVendorKind.FortiClient, byClientRes.AutomationVendor);
+
+        // 2. Dois túneis no mesmo servidor ("vpn.omegatextil.example.test"): desempata pelo usuário configurado no acesso (CORP\operador.b -> operador.b)
+        var disambiguated = service.Resolve(new ConnectionEntry
+        {
+            Name = "SRV-OMEGA",
+            ClientName = "Grupo Holding",
+            Username = @"CORP\operador.b",
+            VpnApp = "FortiClient",
+            VpnServer = "https://vpn.omegatextil.example.test:10443"
+        });
+        Assert.Equal("OmegaTextil - Operador B", disambiguated.MatchedProfileName);
+
+        // 3. Usuário exclusivo de um único túnel ("suporte.zeta"): encontra o túnel correspondente
+        var uniqueUserMatch = service.Resolve(new ConnectionEntry
+        {
+            Name = "Acesso Remoto",
+            ClientName = "Terceiro",
+            VpnApp = "FortiClient",
+            VpnUsername = "suporte.zeta@empresa.example.test"
+        });
+        Assert.Equal("Zeta Exclusivo", uniqueUserMatch.MatchedProfileName);
+
+        // 4. Segurança contra ambiguidade: quando o analista usa o mesmo login ("analista.comum") em múltiplos clientes distintos, NÃO chuta perfil aleatório
+        var ambiguousUser = service.Resolve(new ConnectionEntry
+        {
+            Name = "Servidor Novo",
+            ClientName = "Cliente Sem Tunel",
+            Username = @"DOMINIO\analista.comum",
+            VpnApp = "FortiClient"
+        });
+        Assert.Null(ambiguousUser.MatchedProfileName);
+
+        // 5. VPN do Windows já salva no rasphone.pbk (sem senha manual no ConectaTI): aciona rasdial.exe com 1 argumento ("SigmaAgro Matriz")
+        var winSavedRes = service.Resolve(new ConnectionEntry
+        {
+            Name = "SRV-SIGMA",
+            ClientName = "SigmaAgro",
+            VpnApp = "VPN do Windows"
+        });
+        Assert.Equal(fakeRasdial, winSavedRes.TargetPathOrUri);
+        Assert.Equal(["SigmaAgro Matriz"], winSavedRes.Arguments);
+        Assert.True(winSavedRes.PassedCredentialsDirectly);
+    }
+
+    [Fact]
+    public void VpnElevationBridge_BuildsSafeCliArgs_AndRedactsPasswordFromRequestToString()
+    {
+        var cliArgs = VpnElevationBridge.BuildSafeHelperArguments("ConectaTI_VpnUia_TestPipe", "NONCE123456");
+        Assert.Equal("--vpn-uia-helper ConectaTI_VpnUia_TestPipe NONCE123456", cliArgs);
+
+        var req = new VpnElevationAutomationRequest(
+            Kind: VpnAutomationVendorKind.FortiClient,
+            ProfileCandidates: ["DeltaLog", "SRV-DELTA"],
+            Username: "operador.ficticio",
+            Domain: "CORP",
+            Password: "SYNTHETIC_IPC_PASS_42");
+
+        Assert.DoesNotContain("SYNTHETIC_IPC_PASS_42", req.ToString(), StringComparison.Ordinal);
+
+        var json = System.Text.Json.JsonSerializer.Serialize(req);
+        var roundTrip = System.Text.Json.JsonSerializer.Deserialize<VpnElevationAutomationRequest>(json);
+        Assert.NotNull(roundTrip);
+        Assert.Equal(VpnAutomationVendorKind.FortiClient, roundTrip.Kind);
+        Assert.Equal(["DeltaLog", "SRV-DELTA"], roundTrip.ProfileCandidates);
+        Assert.Equal("SYNTHETIC_IPC_PASS_42", roundTrip.Password);
+    }
+
     private sealed class ConfigurableProbe(Func<bool> isReachable) : INetworkConnectivityProbe
     {
         public Task<NetworkDiagnosticResult> TestConnectivityAsync(

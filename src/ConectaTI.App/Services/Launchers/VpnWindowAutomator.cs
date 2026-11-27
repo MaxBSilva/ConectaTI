@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Windows;
 using System.Windows.Automation;
 
 namespace ConectaTI.App.Services.Launchers;
@@ -11,7 +12,8 @@ public enum VpnAutomationVendorKind
     FortiClient = 1,
     OpenConnectGui = 2,
     OpenVpnGuiAuthDialog = 3,
-    GenericGui = 4
+    GenericGui = 4,
+    WindowsRasphone = 5
 }
 
 public sealed record VpnUiAutomationOutcome(
@@ -20,12 +22,14 @@ public sealed record VpnUiAutomationOutcome(
     bool CredentialsFilled,
     bool ConnectInvoked,
     bool AlreadyConnected,
-    string? DetailMessage = null);
+    string? DetailMessage = null,
+    bool ElevationDeclined = false,
+    string? SelectedProfileName = null);
 
 /// <summary>
-/// Restaura janelas minimizadas/ocultas na bandeja do Windows (System Tray) e automatiza de forma segura,
-/// em thread de segundo plano com timeout curto, a seleção de perfil e o preenchimento opcional de
-/// Usuário/Senha em clientes VPN gráficos (FortiClient 7.x Electron, OpenConnect GUI Qt, OpenVPN GUI).
+/// Restaura janelas minimizadas/ocultas na bandeja do Windows, desperta a árvore de acessibilidade do Electron/Chromium
+/// (Chrome_RenderWidgetHostHWND), contorna de forma legítima o isolamento UIPI quando a VPN roda como Administrador
+/// e seleciona o perfil + clica em Conectar sem sobrescrever credenciais ou certificados já salvos.
 /// </summary>
 public sealed class VpnWindowAutomator
 {
@@ -51,25 +55,49 @@ public sealed class VpnWindowAutomator
         VpnLoginCredential? manualCredential,
         CancellationToken cancellationToken = default)
     {
-        // Sempre executa chamadas System.Windows.Automation fora da thread STA/UI do WPF para evitar deadlocks COM.
+        IReadOnlyList<string> candidates = string.IsNullOrWhiteSpace(vpnProfileName)
+            ? Array.Empty<string>()
+            : [vpnProfileName.Trim()];
+
+        return AutomateWithCandidatesAsync(
+            kind,
+            candidates,
+            manualCredential,
+            allowElevationEscalation: true,
+            cancellationToken);
+    }
+
+    public Task<VpnUiAutomationOutcome> AutomateWithCandidatesAsync(
+        VpnAutomationVendorKind kind,
+        IReadOnlyList<string> profileCandidates,
+        VpnLoginCredential? manualCredential,
+        bool allowElevationEscalation = true,
+        CancellationToken cancellationToken = default)
+    {
+        var normalizedCandidates = profileCandidates
+            .Where(c => !string.IsNullOrWhiteSpace(c))
+            .Select(c => c.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        // Sempre executa System.Windows.Automation fora da thread STA/UI do WPF para evitar deadlocks COM.
         return Task.Run(async () =>
         {
             using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            timeoutCts.CancelAfter(TimeSpan.FromSeconds(6));
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(allowElevationEscalation ? 15 : 8));
             var ct = timeoutCts.Token;
 
             try
             {
                 return kind switch
                 {
-                    VpnAutomationVendorKind.FortiClient => await AutomateFortiClientCoreAsync(vpnProfileName, manualCredential, ct),
-                    VpnAutomationVendorKind.OpenConnectGui => await AutomateOpenConnectCoreAsync(vpnProfileName, manualCredential, ct),
+                    VpnAutomationVendorKind.FortiClient => await AutomateFortiClientCoreAsync(normalizedCandidates, manualCredential, allowElevationEscalation, ct),
+                    VpnAutomationVendorKind.OpenConnectGui => await AutomateOpenConnectCoreAsync(normalizedCandidates, manualCredential, allowElevationEscalation, ct),
+                    VpnAutomationVendorKind.WindowsRasphone => await AutomateWindowsRasphoneCoreAsync(manualCredential, allowElevationEscalation, ct),
                     VpnAutomationVendorKind.OpenVpnGuiAuthDialog => manualCredential is { HasAnyValue: true }
-                        ? await AutomateOpenVpnAuthDialogCoreAsync(manualCredential, ct)
+                        ? await AutomateOpenVpnAuthDialogCoreAsync(manualCredential, allowElevationEscalation, ct)
                         : new VpnUiAutomationOutcome(false, false, false, false, false),
-                    VpnAutomationVendorKind.GenericGui => manualCredential is { HasAnyValue: true }
-                        ? await AutomateGenericLoginWindowCoreAsync(vpnProfileName, manualCredential, ct)
-                        : new VpnUiAutomationOutcome(false, false, false, false, false),
+                    VpnAutomationVendorKind.GenericGui => await AutomateGenericLoginWindowCoreAsync(normalizedCandidates, manualCredential, allowElevationEscalation, ct),
                     _ => new VpnUiAutomationOutcome(false, false, false, false, false)
                 };
             }
@@ -85,52 +113,60 @@ public sealed class VpnWindowAutomator
         }, cancellationToken);
     }
 
-    private static async Task<VpnUiAutomationOutcome> AutomateFortiClientCoreAsync(
-        string? vpnProfileName,
+    private async Task<VpnUiAutomationOutcome> AutomateFortiClientCoreAsync(
+        IReadOnlyList<string> profileCandidates,
         VpnLoginCredential? manualCredential,
+        bool allowElevationEscalation,
         CancellationToken ct)
     {
         string[] fortiProcs = ["FortiClientConsole", "FortiClient"];
         string[] fortiTitles = ["FortiClient"];
 
         IntPtr hwnd = IntPtr.Zero;
-        AutomationElement? root = null;
+        IReadOnlyList<AutomationElement> roots = Array.Empty<AutomationElement>();
         var controlsReady = false;
 
-        // 1. Aguarda a janela do FortiClient abrir e a árvore de acessibilidade do Electron/Chromium popular
-        for (var attempt = 0; attempt < 20 && !ct.IsCancellationRequested; attempt++)
+        // 1. Localiza a janela do FortiClient, verifica privilégio UIPI (escudo Administrador) e desperta a árvore Chromium
+        for (var attempt = 0; attempt < 22 && !ct.IsCancellationRequested; attempt++)
         {
             hwnd = FindCandidateWindow(fortiProcs, fortiTitles, includeHiddenWindows: attempt < 4);
             if (hwnd != IntPtr.Zero)
             {
-                RestoreAndFocusWindow(hwnd);
-                try
+                // Se o FortiClient estiver rodando como Administrador e o ConectaTI não, delega ao helper elevado via Named Pipe
+                if (allowElevationEscalation && VpnElevationBridge.IsWindowHigherElevationThanCurrentProcess(hwnd))
                 {
-                    root = AutomationElement.FromHandle(hwnd);
-                    // Consultar descendentes envia WM_GETOBJECT ao Chromium, ativando a árvore de acessibilidade
-                    var buttons = root.FindAll(TreeScope.Descendants, new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Button));
-                    var edits = root.FindAll(TreeScope.Descendants, new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Edit));
-                    var combos = root.FindAll(TreeScope.Descendants, new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.ComboBox));
-                    if (buttons.Count > 0 && (edits.Count > 0 || combos.Count > 0))
-                    {
-                        controlsReady = true;
-                        break;
-                    }
+                    return await VpnElevationBridge.RunElevatedAutomationViaHelperAsync(
+                        VpnAutomationVendorKind.FortiClient,
+                        profileCandidates,
+                        manualCredential,
+                        _logger,
+                        ct);
                 }
-                catch { }
+
+                RestoreAndFocusWindow(hwnd);
+                roots = WakeAndCollectSearchRoots(hwnd, isChromiumBased: true);
+
+                var buttons = FindAllAcrossRoots(roots, ControlType.Button);
+                var combos = FindAllAcrossRoots(roots, ControlType.ComboBox);
+                var edits = FindAllAcrossRoots(roots, ControlType.Edit);
+                if (buttons.Count > 0 && (combos.Count > 0 || edits.Count > 0))
+                {
+                    controlsReady = true;
+                    break;
+                }
             }
 
             await Task.Delay(250, ct);
         }
 
-        if (hwnd == IntPtr.Zero || root is null)
+        if (hwnd == IntPtr.Zero || roots.Count == 0)
             return new VpnUiAutomationOutcome(false, false, false, false, false);
 
         if (!controlsReady)
             return new VpnUiAutomationOutcome(true, false, false, false, false);
 
-        // 2. Verifica se já existe uma VPN conectada ("Desconectar" / "Disconnect") para nunca desconectar por engano
-        if (FindButtonByKeywords(root, ["desconectar", "disconnect"]) is not null)
+        // 2. Verifica se já existe uma VPN conectada ou conectando para nunca derrubar sessão ativa
+        if (FindButtonByKeywords(roots, ["desconectar", "disconnect"]) is not null)
         {
             return new VpnUiAutomationOutcome(
                 WindowFound: true,
@@ -141,32 +177,37 @@ public sealed class VpnWindowAutomator
                 DetailMessage: L.Text("O FortiClient já possui uma VPN conectada."));
         }
 
-        // 3. Seleciona o perfil em "Nome da VPN" (ComboBox) se informado
+        // 3. Seleciona o perfil em "Nome da VPN" (ignorando explicitamente "Certificado do Cliente")
         var profileSelected = false;
-        if (!string.IsNullOrWhiteSpace(vpnProfileName))
+        string? matchedProfile = null;
+        if (profileCandidates.Count > 0)
         {
-            profileSelected = await TrySelectProfileInComboBoxAsync(root, vpnProfileName.Trim(), ct);
+            (profileSelected, matchedProfile) = await TrySelectMatchingProfileInComboBoxAsync(roots, hwnd, profileCandidates, ct);
             if (profileSelected)
+            {
                 await Task.Delay(220, ct);
+                roots = WakeAndCollectSearchRoots(hwnd, isChromiumBased: true);
+            }
         }
 
-        // 4. Preenche Usuário e Senha SOMENTE se informados no ConectaTI e se o respectivo campo estiver vazio no FortiClient
+        // 4. Preenche Usuário e Senha SOMENTE se informados no ConectaTI e se não estiverem salvos no próprio FortiClient
         var credsFilled = false;
-        var (userEdit, passEdit) = FindUsernameAndPasswordEdits(root);
+        var (userEdit, passEdit) = FindUsernameAndPasswordEdits(roots);
+        var existingUserBefore = userEdit is not null ? TryGetElementText(userEdit) : string.Empty;
+        var userWasAlreadySavedInVpn = !string.IsNullOrWhiteSpace(existingUserBefore);
+        var savePasswordCheckedInVpn = IsSavePasswordCheckBoxChecked(roots);
 
         if (manualCredential is not null)
         {
-            if (!string.IsNullOrWhiteSpace(manualCredential.FormattedUsername) && userEdit is not null)
+            if (!string.IsNullOrWhiteSpace(manualCredential.FormattedUsername) && userEdit is not null && !userWasAlreadySavedInVpn)
             {
-                var existingUser = TryGetElementText(userEdit);
-                if (string.IsNullOrWhiteSpace(existingUser))
-                {
-                    if (TrySetElementValue(hwnd, userEdit, manualCredential.FormattedUsername))
-                        credsFilled = true;
-                }
+                if (TrySetElementValue(hwnd, userEdit, manualCredential.FormattedUsername))
+                    credsFilled = true;
             }
 
-            if (!string.IsNullOrEmpty(manualCredential.Password) && passEdit is not null)
+            // Se o FortiClient já tem Usuário preenchido + checkbox "Salvar Senha" marcado, preserva a senha salva do próprio FortiClient
+            var skipPasswordBecauseAlreadySavedInVpn = userWasAlreadySavedInVpn && savePasswordCheckedInVpn;
+            if (!skipPasswordBecauseAlreadySavedInVpn && !string.IsNullOrEmpty(manualCredential.Password) && passEdit is not null)
             {
                 var existingPass = TryGetElementText(passEdit);
                 if (string.IsNullOrEmpty(existingPass))
@@ -180,17 +221,18 @@ public sealed class VpnWindowAutomator
         if (credsFilled)
             await Task.Delay(120, ct);
 
-        // 5. Clica automaticamente em "Conectar" quando os campos necessários estiverem prontos
+        // 5. Clica diretamente em "Conectar" (ou "SAML Login") quando o perfil está pronto
         var connectInvoked = false;
-        var connectBtn = FindButtonByKeywords(root, ["conectar", "connect", "login", "entrar"], excludeKeywords: ["desconectar", "disconnect"]);
-        if (connectBtn is not null && connectBtn.Current.IsEnabled)
+        var finalUser = userEdit is not null ? TryGetElementText(userEdit) : "ok";
+        if (userEdit is null || !string.IsNullOrWhiteSpace(finalUser))
         {
-            var finalUser = userEdit is not null ? TryGetElementText(userEdit) : "ok";
-            // Se não há campo de usuário visível (ex.: IPsec por certificado/SAML) ou o usuário já está preenchido, aciona Conectar
-            if (userEdit is null || !string.IsNullOrWhiteSpace(finalUser))
-            {
-                connectInvoked = TryInvokeButton(connectBtn);
-            }
+            connectInvoked = await TryActivateConnectButtonAsync(
+                hwnd,
+                roots,
+                isChromiumBased: true,
+                includeKeywords: ["conectar", "connect", "samllogin", "login", "entrar"],
+                excludeKeywords: ["desconectar", "disconnect", "cancelar", "cancel"],
+                ct);
         }
 
         return new VpnUiAutomationOutcome(
@@ -198,59 +240,76 @@ public sealed class VpnWindowAutomator
             ProfileSelected: profileSelected,
             CredentialsFilled: credsFilled,
             ConnectInvoked: connectInvoked,
-            AlreadyConnected: false);
+            AlreadyConnected: false,
+            SelectedProfileName: matchedProfile);
     }
 
-    private static async Task<VpnUiAutomationOutcome> AutomateOpenConnectCoreAsync(
-        string? vpnProfileName,
+    private async Task<VpnUiAutomationOutcome> AutomateOpenConnectCoreAsync(
+        IReadOnlyList<string> profileCandidates,
         VpnLoginCredential? manualCredential,
+        bool allowElevationEscalation,
         CancellationToken ct)
     {
         string[] ocProcs = ["openconnect-gui"];
         string[] ocTitles = ["OpenConnect"];
 
         IntPtr hwnd = IntPtr.Zero;
-        AutomationElement? root = null;
-        for (var attempt = 0; attempt < 16 && !ct.IsCancellationRequested; attempt++)
+        IReadOnlyList<AutomationElement> roots = Array.Empty<AutomationElement>();
+
+        for (var attempt = 0; attempt < 18 && !ct.IsCancellationRequested; attempt++)
         {
             hwnd = FindCandidateWindow(ocProcs, ocTitles, includeHiddenWindows: true);
             if (hwnd != IntPtr.Zero)
             {
-                RestoreAndFocusWindow(hwnd);
-                try
+                if (allowElevationEscalation && VpnElevationBridge.IsWindowHigherElevationThanCurrentProcess(hwnd))
                 {
-                    root = AutomationElement.FromHandle(hwnd);
-                    if (root is not null)
-                        break;
+                    return await VpnElevationBridge.RunElevatedAutomationViaHelperAsync(
+                        VpnAutomationVendorKind.OpenConnectGui,
+                        profileCandidates,
+                        manualCredential,
+                        _logger,
+                        ct);
                 }
-                catch { }
+
+                RestoreAndFocusWindow(hwnd);
+                roots = WakeAndCollectSearchRoots(hwnd, isChromiumBased: false);
+                if (roots.Count > 0)
+                    break;
             }
             await Task.Delay(200, ct);
         }
 
-        if (hwnd == IntPtr.Zero || root is null)
+        if (hwnd == IntPtr.Zero || roots.Count == 0)
             return new VpnUiAutomationOutcome(false, false, false, false, false);
 
-        if (FindButtonByKeywords(root, ["disconnect", "desconectar"]) is { Current.IsEnabled: true })
+        if (FindButtonByKeywords(roots, ["disconnect", "desconectar"]) is { Current.IsEnabled: true })
         {
             return new VpnUiAutomationOutcome(true, false, false, false, true, L.Text("O OpenConnect GUI já está conectado."));
         }
 
         var profileSelected = false;
-        if (!string.IsNullOrWhiteSpace(vpnProfileName))
+        string? matchedProfile = null;
+        if (profileCandidates.Count > 0)
         {
-            profileSelected = await TrySelectProfileInComboBoxAsync(root, vpnProfileName.Trim(), ct);
+            (profileSelected, matchedProfile) = await TrySelectMatchingProfileInComboBoxAsync(roots, hwnd, profileCandidates, ct);
             if (profileSelected)
+            {
                 await Task.Delay(150, ct);
+                roots = WakeAndCollectSearchRoots(hwnd, isChromiumBased: false);
+            }
         }
 
-        var connectBtn = FindButtonByKeywords(root, ["connect", "conectar"], excludeKeywords: ["disconnect", "desconectar"]);
-        var connectInvoked = connectBtn is { Current.IsEnabled: true } && TryInvokeButton(connectBtn);
+        var connectInvoked = await TryActivateConnectButtonAsync(
+            hwnd,
+            roots,
+            isChromiumBased: false,
+            includeKeywords: ["connect", "conectar"],
+            excludeKeywords: ["disconnect", "desconectar", "cancel", "cancelar"],
+            ct);
 
         var credsFilled = false;
         if (connectInvoked && manualCredential is { HasAnyValue: true })
         {
-            // OpenConnect GUI abre diálogos modais sequenciais para Username e Password quando não salvos
             for (var step = 0; step < 16 && !ct.IsCancellationRequested; step++)
             {
                 await Task.Delay(250, ct);
@@ -260,8 +319,8 @@ public sealed class VpnWindowAutomator
 
                 try
                 {
-                    var modalRoot = AutomationElement.FromHandle(modalHwnd);
-                    var (uEdit, pEdit) = FindUsernameAndPasswordEdits(modalRoot);
+                    var modalRoots = WakeAndCollectSearchRoots(modalHwnd, isChromiumBased: false);
+                    var (uEdit, pEdit) = FindUsernameAndPasswordEdits(modalRoots);
                     var filledThisDialog = false;
 
                     if (pEdit is not null && !string.IsNullOrEmpty(manualCredential.Password))
@@ -278,7 +337,7 @@ public sealed class VpnWindowAutomator
                     if (filledThisDialog)
                     {
                         credsFilled = true;
-                        var okBtn = FindButtonByKeywords(modalRoot, ["ok", "connect", "conectar", "login"]);
+                        var okBtn = FindButtonByKeywords(modalRoots, ["ok", "connect", "conectar", "login"]);
                         if (okBtn is not null)
                             TryInvokeButton(okBtn);
                     }
@@ -287,16 +346,80 @@ public sealed class VpnWindowAutomator
             }
         }
 
-        return new VpnUiAutomationOutcome(true, profileSelected, credsFilled, connectInvoked, false);
+        return new VpnUiAutomationOutcome(true, profileSelected, credsFilled, connectInvoked, false, SelectedProfileName: matchedProfile);
     }
 
-    private static async Task<VpnUiAutomationOutcome> AutomateOpenVpnAuthDialogCoreAsync(
+    private async Task<VpnUiAutomationOutcome> AutomateWindowsRasphoneCoreAsync(
+        VpnLoginCredential? manualCredential,
+        bool allowElevationEscalation,
+        CancellationToken ct)
+    {
+        string[] rasProcs = ["rasphone"];
+        for (var attempt = 0; attempt < 16 && !ct.IsCancellationRequested; attempt++)
+        {
+            await Task.Delay(220, ct);
+            var hwnd = FindCandidateWindow(rasProcs, null, includeHiddenWindows: false);
+            if (hwnd == IntPtr.Zero)
+                continue;
+
+            if (allowElevationEscalation && VpnElevationBridge.IsWindowHigherElevationThanCurrentProcess(hwnd))
+            {
+                return await VpnElevationBridge.RunElevatedAutomationViaHelperAsync(
+                    VpnAutomationVendorKind.WindowsRasphone,
+                    Array.Empty<string>(),
+                    manualCredential,
+                    _logger,
+                    ct);
+            }
+
+            RestoreAndFocusWindow(hwnd);
+            var roots = WakeAndCollectSearchRoots(hwnd, isChromiumBased: false);
+            if (roots.Count == 0)
+                continue;
+
+            if (FindButtonByKeywords(roots, ["desconectar", "disconnect", "hangup"]) is { Current.IsEnabled: true })
+            {
+                return new VpnUiAutomationOutcome(true, true, false, false, true, L.Text("A VPN do Windows já está conectada."));
+            }
+
+            var filled = false;
+            if (manualCredential is { HasAnyValue: true })
+            {
+                var (uEdit, pEdit) = FindUsernameAndPasswordEdits(roots);
+                if (uEdit is not null && !string.IsNullOrWhiteSpace(manualCredential.FormattedUsername) &&
+                    string.IsNullOrWhiteSpace(TryGetElementText(uEdit)))
+                {
+                    filled |= TrySetElementValue(hwnd, uEdit, manualCredential.FormattedUsername);
+                }
+
+                if (pEdit is not null && !string.IsNullOrEmpty(manualCredential.Password) &&
+                    string.IsNullOrEmpty(TryGetElementText(pEdit)))
+                {
+                    filled |= TrySetElementValue(hwnd, pEdit, manualCredential.Password);
+                }
+            }
+
+            var invoked = await TryActivateConnectButtonAsync(
+                hwnd,
+                roots,
+                isChromiumBased: false,
+                includeKeywords: ["conectar", "connect", "discar", "dial", "ok"],
+                excludeKeywords: ["desconectar", "disconnect", "cancelar", "cancel"],
+                ct);
+
+            return new VpnUiAutomationOutcome(true, true, filled, invoked, false);
+        }
+
+        return new VpnUiAutomationOutcome(false, false, false, false, false);
+    }
+
+    private async Task<VpnUiAutomationOutcome> AutomateOpenVpnAuthDialogCoreAsync(
         VpnLoginCredential manualCredential,
+        bool allowElevationEscalation,
         CancellationToken ct)
     {
         string[] ovpnProcs = ["openvpn-gui"];
 
-        // Monitora apenas se o OpenVPN GUI abrir o diálogo de autenticação (caso o .ovpn não tenha senha salva)
         for (var attempt = 0; attempt < 18 && !ct.IsCancellationRequested; attempt++)
         {
             await Task.Delay(250, ct);
@@ -304,35 +427,39 @@ public sealed class VpnWindowAutomator
             if (dlgHwnd == IntPtr.Zero)
                 continue;
 
+            if (allowElevationEscalation && VpnElevationBridge.IsWindowHigherElevationThanCurrentProcess(dlgHwnd))
+            {
+                return await VpnElevationBridge.RunElevatedAutomationViaHelperAsync(
+                    VpnAutomationVendorKind.OpenVpnGuiAuthDialog,
+                    Array.Empty<string>(),
+                    manualCredential,
+                    _logger,
+                    ct);
+            }
+
             try
             {
-                var dlgRoot = AutomationElement.FromHandle(dlgHwnd);
-                var (userEdit, passEdit) = FindUsernameAndPasswordEdits(dlgRoot);
+                var dlgRoots = WakeAndCollectSearchRoots(dlgHwnd, isChromiumBased: false);
+                var (userEdit, passEdit) = FindUsernameAndPasswordEdits(dlgRoots);
                 if (userEdit is null && passEdit is null)
                     continue;
 
                 RestoreAndFocusWindow(dlgHwnd);
                 var filled = false;
 
-                if (userEdit is not null && !string.IsNullOrWhiteSpace(manualCredential.FormattedUsername))
+                if (userEdit is not null && !string.IsNullOrWhiteSpace(manualCredential.FormattedUsername) &&
+                    string.IsNullOrWhiteSpace(TryGetElementText(userEdit)))
                 {
-                    if (string.IsNullOrWhiteSpace(TryGetElementText(userEdit)))
-                    {
-                        if (TrySetElementValue(dlgHwnd, userEdit, manualCredential.FormattedUsername))
-                            filled = true;
-                    }
+                    filled |= TrySetElementValue(dlgHwnd, userEdit, manualCredential.FormattedUsername);
                 }
 
-                if (passEdit is not null && !string.IsNullOrEmpty(manualCredential.Password))
+                if (passEdit is not null && !string.IsNullOrEmpty(manualCredential.Password) &&
+                    string.IsNullOrEmpty(TryGetElementText(passEdit)))
                 {
-                    if (string.IsNullOrEmpty(TryGetElementText(passEdit)))
-                    {
-                        if (TrySetElementValue(dlgHwnd, passEdit, manualCredential.Password))
-                            filled = true;
-                    }
+                    filled |= TrySetElementValue(dlgHwnd, passEdit, manualCredential.Password);
                 }
 
-                var okBtn = FindButtonByKeywords(dlgRoot, ["ok", "conectar", "connect", "login"]);
+                var okBtn = FindButtonByKeywords(dlgRoots, ["ok", "conectar", "connect", "login"]);
                 var invoked = okBtn is { Current.IsEnabled: true } && TryInvokeButton(okBtn);
                 return new VpnUiAutomationOutcome(true, true, filled, invoked, false);
             }
@@ -342,9 +469,10 @@ public sealed class VpnWindowAutomator
         return new VpnUiAutomationOutcome(false, false, false, false, false);
     }
 
-    private static async Task<VpnUiAutomationOutcome> AutomateGenericLoginWindowCoreAsync(
-        string? vpnProfileName,
-        VpnLoginCredential manualCredential,
+    private async Task<VpnUiAutomationOutcome> AutomateGenericLoginWindowCoreAsync(
+        IReadOnlyList<string> profileCandidates,
+        VpnLoginCredential? manualCredential,
+        bool allowElevationEscalation,
         CancellationToken ct)
     {
         await Task.Delay(450, ct);
@@ -352,35 +480,62 @@ public sealed class VpnWindowAutomator
         if (fg == IntPtr.Zero)
             return new VpnUiAutomationOutcome(false, false, false, false, false);
 
+        if (allowElevationEscalation && VpnElevationBridge.IsWindowHigherElevationThanCurrentProcess(fg))
+        {
+            return await VpnElevationBridge.RunElevatedAutomationViaHelperAsync(
+                VpnAutomationVendorKind.GenericGui,
+                profileCandidates,
+                manualCredential,
+                _logger,
+                ct);
+        }
+
         try
         {
-            var root = AutomationElement.FromHandle(fg);
-            var profileSelected = !string.IsNullOrWhiteSpace(vpnProfileName) &&
-                                  await TrySelectProfileInComboBoxAsync(root, vpnProfileName.Trim(), ct);
-            var (userEdit, passEdit) = FindUsernameAndPasswordEdits(root);
-            var filled = false;
-
-            if (userEdit is not null && !string.IsNullOrWhiteSpace(manualCredential.FormattedUsername) &&
-                string.IsNullOrWhiteSpace(TryGetElementText(userEdit)))
+            var roots = WakeAndCollectSearchRoots(fg, isChromiumBased: true);
+            var profileSelected = false;
+            string? matchedProfile = null;
+            if (profileCandidates.Count > 0)
             {
-                filled |= TrySetElementValue(fg, userEdit, manualCredential.FormattedUsername);
+                (profileSelected, matchedProfile) = await TrySelectMatchingProfileInComboBoxAsync(roots, fg, profileCandidates, ct);
+                if (profileSelected)
+                {
+                    await Task.Delay(150, ct);
+                    roots = WakeAndCollectSearchRoots(fg, isChromiumBased: true);
+                }
             }
 
-            if (passEdit is not null && !string.IsNullOrEmpty(manualCredential.Password) &&
-                string.IsNullOrEmpty(TryGetElementText(passEdit)))
+            var (userEdit, passEdit) = FindUsernameAndPasswordEdits(roots);
+            var filled = false;
+
+            if (manualCredential is not null)
             {
-                filled |= TrySetElementValue(fg, passEdit, manualCredential.Password);
+                if (userEdit is not null && !string.IsNullOrWhiteSpace(manualCredential.FormattedUsername) &&
+                    string.IsNullOrWhiteSpace(TryGetElementText(userEdit)))
+                {
+                    filled |= TrySetElementValue(fg, userEdit, manualCredential.FormattedUsername);
+                }
+
+                if (passEdit is not null && !string.IsNullOrEmpty(manualCredential.Password) &&
+                    string.IsNullOrEmpty(TryGetElementText(passEdit)))
+                {
+                    filled |= TrySetElementValue(fg, passEdit, manualCredential.Password);
+                }
             }
 
             var invoked = false;
-            if (filled)
+            if (profileSelected || filled)
             {
-                var connectBtn = FindButtonByKeywords(root, ["conectar", "connect", "login", "ok"], excludeKeywords: ["desconectar", "disconnect"]);
-                if (connectBtn is { Current.IsEnabled: true })
-                    invoked = TryInvokeButton(connectBtn);
+                invoked = await TryActivateConnectButtonAsync(
+                    fg,
+                    roots,
+                    isChromiumBased: false,
+                    includeKeywords: ["conectar", "connect", "login", "ok"],
+                    excludeKeywords: ["desconectar", "disconnect", "cancelar", "cancel"],
+                    ct);
             }
 
-            return new VpnUiAutomationOutcome(true, profileSelected, filled, invoked, false);
+            return new VpnUiAutomationOutcome(true, profileSelected, filled, invoked, false, SelectedProfileName: matchedProfile);
         }
         catch
         {
@@ -388,17 +543,197 @@ public sealed class VpnWindowAutomator
         }
     }
 
-    private static async Task<bool> TrySelectProfileInComboBoxAsync(AutomationElement root, string targetProfile, CancellationToken ct)
+    private static IReadOnlyList<AutomationElement> WakeAndCollectSearchRoots(IntPtr topHwnd, bool isChromiumBased)
     {
-        var combos = root.FindAll(TreeScope.Descendants, new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.ComboBox));
+        var roots = new List<AutomationElement>();
+        if (topHwnd == IntPtr.Zero)
+            return roots;
+
+        if (isChromiumBased)
+        {
+            var renderHwnds = new List<IntPtr>();
+            Win32WindowNative.EnumChildWindows(topHwnd, (childHwnd, _) =>
+            {
+                var cls = Win32WindowNative.GetWindowClassName(childHwnd);
+                if (cls.Contains("Chrome_RenderWidgetHostHWND", StringComparison.OrdinalIgnoreCase) ||
+                    cls.Contains("Chrome_WidgetWin", StringComparison.OrdinalIgnoreCase))
+                {
+                    renderHwnds.Add(childHwnd);
+                }
+                return true;
+            }, IntPtr.Zero);
+
+            WakeSingleHwndAccessibility(topHwnd);
+            foreach (var rHwnd in renderHwnds)
+            {
+                WakeSingleHwndAccessibility(rHwnd);
+                try
+                {
+                    var renderElem = AutomationElement.FromHandle(rHwnd);
+                    if (renderElem is not null)
+                        roots.Add(renderElem);
+                }
+                catch { }
+            }
+        }
+
+        try
+        {
+            var topElem = AutomationElement.FromHandle(topHwnd);
+            if (topElem is not null)
+                roots.Add(topElem);
+        }
+        catch { }
+
+        return roots;
+    }
+
+    private static void WakeSingleHwndAccessibility(IntPtr hwnd)
+    {
+        try
+        {
+            // 1. Envia o sinal honey-pot ID=1 que o Chromium usa para detectar leitores de tela / UIA
+            Win32WindowNative.SendMessageTimeout(
+                hwnd,
+                Win32WindowNative.WM_GETOBJECT,
+                IntPtr.Zero,
+                new IntPtr(1),
+                Win32WindowNative.SMTO_ABORTIFHUNG,
+                200,
+                out _);
+
+            // 2. Requisita OBJID_CLIENT via oleacc.dll para ativar a árvore completa do documento HTML
+            var iid = Win32WindowNative.IID_IAccessible;
+            var hr = Win32WindowNative.AccessibleObjectFromWindow(
+                hwnd,
+                Win32WindowNative.OBJID_CLIENT,
+                ref iid,
+                out var accObj);
+
+            if (hr >= 0 && accObj is not null && Marshal.IsComObject(accObj))
+            {
+                Marshal.ReleaseComObject(accObj);
+            }
+        }
+        catch { }
+    }
+
+    private static List<AutomationElement> FindAllAcrossRoots(IReadOnlyList<AutomationElement> roots, ControlType controlType)
+    {
+        var result = new List<AutomationElement>();
+        var seenRects = new HashSet<string>(StringComparer.Ordinal);
+        var cond = new PropertyCondition(AutomationElement.ControlTypeProperty, controlType);
+
+        foreach (var root in roots)
+        {
+            try
+            {
+                var found = root.FindAll(TreeScope.Descendants, cond);
+                for (var i = 0; i < found.Count; i++)
+                {
+                    var elem = found[i];
+                    var key = GetElementDedupKey(elem);
+                    if (seenRects.Add(key))
+                        result.Add(elem);
+                }
+            }
+            catch { }
+        }
+
+        return result;
+    }
+
+    private static string GetElementDedupKey(AutomationElement elem)
+    {
+        try
+        {
+            var rid = elem.GetRuntimeId();
+            if (rid is { Length: > 0 })
+                return string.Join(".", rid);
+        }
+        catch { }
+
+        try
+        {
+            var r = elem.Current.BoundingRectangle;
+            return $"{elem.Current.Name}|{Math.Round(r.Left)}|{Math.Round(r.Top)}|{Math.Round(r.Width)}|{Math.Round(r.Height)}";
+        }
+        catch
+        {
+            return Guid.NewGuid().ToString("N");
+        }
+    }
+
+    private static AutomationElement? FindVpnProfileComboBox(IReadOnlyList<AutomationElement> roots)
+    {
+        var combos = FindAllAcrossRoots(roots, ControlType.ComboBox);
         if (combos.Count == 0)
-            return false;
+            return null;
 
-        var combo = combos[0];
-        var currentVal = TryGetElementText(combo);
-        if (ProfileNamesMatch(currentVal, targetProfile))
-            return true;
+        var valid = new List<(AutomationElement Elem, int Priority, double Top)>();
+        foreach (var combo in combos)
+        {
+            try
+            {
+                if (!combo.Current.IsEnabled || combo.Current.IsOffscreen)
+                    continue;
 
+                var labelNorm = VpnClientLauncherService.CompactNormalize($"{combo.Current.Name} {combo.Current.AutomationId} {combo.Current.HelpText}");
+                // Jamais tocar no seletor de Certificado do Cliente (ex.: FortiClient com certificado instalado)
+                if (labelNorm.Contains("certificado", StringComparison.Ordinal) ||
+                    labelNorm.Contains("certificate", StringComparison.Ordinal) ||
+                    labelNorm.Contains("idioma", StringComparison.Ordinal) ||
+                    labelNorm.Contains("language", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                var isExplicitVpnName =
+                    labelNorm.Contains("nomedavpn", StringComparison.Ordinal) ||
+                    labelNorm.Contains("vpnname", StringComparison.Ordinal) ||
+                    labelNorm.Contains("nombredevpn", StringComparison.Ordinal) ||
+                    labelNorm.Contains("perfil", StringComparison.Ordinal) ||
+                    labelNorm.Contains("profile", StringComparison.Ordinal) ||
+                    labelNorm.Contains("tunnel", StringComparison.Ordinal) ||
+                    labelNorm.Contains("tunel", StringComparison.Ordinal) ||
+                    labelNorm.Contains("server", StringComparison.Ordinal) ||
+                    labelNorm.Contains("gateway", StringComparison.Ordinal);
+
+                var rect = combo.Current.BoundingRectangle;
+                var top = double.IsInfinity(rect.Top) || double.IsNaN(rect.Top) ? 99999 : rect.Top;
+                valid.Add((combo, isExplicitVpnName ? 0 : 1, top));
+            }
+            catch { }
+        }
+
+        if (valid.Count == 0)
+            return null;
+
+        return valid
+            .OrderBy(c => c.Priority)
+            .ThenBy(c => c.Top)
+            .First()
+            .Elem;
+    }
+
+    private static async Task<(bool Selected, string? MatchedName)> TrySelectMatchingProfileInComboBoxAsync(
+        IReadOnlyList<AutomationElement> roots,
+        IntPtr topHwnd,
+        IReadOnlyList<string> profileCandidates,
+        CancellationToken ct)
+    {
+        var combo = FindVpnProfileComboBox(roots);
+        if (combo is null)
+            return (false, null);
+
+        var currentText = GetComboBoxSelectedText(combo);
+        foreach (var candidate in profileCandidates)
+        {
+            if (ProfileNamesMatch(currentText, candidate))
+                return (true, string.IsNullOrWhiteSpace(currentText) ? candidate : currentText);
+        }
+
+        // Tenta abrir o ComboBox e selecionar o item correspondente na lista popup
         ExpandCollapsePattern? expandPattern = null;
         try
         {
@@ -418,43 +753,146 @@ public sealed class VpnWindowAutomator
         }
         catch { }
 
-        await Task.Delay(180, ct);
+        await Task.Delay(200, ct);
 
-        // Procura ListItem na janela principal e, se o popup do Electron/Qt for top-level separado, nos filhos diretos do Desktop
-        var matchedItem = FindMatchingListItem(root, targetProfile) ?? FindMatchingListItemInPopupWindows(targetProfile);
-        if (matchedItem is not null)
+        foreach (var candidate in profileCandidates)
         {
-            var selected = false;
-            try
+            var matchedItem = FindMatchingListItemAcrossRoots(roots, candidate)
+                              ?? FindMatchingListItemInPopupWindows(candidate);
+            if (matchedItem is not null)
             {
-                if (matchedItem.TryGetCurrentPattern(SelectionItemPattern.Pattern, out var selPat))
-                {
-                    ((SelectionItemPattern)selPat).Select();
-                    selected = true;
-                }
-            }
-            catch { }
+                var itemName = (matchedItem.Current.Name ?? candidate).Trim();
+                var selected = TrySelectOrInvokeListItem(matchedItem);
+                try { expandPattern?.Collapse(); } catch { }
 
-            if (!selected)
-            {
-                try
-                {
-                    if (matchedItem.TryGetCurrentPattern(InvokePattern.Pattern, out var invPat))
-                    {
-                        ((InvokePattern)invPat).Invoke();
-                        selected = true;
-                    }
-                }
-                catch { }
+                if (selected)
+                    return (true, itemName);
             }
-
-            try { expandPattern?.Collapse(); } catch { }
-            if (selected)
-                return true;
         }
 
         try { expandPattern?.Collapse(); } catch { }
+
+        // Fallback seguro por teclado para elementos <select> HTML do Electron/Qt quando a janela alvo está em primeiro plano
+        try
+        {
+            RestoreAndFocusWindow(topHwnd);
+            combo.SetFocus();
+            await Task.Delay(60, ct);
+
+            if (Win32WindowNative.GetForegroundWindow() == topHwnd)
+            {
+                // Fecha eventual popup aberto para navegar diretamente nas opções com Home / Seta para Baixo
+                SendVirtualKey(Win32WindowNative.VK_ESCAPE);
+                await Task.Delay(40, ct);
+                combo.SetFocus();
+
+                SendVirtualKey(Win32WindowNative.VK_HOME);
+                await Task.Delay(55, ct);
+
+                var prevText = string.Empty;
+                var unchangedSteps = 0;
+
+                for (var step = 0; step < 45 && !ct.IsCancellationRequested; step++)
+                {
+                    var val = GetComboBoxSelectedText(combo);
+                    foreach (var candidate in profileCandidates)
+                    {
+                        if (ProfileNamesMatch(val, candidate))
+                        {
+                            return (true, string.IsNullOrWhiteSpace(val) ? candidate : val);
+                        }
+                    }
+
+                    if (step > 0 && string.Equals(val, prevText, StringComparison.Ordinal))
+                    {
+                        unchangedSteps++;
+                        if (unchangedSteps >= 2)
+                            break;
+                    }
+                    else
+                    {
+                        unchangedSteps = 0;
+                    }
+
+                    prevText = val;
+                    SendVirtualKey(Win32WindowNative.VK_DOWN);
+                    await Task.Delay(50, ct);
+                }
+            }
+        }
+        catch { }
+
+        return (false, null);
+    }
+
+    private static bool TrySelectOrInvokeListItem(AutomationElement item)
+    {
+        try
+        {
+            if (item.TryGetCurrentPattern(SelectionItemPattern.Pattern, out var selPat))
+            {
+                ((SelectionItemPattern)selPat).Select();
+                return true;
+            }
+        }
+        catch { }
+
+        try
+        {
+            if (item.TryGetCurrentPattern(InvokePattern.Pattern, out var invPat))
+            {
+                ((InvokePattern)invPat).Invoke();
+                return true;
+            }
+        }
+        catch { }
+
         return false;
+    }
+
+    private static string GetComboBoxSelectedText(AutomationElement combo)
+    {
+        var direct = TryGetElementText(combo);
+        if (!string.IsNullOrWhiteSpace(direct))
+            return direct.Trim();
+
+        try
+        {
+            var children = combo.FindAll(
+                TreeScope.Children,
+                new OrCondition(
+                    new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.ListItem),
+                    new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Text),
+                    new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Edit)));
+
+            for (var i = 0; i < children.Count; i++)
+            {
+                var ch = children[i];
+                if (ch.TryGetCurrentPattern(SelectionItemPattern.Pattern, out var sel) &&
+                    ((SelectionItemPattern)sel).Current.IsSelected &&
+                    !string.IsNullOrWhiteSpace(ch.Current.Name))
+                {
+                    return ch.Current.Name.Trim();
+                }
+            }
+
+            if (children.Count == 1 && !string.IsNullOrWhiteSpace(children[0].Current.Name))
+                return children[0].Current.Name.Trim();
+        }
+        catch { }
+
+        return string.Empty;
+    }
+
+    private static AutomationElement? FindMatchingListItemAcrossRoots(IReadOnlyList<AutomationElement> roots, string targetProfile)
+    {
+        foreach (var root in roots)
+        {
+            var found = FindMatchingListItem(root, targetProfile);
+            if (found is not null)
+                return found;
+        }
+        return null;
     }
 
     private static AutomationElement? FindMatchingListItem(AutomationElement scopeRoot, string targetProfile)
@@ -506,7 +944,8 @@ public sealed class VpnWindowAutomator
                 new OrCondition(
                     new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Window),
                     new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Pane),
-                    new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.List)));
+                    new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.List),
+                    new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Menu)));
 
             for (var i = 0; i < topWindows.Count; i++)
             {
@@ -514,7 +953,8 @@ public sealed class VpnWindowAutomator
                 var cls = w.Current.ClassName ?? string.Empty;
                 if (!cls.Contains("Chrome", StringComparison.OrdinalIgnoreCase) &&
                     !cls.Contains("Qt", StringComparison.OrdinalIgnoreCase) &&
-                    !cls.Contains("ComboLBox", StringComparison.OrdinalIgnoreCase))
+                    !cls.Contains("ComboLBox", StringComparison.OrdinalIgnoreCase) &&
+                    !cls.Contains("Popup", StringComparison.OrdinalIgnoreCase))
                 {
                     continue;
                 }
@@ -547,22 +987,47 @@ public sealed class VpnWindowAutomator
         return stemCand.Length >= 3 && stemCand.Equals(stemTarget, StringComparison.Ordinal);
     }
 
-    private static (AutomationElement? UserEdit, AutomationElement? PassEdit) FindUsernameAndPasswordEdits(AutomationElement root)
+    private static bool IsSavePasswordCheckBoxChecked(IReadOnlyList<AutomationElement> roots)
+    {
+        var checkBoxes = FindAllAcrossRoots(roots, ControlType.CheckBox);
+        foreach (var cb in checkBoxes)
+        {
+            try
+            {
+                var norm = VpnClientLauncherService.CompactNormalize(cb.Current.Name);
+                if (norm.Contains("salvarsenha", StringComparison.Ordinal) ||
+                    norm.Contains("savepassword", StringComparison.Ordinal) ||
+                    norm.Contains("guardarcontrase", StringComparison.Ordinal) ||
+                    norm.Contains("remember", StringComparison.Ordinal) ||
+                    norm.Contains("lembrar", StringComparison.Ordinal))
+                {
+                    if (cb.TryGetCurrentPattern(TogglePattern.Pattern, out var rawToggle))
+                    {
+                        return ((TogglePattern)rawToggle).Current.ToggleState == ToggleState.On;
+                    }
+                }
+            }
+            catch { }
+        }
+
+        return false;
+    }
+
+    private static (AutomationElement? UserEdit, AutomationElement? PassEdit) FindUsernameAndPasswordEdits(IReadOnlyList<AutomationElement> roots)
     {
         AutomationElement? userEdit = null;
         AutomationElement? passEdit = null;
         var nonPasswordEdits = new List<AutomationElement>();
 
-        try
+        var edits = FindAllAcrossRoots(roots, ControlType.Edit);
+        foreach (var edit in edits)
         {
-            var edits = root.FindAll(TreeScope.Descendants, new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Edit));
-            for (var i = 0; i < edits.Count; i++)
+            try
             {
-                var edit = edits[i];
                 if (!edit.Current.IsEnabled || edit.Current.IsOffscreen)
                     continue;
 
-                var nameNorm = VpnClientLauncherService.CompactNormalize(edit.Current.Name);
+                var nameNorm = VpnClientLauncherService.CompactNormalize($"{edit.Current.Name} {edit.Current.AutomationId}");
                 if (edit.Current.IsPassword ||
                     nameNorm.Contains("senha", StringComparison.Ordinal) ||
                     nameNorm.Contains("password", StringComparison.Ordinal) ||
@@ -581,27 +1046,28 @@ public sealed class VpnWindowAutomator
                     }
                 }
             }
-
-            if (userEdit is null && nonPasswordEdits.Count > 0)
-                userEdit = nonPasswordEdits[0];
+            catch { }
         }
-        catch { }
+
+        if (userEdit is null && nonPasswordEdits.Count > 0)
+            userEdit = nonPasswordEdits[0];
 
         return (userEdit, passEdit);
     }
 
     private static AutomationElement? FindButtonByKeywords(
-        AutomationElement root,
+        IReadOnlyList<AutomationElement> roots,
         IReadOnlyList<string> includeKeywords,
         IReadOnlyList<string>? excludeKeywords = null)
     {
-        try
+        var buttons = FindAllAcrossRoots(roots, ControlType.Button);
+        AutomationElement? partialMatch = null;
+
+        foreach (var btn in buttons)
         {
-            var buttons = root.FindAll(TreeScope.Descendants, new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Button));
-            for (var i = 0; i < buttons.Count; i++)
+            try
             {
-                var btn = buttons[i];
-                if (btn.Current.IsOffscreen)
+                if (!btn.Current.IsEnabled || btn.Current.IsOffscreen)
                     continue;
 
                 var norm = VpnClientLauncherService.CompactNormalize(btn.Current.Name);
@@ -611,13 +1077,129 @@ public sealed class VpnWindowAutomator
                 if (excludeKeywords is not null && excludeKeywords.Any(ex => norm.Contains(ex, StringComparison.Ordinal)))
                     continue;
 
-                if (includeKeywords.Any(inc => norm.Equals(inc, StringComparison.Ordinal) || norm.Contains(inc, StringComparison.Ordinal)))
+                if (includeKeywords.Any(inc => norm.Equals(inc, StringComparison.Ordinal)))
                     return btn;
+
+                if (partialMatch is null && includeKeywords.Any(inc => norm.Contains(inc, StringComparison.Ordinal)))
+                    partialMatch = btn;
+            }
+            catch { }
+        }
+
+        return partialMatch;
+    }
+
+    private static async Task<bool> TryActivateConnectButtonAsync(
+        IntPtr topHwnd,
+        IReadOnlyList<AutomationElement> roots,
+        bool isChromiumBased,
+        IReadOnlyList<string> includeKeywords,
+        IReadOnlyList<string> excludeKeywords,
+        CancellationToken ct)
+    {
+        var connectBtn = FindButtonByKeywords(roots, includeKeywords, excludeKeywords);
+        if (connectBtn is null)
+            return false;
+
+        // 1. Acionamento padrão via UI Automation InvokePattern
+        var invoked = TryInvokeButton(connectBtn);
+        if (invoked)
+        {
+            if (!isChromiumBased)
+                return true;
+
+            // Em Electron/Angular (FortiClient), confirma em 260ms se o botão "Conectar" iniciou a transição (mudou para "Cancelar" / "Desconectar")
+            await Task.Delay(260, ct);
+            var refreshedRoots = WakeAndCollectSearchRoots(topHwnd, isChromiumBased: true);
+            if (FindButtonByKeywords(refreshedRoots, ["cancelar", "cancel", "desconectar", "disconnect"]) is not null ||
+                FindButtonByKeywords(refreshedRoots, includeKeywords, excludeKeywords) is null)
+            {
+                return true;
+            }
+
+            connectBtn = FindButtonByKeywords(refreshedRoots, includeKeywords, excludeKeywords) ?? connectBtn;
+        }
+
+        // 2. Fallback por foco no botão + tecla Enter com janela validada em primeiro plano
+        try
+        {
+            RestoreAndFocusWindow(topHwnd);
+            connectBtn.SetFocus();
+            await Task.Delay(60, ct);
+            if (Win32WindowNative.GetForegroundWindow() == topHwnd)
+            {
+                SendVirtualKey(Win32WindowNative.VK_RETURN);
+                await Task.Delay(220, ct);
+
+                var refreshedAfterEnter = WakeAndCollectSearchRoots(topHwnd, isChromiumBased);
+                if (FindButtonByKeywords(refreshedAfterEnter, ["cancelar", "cancel", "desconectar", "disconnect"]) is not null ||
+                    FindButtonByKeywords(refreshedAfterEnter, includeKeywords, excludeKeywords) is null)
+                {
+                    return true;
+                }
+
+                connectBtn = FindButtonByKeywords(refreshedAfterEnter, includeKeywords, excludeKeywords) ?? connectBtn;
             }
         }
         catch { }
 
-        return null;
+        // 3. Fallback cirúrgico de clique nas coordenadas do próprio botão (restaurando o cursor imediatamente)
+        if (TryClickElementBoundsInsideWindow(topHwnd, connectBtn))
+            return true;
+
+        return invoked;
+    }
+
+    private static bool TryClickElementBoundsInsideWindow(IntPtr topHwnd, AutomationElement element)
+    {
+        try
+        {
+            RestoreAndFocusWindow(topHwnd);
+            Thread.Sleep(50);
+            if (Win32WindowNative.GetForegroundWindow() != topHwnd)
+                return false;
+
+            if (!Win32WindowNative.GetWindowRect(topHwnd, out var winRect))
+                return false;
+
+            Rect bounds = element.Current.BoundingRectangle;
+            if (bounds.IsEmpty || bounds.Width < 4 || bounds.Height < 4 ||
+                double.IsNaN(bounds.Left) || double.IsInfinity(bounds.Left))
+            {
+                return false;
+            }
+
+            var clickX = (int)Math.Round(bounds.Left + (bounds.Width / 2.0));
+            var clickY = (int)Math.Round(bounds.Top + (bounds.Height / 2.0));
+
+            // Garante que o ponto clicado está estritamente dentro da janela da VPN
+            if (clickX <= winRect.Left || clickX >= winRect.Right ||
+                clickY <= winRect.Top || clickY >= winRect.Bottom)
+            {
+                return false;
+            }
+
+            Win32WindowNative.GetCursorPos(out var savedCursor);
+            try
+            {
+                Win32WindowNative.SetCursorPos(clickX, clickY);
+                var mouseInputs = new[]
+                {
+                    Win32WindowNative.CreateMouseLeftButton(buttonUp: false),
+                    Win32WindowNative.CreateMouseLeftButton(buttonUp: true)
+                };
+                Win32WindowNative.SendInput((uint)mouseInputs.Length, mouseInputs, Marshal.SizeOf<Win32WindowNative.INPUT>());
+                return true;
+            }
+            finally
+            {
+                Win32WindowNative.SetCursorPos(savedCursor.X, savedCursor.Y);
+            }
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     private static string TryGetElementText(AutomationElement element)
@@ -655,7 +1237,6 @@ public sealed class VpnWindowAutomator
         }
         catch { }
 
-        // Fallback seguro via Unicode SendInput somente se o próprio controle estiver com foco ativo na janela alvo
         try
         {
             RestoreAndFocusWindow(windowHwnd);
@@ -731,7 +1312,6 @@ public sealed class VpnWindowAutomator
             if (!pidMatches && !titleMatches)
                 return true;
 
-            // Para janelas ocultas na bandeja, exige título válido para não exibir janelas internas invisíveis de mensagem
             var isVisible = Win32WindowNative.IsWindowVisible(hwnd);
             if (isVisible)
             {
@@ -844,6 +1424,16 @@ public sealed class VpnWindowAutomator
         }
     }
 
+    private static void SendVirtualKey(ushort vk)
+    {
+        var arr = new[]
+        {
+            Win32WindowNative.CreateVirtualKey(vk, keyUp: false),
+            Win32WindowNative.CreateVirtualKey(vk, keyUp: true)
+        };
+        Win32WindowNative.SendInput((uint)arr.Length, arr, Marshal.SizeOf<Win32WindowNative.INPUT>());
+    }
+
     private static void SendUnicodeString(string text)
     {
         if (string.IsNullOrEmpty(text))
@@ -864,14 +1454,31 @@ public sealed class VpnWindowAutomator
     {
         public const int SW_SHOW = 5;
         public const int SW_RESTORE = 9;
+        public const uint WM_GETOBJECT = 0x003D;
+        public const uint SMTO_ABORTIFHUNG = 0x0002;
+        public const int OBJID_CLIENT = unchecked((int)0xFFFFFFFC);
+
+        public const ushort VK_RETURN = 0x0D;
+        public const ushort VK_ESCAPE = 0x1B;
+        public const ushort VK_HOME = 0x24;
+        public const ushort VK_DOWN = 0x28;
+
+        private const int INPUT_MOUSE = 0;
         private const int INPUT_KEYBOARD = 1;
         private const uint KEYEVENTF_KEYUP = 0x0002;
         private const uint KEYEVENTF_UNICODE = 0x0004;
+        private const uint MOUSEEVENTF_LEFTDOWN = 0x0002;
+        private const uint MOUSEEVENTF_LEFTUP = 0x0004;
+
+        public static readonly Guid IID_IAccessible = new("618736E0-3C3D-11CF-810C-00AA00389B71");
 
         public delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
 
         [DllImport("user32.dll")]
         public static extern bool EnumWindows(EnumWindowsProc lpEnumFunc, IntPtr lParam);
+
+        [DllImport("user32.dll")]
+        public static extern bool EnumChildWindows(IntPtr hWndParent, EnumWindowsProc lpEnumFunc, IntPtr lParam);
 
         [DllImport("user32.dll")]
         public static extern bool IsWindowVisible(IntPtr hWnd);
@@ -902,6 +1509,32 @@ public sealed class VpnWindowAutomator
 
         [DllImport("user32.dll")]
         public static extern bool AttachThreadInput(uint idAttach, uint idAttachTo, bool fAttach);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        public static extern IntPtr SendMessageTimeout(
+            IntPtr hWnd,
+            uint Msg,
+            IntPtr wParam,
+            IntPtr lParam,
+            uint fuFlags,
+            uint uTimeout,
+            out IntPtr lpdwResult);
+
+        [DllImport("oleacc.dll")]
+        public static extern int AccessibleObjectFromWindow(
+            IntPtr hwnd,
+            int dwId,
+            ref Guid riid,
+            [MarshalAs(UnmanagedType.Interface)] out object? ppvObject);
+
+        [DllImport("user32.dll")]
+        public static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
+
+        [DllImport("user32.dll")]
+        public static extern bool GetCursorPos(out POINT lpPoint);
+
+        [DllImport("user32.dll")]
+        public static extern bool SetCursorPos(int X, int Y);
 
         [DllImport("user32.dll", CharSet = CharSet.Unicode)]
         private static extern int GetWindowText(IntPtr hWnd, StringBuilder lpString, int nMaxCount);
@@ -941,6 +1574,61 @@ public sealed class VpnWindowAutomator
                     }
                 }
             };
+        }
+
+        public static INPUT CreateVirtualKey(ushort vk, bool keyUp)
+        {
+            return new INPUT
+            {
+                type = INPUT_KEYBOARD,
+                U = new InputUnion
+                {
+                    ki = new KEYBDINPUT
+                    {
+                        wVk = vk,
+                        wScan = 0,
+                        dwFlags = keyUp ? KEYEVENTF_KEYUP : 0,
+                        time = 0,
+                        dwExtraInfo = IntPtr.Zero
+                    }
+                }
+            };
+        }
+
+        public static INPUT CreateMouseLeftButton(bool buttonUp)
+        {
+            return new INPUT
+            {
+                type = INPUT_MOUSE,
+                U = new InputUnion
+                {
+                    mi = new MOUSEINPUT
+                    {
+                        dx = 0,
+                        dy = 0,
+                        mouseData = 0,
+                        dwFlags = buttonUp ? MOUSEEVENTF_LEFTUP : MOUSEEVENTF_LEFTDOWN,
+                        time = 0,
+                        dwExtraInfo = IntPtr.Zero
+                    }
+                }
+            };
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct RECT
+        {
+            public int Left;
+            public int Top;
+            public int Right;
+            public int Bottom;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct POINT
+        {
+            public int X;
+            public int Y;
         }
 
         [StructLayout(LayoutKind.Sequential)]

@@ -156,6 +156,8 @@
                                 <MenuItem Header="{loc:Loc TextF68E4F381086}" Click="OpenCredentialsFromHeader_Click"/>
                                 <Separator/>
                                 <MenuItem Header="{loc:Loc Text5519670C5987}" Click="OpenShortcutsTab_Click"/>
+                                <Separator x:Name="MenuRestartAsAdminSeparator"/>
+                                <MenuItem x:Name="MenuRestartAsAdminItem" Header="{loc:Loc Text284A2EAF964F}" Click="RestartAsAdmin_Click"/>
                             </ContextMenu>
                         </Button.ContextMenu>
                     </Button>
