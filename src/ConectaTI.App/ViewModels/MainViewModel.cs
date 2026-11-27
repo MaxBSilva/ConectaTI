@@ -101,11 +101,13 @@ public partial class MainViewModel : ObservableObject
         CaptureSession();
         NotifyEditState();
         if (e.PropertyName == nameof(ConnectionEntry.CredentialId)) NotifyPasswordStatusProperties();
-        if (e.PropertyName is nameof(ConnectionEntry.VpnName) or nameof(ConnectionEntry.VpnApp) or nameof(ConnectionEntry.VpnServer) or nameof(ConnectionEntry.VpnNotes) or nameof(ConnectionEntry.HasVpnConfigured))
+        if (e.PropertyName is nameof(ConnectionEntry.VpnName) or nameof(ConnectionEntry.VpnApp) or nameof(ConnectionEntry.VpnServer) or nameof(ConnectionEntry.VpnNotes) or nameof(ConnectionEntry.VpnCredentialId) or nameof(ConnectionEntry.HasVpnConfigured))
         {
             OnPropertyChanged(nameof(CanCopyVpnName));
             OnPropertyChanged(nameof(CanCopyVpnServer));
             OnPropertyChanged(nameof(CanOpenVpnClient));
+            OnPropertyChanged(nameof(SelectedVpnCredentialId));
+            OnPropertyChanged(nameof(HasVpnCredentialSelected));
         }
     }
     private void CaptureSession()
@@ -407,6 +409,24 @@ public partial class MainViewModel : ObservableObject
     public bool CanOpenVpnClient => (EditingEntry?.HasVpnConfigured == true) || (SelectedConnection?.HasVpnConfigured == true);
     public VpnClientLauncherService VpnLauncherService => _vpnLauncherService;
 
+    public string SelectedVpnCredentialId
+    {
+        get => EditingEntry.VpnCredentialId ?? string.Empty;
+        set
+        {
+            if (_suppressSelectionGuard) return;
+            var normalized = string.IsNullOrWhiteSpace(value) ? null : value;
+            if (!string.Equals(EditingEntry.VpnCredentialId, normalized, StringComparison.Ordinal))
+            {
+                EditingEntry.VpnCredentialId = normalized;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(HasVpnCredentialSelected));
+            }
+        }
+    }
+
+    public bool HasVpnCredentialSelected => !string.IsNullOrWhiteSpace(EditingEntry.VpnCredentialId);
+
     public string PasswordStatusText => SavedPasswordBadgeText;
 
     public string PasswordFieldLabel => HasSavedPassword
@@ -502,6 +522,8 @@ public partial class MainViewModel : ObservableObject
             }
             finally { _suppressSelectionGuard = previous; }
             ApplyFilterAndSort(editorGeneration == EditorGeneration ? selectConnectionId : null);
+            OnPropertyChanged(nameof(SelectedVpnCredentialId));
+            OnPropertyChanged(nameof(HasVpnCredentialSelected));
         }
         catch (Exception ex)
         {
@@ -745,6 +767,8 @@ public partial class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(CanCopyVpnName));
         OnPropertyChanged(nameof(CanCopyVpnServer));
         OnPropertyChanged(nameof(CanOpenVpnClient));
+        OnPropertyChanged(nameof(SelectedVpnCredentialId));
+        OnPropertyChanged(nameof(HasVpnCredentialSelected));
     }
 
     public void NotifyProtocolChanged(ConnectionProtocol oldProtocol, ConnectionProtocol newProtocol)
@@ -1222,15 +1246,15 @@ public partial class MainViewModel : ObservableObject
     }
 
     [RelayCommand]
-    public void OpenVpnClient()
+    public async Task OpenVpnClientAsync()
     {
         var source = EditingEntry?.HasVpnConfigured == true
             ? EditingEntry
             : (SelectedConnection?.HasVpnConfigured == true ? SelectedConnection : EditingEntry);
-        OpenVpnForEntry(source);
+        await OpenVpnForEntryAsync(source);
     }
 
-    public VpnLaunchOutcome OpenVpnForEntry(ConnectionEntry? source)
+    public async Task<VpnLaunchOutcome> OpenVpnForEntryAsync(ConnectionEntry? source)
     {
         if (source == null)
         {
@@ -1239,27 +1263,69 @@ public partial class MainViewModel : ObservableObject
             return new VpnLaunchOutcome(false, false, string.Empty, msg);
         }
 
-        var outcome = _vpnLauncherService.Launch(source);
-        StatusMessage = outcome.StatusMessage;
+        var snapshot = source.Clone();
+        var current = ActiveEditSession?.Entry.Id == snapshot.Id ? CaptureEditorGuard() : () => true;
 
-        if (!outcome.Started)
+        VpnLoginCredential? vpnLogin = null;
+        SavedCredential? vpnCredentialMeta = null;
+        string? vpnSecret = null;
+
+        if (!string.IsNullOrWhiteSpace(snapshot.VpnCredentialId))
         {
-            if (ConfirmDeleteCallback != null)
+            var read = await _credentials.ReadAsync(snapshot.VpnCredentialId, current);
+            if (!current())
+                return new VpnLaunchOutcome(false, false, string.Empty, StatusMessage);
+
+            if (read.Status == CredentialReadStatus.Available && read.Credential is not null)
             {
-                var openWinVpn = ConfirmDeleteCallback(
-                    L.Text("Cliente VPN não localizado"),
-                    L.Format("{0}\n\nDeseja abrir as Configurações de VPN do Windows agora?", outcome.ErrorMessage ?? outcome.StatusMessage));
-                if (openWinVpn)
+                vpnCredentialMeta = read.Credential;
+                vpnSecret = read.Secret ?? string.Empty;
+                vpnLogin = new VpnLoginCredential(read.Credential.Username, read.Credential.Domain, vpnSecret);
+            }
+        }
+
+        using var redaction = !string.IsNullOrEmpty(vpnSecret) ? _logger.Redact([vpnSecret]) : null;
+        var outcome = _vpnLauncherService.Launch(snapshot, vpnLogin);
+
+        if (outcome.Started)
+        {
+            var status = outcome.StatusMessage;
+            if (vpnCredentialMeta is not null && !outcome.PassedCredentialsDirectly && !string.IsNullOrEmpty(vpnSecret))
+            {
+                var clearSec = _settingsService.Current.ClipboardClearSeconds > 0 ? _settingsService.Current.ClipboardClearSeconds : 30;
+                var copied = await _credentials.CopyPasswordAsync(vpnSecret, current, clearSec);
+                if (copied && current())
                 {
-                    var fallback = _vpnLauncherService.LaunchWindowsVpnSettingsFallback();
-                    StatusMessage = fallback.StatusMessage;
-                    return fallback;
+                    var userDisplay = vpnCredentialMeta.EffectiveUserDisplay;
+                    status = !string.IsNullOrWhiteSpace(userDisplay)
+                        ? L.Format("{0} | Usuário VPN: {1} (senha copiada para Ctrl+V)", status, userDisplay)
+                        : L.Format("{0} | Senha da VPN copiada para Ctrl+V", status);
                 }
             }
-            else
+
+            if (current())
+                StatusMessage = status;
+
+            return outcome with { StatusMessage = status };
+        }
+
+        StatusMessage = outcome.StatusMessage;
+
+        if (ConfirmDeleteCallback != null)
+        {
+            var openWinVpn = ConfirmDeleteCallback(
+                L.Text("Cliente VPN não localizado"),
+                L.Format("{0}\n\nDeseja abrir as Configurações de VPN do Windows agora?", outcome.ErrorMessage ?? outcome.StatusMessage));
+            if (openWinVpn)
             {
-                ShowErrorDialogCallback?.Invoke(L.Text("Cliente VPN"), outcome.ErrorMessage ?? outcome.StatusMessage);
+                var fallback = _vpnLauncherService.LaunchWindowsVpnSettingsFallback();
+                StatusMessage = fallback.StatusMessage;
+                return fallback;
             }
+        }
+        else
+        {
+            ShowErrorDialogCallback?.Invoke(L.Text("Cliente VPN"), outcome.ErrorMessage ?? outcome.StatusMessage);
         }
 
         return outcome;
@@ -1298,7 +1364,7 @@ public partial class MainViewModel : ObservableObject
                 }
                 if (decision == VpnUnreachableDecision.OpenVpn)
                 {
-                    OpenVpnForEntry(vpnSource);
+                    await OpenVpnForEntryAsync(vpnSource);
                     return;
                 }
             }
@@ -1437,6 +1503,61 @@ public partial class MainViewModel : ObservableObject
 
         if (await _clipboardService.CopyTextWithRetryAsync(text))
             StatusMessage = L.Text("Servidor da VPN copiado");
+    }
+
+    [RelayCommand]
+    public async Task CopyVpnUsernameAsync()
+    {
+        var vpnCredId = !string.IsNullOrWhiteSpace(EditingEntry?.VpnCredentialId)
+            ? EditingEntry.VpnCredentialId
+            : SelectedConnection?.VpnCredentialId;
+
+        if (string.IsNullOrWhiteSpace(vpnCredId))
+        {
+            StatusMessage = L.Text("Nenhuma credencial de VPN selecionada.");
+            return;
+        }
+
+        var cred = await _repository.GetCredentialByIdAsync(vpnCredId);
+        var userText = cred?.EffectiveUserDisplay ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(userText))
+        {
+            StatusMessage = L.Text("A credencial da VPN não possui usuário informado.");
+            return;
+        }
+
+        if (await _clipboardService.CopyTextWithRetryAsync(userText))
+            StatusMessage = L.Text("Usuário da VPN copiado");
+    }
+
+    [RelayCommand]
+    public async Task CopyVpnPasswordAsync()
+    {
+        var current = CaptureEditorGuard();
+        if (!current())
+            return;
+
+        var vpnCredId = !string.IsNullOrWhiteSpace(EditingEntry?.VpnCredentialId)
+            ? EditingEntry.VpnCredentialId
+            : SelectedConnection?.VpnCredentialId;
+
+        if (string.IsNullOrWhiteSpace(vpnCredId))
+        {
+            StatusMessage = L.Text("Nenhuma credencial de VPN selecionada.");
+            return;
+        }
+
+        var read = await _credentials.ReadAsync(vpnCredId, current);
+        if (!current() || read.Status != CredentialReadStatus.Available || string.IsNullOrEmpty(read.Secret))
+        {
+            if (current())
+                StatusMessage = L.Text("Não foi possível recuperar a senha da VPN.");
+            return;
+        }
+
+        var clearSec = _settingsService.Current.ClipboardClearSeconds > 0 ? _settingsService.Current.ClipboardClearSeconds : 30;
+        if (await _credentials.CopyPasswordAsync(read.Secret, current, clearSec) && current())
+            StatusMessage = L.Text("Senha da VPN copiada");
     }
 
     private Func<bool> CaptureEditorGuard()

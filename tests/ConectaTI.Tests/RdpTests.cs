@@ -118,7 +118,7 @@ public sealed class RdpTests : IDisposable
         }
         var reopened = new SqliteRepository(paths, logger); reopened.InitializeAndMigrate();
         var saved = (await reopened.GetConnectionByIdAsync(entry.Id))!;
-        Assert.Equal(10, reopened.GetSchemaVersion());
+        Assert.Equal(11, reopened.GetSchemaVersion());
         Assert.DoesNotContain("gatewayhostname", RdpFileService.Build(saved));
         Assert.True(saved.RdpFullScreen); Assert.Equal(3389, saved.Port);
     }

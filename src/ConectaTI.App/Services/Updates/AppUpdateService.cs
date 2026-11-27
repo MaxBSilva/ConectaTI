@@ -81,7 +81,7 @@ public sealed class ReleasePackageManifest
     public bool SingleFile { get; set; } = true;
 
     [JsonPropertyName("schemaVersion")]
-    public int SchemaVersion { get; set; } = 10;
+    public int SchemaVersion { get; set; } = 11;
 
     [JsonPropertyName("publishedAtUtc")]
     public string PublishedAtUtc { get; set; } = string.Empty;

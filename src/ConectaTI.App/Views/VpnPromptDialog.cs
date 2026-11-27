@@ -146,7 +146,7 @@ public sealed class VpnPromptDialog : Window
         var actionsWrap = new WrapPanel { Orientation = Orientation.Horizontal };
         var openVpnBtn = new Button
         {
-            Content = L.Text("Abrir VPN"),
+            Content = L.Text("Conectar VPN"),
             IsDefault = true,
             Padding = new Thickness(16, 6, 16, 6),
             Margin = new Thickness(0, 0, 8, 0),

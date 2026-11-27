@@ -802,15 +802,94 @@ public partial class MainWindow : Window
         await _vm.CopyPasswordAsync();
     }
 
-    private void MenuOpenVpn_Click(object sender, RoutedEventArgs e)
+    private async void MenuOpenVpn_Click(object sender, RoutedEventArgs e)
     {
-        _vm.OpenVpnClient();
+        await _vm.OpenVpnClientAsync();
     }
 
-    private void OpenVpnQuickButton_Click(object sender, RoutedEventArgs e)
+    private void VpnProfilePresetButton_Click(object sender, RoutedEventArgs e)
     {
-        e.Handled = true;
-        _vm.OpenVpnClient();
+        var menu = new ContextMenu
+        {
+            PlacementTarget = VpnProfilePresetButton,
+            Placement = PlacementMode.Bottom
+        };
+
+        var profiles = _vm.VpnLauncherService.DiscoverInstalledVpnProfiles();
+        if (profiles.Count == 0)
+        {
+            menu.Items.Add(new MenuItem
+            {
+                Header = L.Text("Nenhum perfil local (.ovpn, FortiClient, OpenConnect ou Windows) detectado"),
+                IsEnabled = false
+            });
+        }
+        else
+        {
+            foreach (var profile in profiles)
+            {
+                var captured = profile;
+                var item = new MenuItem { Header = captured.MenuHeader };
+                item.Click += (_, _) => ApplyDiscoveredVpnProfile(captured);
+                menu.Items.Add(item);
+            }
+        }
+
+        menu.Items.Add(new Separator());
+        var browseOvpnItem = new MenuItem { Header = L.Text("Procurar arquivo .ovpn...") };
+        browseOvpnItem.Click += (_, _) => BrowseOvpnProfileFile();
+        menu.Items.Add(browseOvpnItem);
+
+        menu.IsOpen = true;
+    }
+
+    private void ApplyDiscoveredVpnProfile(DiscoveredVpnProfile profile)
+    {
+        _vm.EditingEntry.VpnName = profile.ProfileName;
+        _vm.EditingEntry.VpnApp = profile.SuggestedApp;
+        if (string.IsNullOrWhiteSpace(_vm.EditingEntry.VpnServer) && !string.IsNullOrWhiteSpace(profile.SuggestedServer))
+        {
+            _vm.EditingEntry.VpnServer = profile.SuggestedServer;
+        }
+        VpnNameTextBox.Focus();
+        VpnNameTextBox.CaretIndex = VpnNameTextBox.Text.Length;
+    }
+
+    private void BrowseOvpnProfileFile()
+    {
+        var initialDir = Directory.Exists(@"C:\Program Files\OpenVPN\config")
+            ? @"C:\Program Files\OpenVPN\config"
+            : null;
+
+        var dlg = new OpenFileDialog
+        {
+            Title = L.Text("Selecionar Perfil OpenVPN (.ovpn)"),
+            Filter = L.Text("Perfis OpenVPN (*.ovpn)|*.ovpn|Todos os arquivos (*.*)|*.*"),
+            CheckFileExists = true,
+            InitialDirectory = initialDir ?? string.Empty
+        };
+
+        if (dlg.ShowDialog(this) == true)
+        {
+            ApplySelectedOvpnFile(dlg.FileName);
+        }
+    }
+
+    private void ApplySelectedOvpnFile(string filePath)
+    {
+        var baseName = Path.GetFileNameWithoutExtension(filePath);
+        _vm.EditingEntry.VpnName = baseName;
+
+        var parentDir = Path.GetDirectoryName(filePath) ?? string.Empty;
+        var isStandardOpenVpnFolder = parentDir.Contains("OpenVPN", StringComparison.OrdinalIgnoreCase);
+        _vm.EditingEntry.VpnApp = isStandardOpenVpnFolder ? "OpenVPN GUI" : filePath;
+
+        if (string.IsNullOrWhiteSpace(_vm.EditingEntry.VpnServer))
+        {
+            var remote = VpnClientLauncherService.TryExtractRemoteServerFromOvpnFile(filePath);
+            if (!string.IsNullOrWhiteSpace(remote))
+                _vm.EditingEntry.VpnServer = remote;
+        }
     }
 
     private void VpnAppPresetButton_Click(object sender, RoutedEventArgs e)
@@ -842,14 +921,21 @@ public partial class MainWindow : Window
     {
         var dlg = new OpenFileDialog
         {
-            Title = L.Text("Selecionar Cliente VPN"),
-            Filter = L.Text("Clientes VPN (*.exe;*.lnk)|*.exe;*.lnk|Todos os arquivos (*.*)|*.*"),
+            Title = L.Text("Selecionar Cliente ou Perfil VPN"),
+            Filter = L.Text("Clientes e Perfis VPN (*.exe;*.lnk;*.ovpn)|*.exe;*.lnk;*.ovpn|Todos os arquivos (*.*)|*.*"),
             CheckFileExists = true
         };
 
         if (dlg.ShowDialog(this) == true)
         {
-            _vm.EditingEntry.VpnApp = dlg.FileName;
+            if (dlg.FileName.EndsWith(".ovpn", StringComparison.OrdinalIgnoreCase))
+            {
+                ApplySelectedOvpnFile(dlg.FileName);
+            }
+            else
+            {
+                _vm.EditingEntry.VpnApp = dlg.FileName;
+            }
         }
     }
 

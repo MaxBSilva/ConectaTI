@@ -2451,4 +2451,93 @@ Deseja abrir as Configurações de VPN do Windows agora?</value></data>
   <data name="Text574D07D0305F" xml:space="preserve"><value>Conexão cancelada.</value></data>
   <data name="TextD000264CFDC2" xml:space="preserve"><value>Selecionar Cliente VPN</value></data>
   <data name="Text92B4105381AD" xml:space="preserve"><value>Clientes VPN (*.exe;*.lnk)|*.exe;*.lnk|Todos os arquivos (*.*)|*.*</value></data>
+  <data name="Text7967C2DF48CA" xml:space="preserve">
+    <value>Conectar VPN</value>
+  </data>
+  <data name="Text660D5FC169FE" xml:space="preserve">
+    <value>Conectar ou abrir a VPN configurada deste cliente (perfil .ovpn / cliente VPN)</value>
+  </data>
+  <data name="TextCB278E7A042A" xml:space="preserve">
+    <value>Selecionar perfil de VPN já configurado neste computador (.ovpn, FortiClient, OpenConnect, Windows)</value>
+  </data>
+  <data name="TextB10B969DDC8C" xml:space="preserve">
+    <value>Credencial da VPN (opcional — login / senha)</value>
+  </data>
+  <data name="Text6831E844611E" xml:space="preserve">
+    <value>Gerenciar credenciais salvas</value>
+  </data>
+  <data name="Text64931DDBCBCC" xml:space="preserve">
+    <value>Copiar usuário da credencial da VPN</value>
+  </data>
+  <data name="Text72897DBA86CD" xml:space="preserve">
+    <value>Copiar senha da credencial da VPN</value>
+  </data>
+  <data name="Text4FCEC5E80246" xml:space="preserve">
+    <value>A credencial da VPN não possui usuário informado.</value>
+  </data>
+  <data name="TextAB20D8F6622B" xml:space="preserve">
+    <value>Abrindo discador da VPN '{0}'...</value>
+  </data>
+  <data name="TextB690066BA1D3" xml:space="preserve">
+    <value>Abrindo perfil VPN '{0}'...</value>
+  </data>
+  <data name="Text9684CC147FAD" xml:space="preserve">
+    <value>Clientes e Perfis VPN (*.exe;*.lnk;*.ovpn)|*.exe;*.lnk;*.ovpn|Todos os arquivos (*.*)|*.*</value>
+  </data>
+  <data name="Text868635DC58E5" xml:space="preserve">
+    <value>Conectando SonicWall NetExtender em {0}...</value>
+  </data>
+  <data name="TextFDF5C8313C49" xml:space="preserve">
+    <value>Conectando VPN do Windows '{0}'...</value>
+  </data>
+  <data name="TextD141FF1D5626" xml:space="preserve">
+    <value>Conectando perfil '{0}' no OpenVPN GUI...</value>
+  </data>
+  <data name="Text39DCF1CBEB5A" xml:space="preserve">
+    <value>Copiar</value>
+  </data>
+  <data name="TextAEFCB6A70A7E" xml:space="preserve">
+    <value>Iniciando OpenVPN GUI e conectando perfil '{0}'...</value>
+  </data>
+  <data name="Text62B829FC2BC2" xml:space="preserve">
+    <value>Nenhum perfil local (.ovpn, FortiClient, OpenConnect ou Windows) detectado</value>
+  </data>
+  <data name="Text8C8BE7B06BBF" xml:space="preserve">
+    <value>Nenhuma credencial de VPN selecionada.</value>
+  </data>
+  <data name="Text1B3A56FCBF43" xml:space="preserve">
+    <value>Não foi possível localizar o cliente VPN '{0}' neste computador.
+
+Dica: no bloco 'VPN do cliente', use o botão '...' ao lado de Aplicativo para indicar o executável (ou arquivo .ovpn) ou abra as Configurações de VPN do Windows.</value>
+  </data>
+  <data name="Text8331239B1F1F" xml:space="preserve">
+    <value>Não foi possível recuperar a senha da VPN.</value>
+  </data>
+  <data name="Text8330E1FCF953" xml:space="preserve">
+    <value>OpenVPN GUI ativo na bandeja do Windows (use a seta '▾' em Nome da VPN para vincular o perfil .ovpn e conectar direto).</value>
+  </data>
+  <data name="Text39383E794BDE" xml:space="preserve">
+    <value>Perfis OpenVPN (*.ovpn)|*.ovpn|Todos os arquivos (*.*)|*.*</value>
+  </data>
+  <data name="TextE55273794580" xml:space="preserve">
+    <value>Procurar arquivo .ovpn...</value>
+  </data>
+  <data name="Text1D408D4A1111" xml:space="preserve">
+    <value>Selecionar Cliente ou Perfil VPN</value>
+  </data>
+  <data name="Text0939C9BB5182" xml:space="preserve">
+    <value>Selecionar Perfil OpenVPN (.ovpn)</value>
+  </data>
+  <data name="Text0077A24B17A0" xml:space="preserve">
+    <value>Senha da VPN copiada</value>
+  </data>
+  <data name="Text63D24F43AE23" xml:space="preserve">
+    <value>Usuário da VPN copiado</value>
+  </data>
+  <data name="Text582DBA71A4EB" xml:space="preserve">
+    <value>{0} | Senha da VPN copiada para Ctrl+V</value>
+  </data>
+  <data name="Text1B5F23435CD3" xml:space="preserve">
+    <value>{0} | Usuário VPN: {1} (senha copiada para Ctrl+V)</value>
+  </data>
 </root>

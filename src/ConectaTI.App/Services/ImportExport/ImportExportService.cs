@@ -97,7 +97,7 @@ public partial class ImportExportService
                 IncludesPasswords=includePasswords,Connections=selected};
             if(includePasswords)
             {
-                var linked=selected.Where(c=>!string.IsNullOrEmpty(c.CredentialId)).Select(c=>c.CredentialId!).ToHashSet();
+                var linked=selected.SelectMany(c=>new[]{c.CredentialId,c.VpnCredentialId}).Where(id=>!string.IsNullOrEmpty(id)).Select(id=>id!).ToHashSet();
                 var credentials=(await _repository.GetAllCredentialsAsync()).Where(c=>linked.Contains(c.Id)).ToList();
                 if(credentials.Count!=linked.Count)throw new InvalidDataException(L.Text("A seleção contém vínculos de credenciais inválidos."));
                 var blocked=0;
@@ -116,7 +116,7 @@ public partial class ImportExportService
                 }
                 if(blocked>0)throw new InvalidOperationException(L.Format("Exportação impedida: {0} credencial(is) selecionada(s) indisponível(is). Nenhum arquivo foi gerado. Importe um backup com senhas, migre o formato anterior ou informe uma nova senha.",blocked));
             }
-            else foreach(var entry in selected)entry.CredentialId=null;
+            else foreach(var entry in selected) { entry.CredentialId=null; entry.VpnCredentialId=null; }
             json=JsonSerializer.SerializeToUtf8Bytes(bundle,ConnectionJsonCodec.JsonOptions);
             ImportLimits.CheckCount(selected.Count);
             if(json.Length>ImportLimits.MaxFileBytes-8192)throw new InvalidDataException(L.Text("O arquivo excede o limite de 32 MB."));
@@ -181,7 +181,8 @@ public partial class ImportExportService
                 .Any(value=>value?.Length>ImportLimits.MaxFieldCharacters))
                 throw new InvalidDataException(L.Text("Um campo do arquivo excede o limite permitido."));
         if (bundle.Credentials.GroupBy(c=>c.Id).Any(g=>g.Count()!=1) ||
-            bundle.Connections.Any(c=>!string.IsNullOrEmpty(c.CredentialId) && !bundle.Credentials.Any(v=>v.Id==c.CredentialId)))
+            bundle.Connections.Any(c=>(!string.IsNullOrEmpty(c.CredentialId) && !bundle.Credentials.Any(v=>v.Id==c.CredentialId)) ||
+                                      (!string.IsNullOrEmpty(c.VpnCredentialId) && !bundle.Credentials.Any(v=>v.Id==c.VpnCredentialId))))
             throw new InvalidDataException(L.Text("Pacote com vínculos de credenciais inválidos."));
         var credentialMetadata=bundle.Credentials.ToDictionary(c=>c.Id);
         var secrets = bundle.Credentials.ToDictionary(c=>c.Id,c=>c.PlainSecretForEncryptedBundleOnly);

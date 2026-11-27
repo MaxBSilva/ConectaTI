@@ -8,7 +8,7 @@ namespace ConectaTI.App.Data;
 // Schema evolution owns its backups and transactions; CRUD never contains DDL.
 internal sealed class SqliteSchemaMigrator(AppPaths paths, AppLogger logger)
 {
-    public const int CurrentVersion = 10;
+    public const int CurrentVersion = 11;
     private readonly AppPaths _paths = paths;
     private readonly AppLogger _logger = logger;
 
@@ -141,6 +141,21 @@ internal sealed class SqliteSchemaMigrator(AppPaths paths, AppLogger logger)
         }
         if (currentVersion < 9) ApplyRdpMigration(conn);
         if (currentVersion < 10) ApplyActivityMigration(conn);
+        if (currentVersion < 11) ApplyVpnCredentialMigration(conn);
+    }
+
+    private static void ApplyVpnCredentialMigration(SqliteConnection conn)
+    {
+        using var tx = conn.BeginTransaction();
+        using var cmd = conn.CreateCommand();
+        cmd.Transaction = tx;
+        cmd.CommandText = "SELECT COUNT(*) FROM pragma_table_info('Connections') WHERE name='VpnCredentialId';";
+        var hasColumn = Convert.ToInt32(cmd.ExecuteScalar(), CultureInfo.InvariantCulture) > 0;
+        cmd.CommandText = (hasColumn ? "" : "ALTER TABLE Connections ADD COLUMN VpnCredentialId TEXT NULL; ")
+            + "INSERT INTO SchemaMigrations VALUES(11,'Credencial opcional vinculada à VPN do cliente',$now);";
+        cmd.Parameters.AddWithValue("$now", DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture));
+        cmd.ExecuteNonQuery();
+        tx.Commit();
     }
 
     private static void ApplyActivityMigration(SqliteConnection conn)

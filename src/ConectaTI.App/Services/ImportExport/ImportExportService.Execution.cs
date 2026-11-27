@@ -101,6 +101,7 @@ public partial class ImportExportService
             var entries = new List<ConnectionEntry>();
             var credentials = new List<SavedCredential>();
             var portableCredentialMap = new Dictionary<string,SavedCredential>();
+            var standaloneIdMap = new Dictionary<string,string>();
             var standaloneImported=0; var standaloneIgnored=0;
             var standaloneSavedIds=new HashSet<string>();
             var inserted = 0; var updated = 0; var ignored = 0; var invalid = confirmed.Count(i => !i.IsSelected && !i.IsValid); var duplicated = 0;
@@ -122,6 +123,7 @@ public partial class ImportExportService
                         entry.Id = match.Id;
                         entry.CreatedAtUtc = match.CreatedAtUtc;
                         entry.CredentialId = match.CredentialId;
+                        if (string.IsNullOrEmpty(entry.VpnCredentialId)) entry.VpnCredentialId = match.VpnCredentialId;
                         updated++;
                     }
                     else
@@ -168,8 +170,6 @@ public partial class ImportExportService
             var uniqueEntries = entries.GroupBy(e => e.Id, StringComparer.Ordinal).Select(g => g.Last()).ToList();
             ignored += entries.Count - uniqueEntries.Count;
             entries = uniqueEntries;
-            var referenced = entries.Select(e => e.CredentialId).ToHashSet();
-            credentials.RemoveAll(c => !referenced.Contains(c.Id));
             await Task.Run(() =>
             {
                 foreach(var item in standalone)
@@ -179,7 +179,12 @@ public partial class ImportExportService
                         string.Equals(c.Name.Trim(),item.Name.Trim(),StringComparison.OrdinalIgnoreCase) &&
                         string.Equals(c.Username.Trim(),item.Username.Trim(),StringComparison.OrdinalIgnoreCase) &&
                         string.Equals(c.Domain.Trim(),item.Domain.Trim(),StringComparison.OrdinalIgnoreCase));
-                    if(match!=null && duplicateHandling==DuplicateImportHandling.Ignore) {standaloneIgnored++;continue;}
+                    if(match!=null && duplicateHandling==DuplicateImportHandling.Ignore)
+                    {
+                        standaloneIdMap[item.Id]=match.Id;
+                        standaloneIgnored++;
+                        continue;
+                    }
                     var update=match!=null && duplicateHandling==DuplicateImportHandling.Update;
                     var credential=new SavedCredential {Id=update ? match!.Id : Guid.NewGuid().ToString("D"),
                         Name=item.Name,Username=item.Username,Domain=item.Domain,Notes=item.Notes,
@@ -193,9 +198,22 @@ public partial class ImportExportService
                         credential.ProtectedSecretBase64=match!.ProtectedSecretBase64;
                         credential.SecretStorage=match.SecretStorage;
                     }
+                    standaloneIdMap[item.Id]=credential.Id;
                     credentials.Add(credential);if(standaloneSavedIds.Add(credential.Id))standaloneImported++;
                 }
             },token);
+            foreach (var entry in entries)
+            {
+                if (string.IsNullOrEmpty(entry.VpnCredentialId)) continue;
+                if (portableCredentialMap.TryGetValue(entry.VpnCredentialId, out var mappedInline))
+                    entry.VpnCredentialId = mappedInline.Id;
+                else if (standaloneIdMap.TryGetValue(entry.VpnCredentialId, out var mappedStandalone))
+                    entry.VpnCredentialId = mappedStandalone;
+                else if (!validCredentials.Contains(entry.VpnCredentialId))
+                    entry.VpnCredentialId = null;
+            }
+            var referenced = entries.SelectMany(e => new[] { e.CredentialId, e.VpnCredentialId }).Where(id => !string.IsNullOrEmpty(id)).ToHashSet();
+            credentials.RemoveAll(c => !referenced.Contains(c.Id) && !standaloneSavedIds.Contains(c.Id));
             credentials=credentials.GroupBy(c=>c.Id).Select(g=>g.Last()).ToList();
             inserted = entries.Count(e => !originalIds.Contains(e.Id));
             updated = entries.Count - inserted;

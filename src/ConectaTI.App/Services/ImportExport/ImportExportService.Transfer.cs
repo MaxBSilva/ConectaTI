@@ -14,11 +14,11 @@ public partial class ImportExportService
             bundle.Credentials.Any(c=>c==null || string.IsNullOrWhiteSpace(c.Id)))
             throw new InvalidDataException(L.Text("Pacote com cadastros inválidos."));
         if(metadataOnly && (bundle.FormatVersion!="ConectaTI-Portable-2.0" || bundle.IncludesPasswords ||
-            bundle.Credentials.Count>0 || bundle.Connections.Any(c=>!string.IsNullOrEmpty(c.CredentialId))))
+            bundle.Credentials.Count>0 || bundle.Connections.Any(c=>!string.IsNullOrEmpty(c.CredentialId) || !string.IsNullOrEmpty(c.VpnCredentialId))))
             throw new InvalidDataException(L.Text("Pacote sem proteção não pode conter senhas."));
         if(bundle.FormatVersion=="ConectaTI-Portable-2.0")
         {
-            var referenced=bundle.Connections.Select(c=>c.CredentialId).Where(id=>!string.IsNullOrEmpty(id)).ToHashSet();
+            var referenced=bundle.Connections.SelectMany(c=>new[]{c.CredentialId,c.VpnCredentialId}).Where(id=>!string.IsNullOrEmpty(id)).ToHashSet();
             if(bundle.Credentials.Any(c=>!referenced.Contains(c.Id) || string.IsNullOrEmpty(c.PlainSecretForEncryptedBundleOnly)) ||
                 (!bundle.IncludesPasswords && (bundle.Credentials.Count>0 || referenced.Count>0)))
                 throw new InvalidDataException(L.Text("Pacote com vínculos de credenciais inválidos."));

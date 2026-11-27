@@ -227,12 +227,27 @@ public class ConnectionEntry : ObservableObject
         }
     }
 
+    private string? _vpnCredentialId;
+    public string? VpnCredentialId
+    {
+        get => _vpnCredentialId;
+        set
+        {
+            if (SetProperty(ref _vpnCredentialId, value))
+            {
+                OnPropertyChanged(nameof(HasVpnConfigured));
+                OnPropertyChanged(nameof(VpnStatusBadge));
+            }
+        }
+    }
+
     [JsonIgnore]
     public bool HasVpnConfigured =>
         !string.IsNullOrWhiteSpace(VpnName) ||
         !string.IsNullOrWhiteSpace(VpnApp) ||
         !string.IsNullOrWhiteSpace(VpnServer) ||
-        !string.IsNullOrWhiteSpace(VpnNotes);
+        !string.IsNullOrWhiteSpace(VpnNotes) ||
+        !string.IsNullOrWhiteSpace(VpnCredentialId);
 
     [JsonIgnore]
     public string VpnStatusBadge => HasVpnConfigured ? L.Text("● Configurada") : string.Empty;
@@ -345,6 +360,7 @@ public class ConnectionEntry : ObservableObject
             VpnApp = VpnApp,
             VpnServer = VpnServer,
             VpnNotes = VpnNotes,
+            VpnCredentialId = VpnCredentialId,
             IsDeleted = IsDeleted,
             DeletedAtUtc = DeletedAtUtc,
             CreatedAtUtc = CreatedAtUtc,
@@ -394,7 +410,8 @@ public class ConnectionEntry : ObservableObject
                string.Equals(VpnName, other.VpnName, StringComparison.Ordinal) &&
                string.Equals(VpnApp, other.VpnApp, StringComparison.Ordinal) &&
                string.Equals(VpnServer, other.VpnServer, StringComparison.Ordinal) &&
-               string.Equals(VpnNotes, other.VpnNotes, StringComparison.Ordinal);
+               string.Equals(VpnNotes, other.VpnNotes, StringComparison.Ordinal) &&
+               string.Equals(VpnCredentialId ?? string.Empty, other.VpnCredentialId ?? string.Empty, StringComparison.Ordinal);
     }
 }
 

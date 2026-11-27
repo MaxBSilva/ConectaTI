@@ -63,7 +63,7 @@ public sealed class ActivityStatusTests : IDisposable
             command.CommandText="ALTER TABLE Connections DROP COLUMN IsActive; DELETE FROM SchemaMigrations WHERE Version>=10;"; command.ExecuteNonQuery();
         }
         var reopened=new SqliteRepository(paths,logger); reopened.InitializeAndMigrate();
-        Assert.Equal(10,reopened.GetSchemaVersion()); var loaded=(await reopened.GetConnectionByIdAsync(saved.Entry.Id))!;
+        Assert.Equal(11,reopened.GetSchemaVersion()); var loaded=(await reopened.GetConnectionByIdAsync(saved.Entry.Id))!;
         Assert.True(loaded.IsActive); Assert.Equal(saved.Entry.CredentialId,loaded.CredentialId);
         Assert.Single(Directory.GetFiles(paths.BackupsDirectory,"pre-migration-v9-*.db"));
         Assert.True(new ConnectionEntry().IsActive); Assert.True(new ConnectionEntry().CreateDuplicate().IsActive);

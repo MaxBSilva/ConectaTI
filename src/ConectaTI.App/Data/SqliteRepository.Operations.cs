@@ -81,7 +81,7 @@ public partial class SqliteRepository
                 using var cmd = connection.CreateCommand();
                 cmd.Transaction = transaction;
                 cmd.CommandText = """
-                    DELETE FROM Credentials WHERE Id=$id AND NOT EXISTS(SELECT 1 FROM Connections WHERE CredentialId=$id);
+                    DELETE FROM Credentials WHERE Id=$id AND NOT EXISTS(SELECT 1 FROM Connections WHERE CredentialId=$id OR VpnCredentialId=$id);
                     """;
                 cmd.Parameters.AddWithValue("$id", id);
                 cmd.ExecuteNonQuery();
