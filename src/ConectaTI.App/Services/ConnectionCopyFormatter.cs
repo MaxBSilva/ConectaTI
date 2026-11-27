@@ -5,7 +5,7 @@ namespace ConectaTI.App.Services;
 
 public static class ConnectionCopyFormatter
 {
-    public static string Format(ConnectionEntry entry, string host, string user, string? password)
+    public static string Format(ConnectionEntry entry, string host, string user, string? password, string? vpnPassword = null)
     {
         var text = new StringBuilder();
         void Add(string label, string? value) { if (!string.IsNullOrWhiteSpace(value)) text.AppendLine($"{L.Text(label)}: {value}"); }
@@ -38,7 +38,7 @@ public static class ConnectionCopyFormatter
         if (entry.HasVpnConfigured)
         {
             text.AppendLine().AppendLine(L.Text("VPN")); Add("Nome da VPN", entry.VpnName); Add("Aplicativo VPN", entry.VpnApp);
-            Add("Servidor VPN", entry.VpnServer); Add("Observações VPN", entry.VpnNotes);
+            Add("Servidor VPN", entry.VpnServer); Add("Usuário VPN", entry.VpnUsername); Add("Senha VPN", vpnPassword); Add("Observações VPN", entry.VpnNotes);
         }
         return text.ToString().TrimEnd();
     }

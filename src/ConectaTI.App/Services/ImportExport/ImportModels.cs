@@ -16,6 +16,7 @@ public class CsvColumnMapping
     public int VpnNameColumnIndex { get; set; } = -1;
     public int VpnAppColumnIndex { get; set; } = -1;
     public int VpnServerColumnIndex { get; set; } = -1;
+    public int VpnUsernameColumnIndex { get; set; } = -1;
     public int VpnNotesColumnIndex { get; set; } = -1;
     public int TagsColumnIndex { get; set; } = -1;
     public int NotesColumnIndex { get; set; } = -1;

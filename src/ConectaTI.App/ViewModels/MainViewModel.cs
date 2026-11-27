@@ -37,6 +37,7 @@ public partial class MainViewModel : ObservableObject
     private List<ConnectionEntry> _connectionsOutsideTrash = new();
     private List<ConnectionEntry> _connectionsInTrash = new();
     private readonly PasswordRevealLease _passwordReveal = new();
+    private readonly PasswordRevealLease _vpnPasswordReveal = new();
     private CancellationTokenSource? _diagnosticCts;
     private bool _suppressSelectionGuard;
     private bool _updatingInlineFields;
@@ -101,19 +102,20 @@ public partial class MainViewModel : ObservableObject
         CaptureSession();
         NotifyEditState();
         if (e.PropertyName == nameof(ConnectionEntry.CredentialId)) NotifyPasswordStatusProperties();
-        if (e.PropertyName is nameof(ConnectionEntry.VpnName) or nameof(ConnectionEntry.VpnApp) or nameof(ConnectionEntry.VpnServer) or nameof(ConnectionEntry.VpnNotes) or nameof(ConnectionEntry.VpnCredentialId) or nameof(ConnectionEntry.HasVpnConfigured))
+        if (e.PropertyName == nameof(ConnectionEntry.VpnCredentialId)) NotifyVpnPasswordStatusProperties();
+        if (e.PropertyName is nameof(ConnectionEntry.VpnName) or nameof(ConnectionEntry.VpnApp) or nameof(ConnectionEntry.VpnServer) or nameof(ConnectionEntry.VpnUsername) or nameof(ConnectionEntry.VpnNotes) or nameof(ConnectionEntry.VpnCredentialId) or nameof(ConnectionEntry.HasVpnConfigured))
         {
             OnPropertyChanged(nameof(CanCopyVpnName));
             OnPropertyChanged(nameof(CanCopyVpnServer));
+            OnPropertyChanged(nameof(CanCopyVpnUsername));
+            OnPropertyChanged(nameof(CanCopyVpnPassword));
             OnPropertyChanged(nameof(CanOpenVpnClient));
-            OnPropertyChanged(nameof(SelectedVpnCredentialId));
-            OnPropertyChanged(nameof(HasVpnCredentialSelected));
         }
     }
     private void CaptureSession()
     {
         if (ActiveEditSession == null) return;
-        ActiveEditSession.CaptureForm(InlineHostAndPort, InlineUserWithDomain, InlinePasswordInput, InlineCredentialName);
+        ActiveEditSession.CaptureForm(InlineHostAndPort, InlineUserWithDomain, InlinePasswordInput, InlineCredentialName, InlineVpnPasswordInput);
     }
     partial void OnEditingEntryChanged(ConnectionEntry? oldValue, ConnectionEntry newValue)
     {
@@ -145,12 +147,32 @@ public partial class MainViewModel : ObservableObject
             MarkPasswordForRemoval();
         else InlinePasswordInput = value;
     }
+    partial void OnInlineVpnPasswordInputChanged(string value)
+    {
+        if (!_suppressSelectionGuard && ActiveEditSession != null)
+        {
+            ActiveEditSession.UpdateVpnPassword(value);
+            var previous = _suppressSelectionGuard;
+            _suppressSelectionGuard = true;
+            try { IsVpnPasswordMarkedForRemoval = ActiveEditSession.VpnPasswordIntent == PasswordEditIntent.Remove; }
+            finally { _suppressSelectionGuard = previous; }
+        }
+        NotifyVpnPasswordStatusProperties();
+    }
+    public void UpdateVpnPasswordFromUser(string value)
+    {
+        if (value == InlineVpnPasswordInput && value.Length == 0 && ActiveEditSession?.LoadedVpnPassword != null)
+            MarkVpnPasswordForRemoval();
+        else InlineVpnPasswordInput = value;
+    }
     public void ClearSessionDrafts()
     {
         HideRevealedPassword();
+        HideRevealedVpnPassword();
         if (ActiveEditSession != null) EditingEntry.PropertyChanged -= EditingEntryChanged;
         _workspace.Clear();
         InlinePasswordInput = string.Empty;
+        InlineVpnPasswordInput = string.Empty;
     }
 
     public Func<string, UnsavedChangesChoice>? ConfirmUnsavedChangesCallback { get; set; }
@@ -272,6 +294,18 @@ public partial class MainViewModel : ObservableObject
 
     [ObservableProperty]
     private string _revealedPasswordText = "••••••••••••";
+
+    [ObservableProperty]
+    private string _inlineVpnPasswordInput = string.Empty;
+
+    [ObservableProperty]
+    private bool _isVpnPasswordMarkedForRemoval;
+
+    [ObservableProperty]
+    private bool _isVpnPasswordRevealed;
+
+    [ObservableProperty]
+    private string _revealedVpnPasswordText = string.Empty;
 
     [ObservableProperty]
     private string _inlineHostAndPort = string.Empty;
@@ -406,26 +440,24 @@ public partial class MainViewModel : ObservableObject
     public bool ShowCopyPasswordOption => SelectedHasSavedPassword;
     public bool CanCopyVpnName => !string.IsNullOrWhiteSpace(EditingEntry?.VpnName) || (SelectedConnection != null && !string.IsNullOrWhiteSpace(SelectedConnection.VpnName));
     public bool CanCopyVpnServer => !string.IsNullOrWhiteSpace(EditingEntry?.VpnServer) || (SelectedConnection != null && !string.IsNullOrWhiteSpace(SelectedConnection.VpnServer));
+    public bool CanCopyVpnUsername => !string.IsNullOrWhiteSpace(EditingEntry?.VpnUsername) || (SelectedConnection != null && !string.IsNullOrWhiteSpace(SelectedConnection.VpnUsername));
+    public bool CanCopyVpnPassword => HasSavedVpnPassword || !string.IsNullOrEmpty(InlineVpnPasswordInput);
     public bool CanOpenVpnClient => (EditingEntry?.HasVpnConfigured == true) || (SelectedConnection?.HasVpnConfigured == true);
     public VpnClientLauncherService VpnLauncherService => _vpnLauncherService;
 
-    public string SelectedVpnCredentialId
-    {
-        get => EditingEntry.VpnCredentialId ?? string.Empty;
-        set
-        {
-            if (_suppressSelectionGuard) return;
-            var normalized = string.IsNullOrWhiteSpace(value) ? null : value;
-            if (!string.Equals(EditingEntry.VpnCredentialId, normalized, StringComparison.Ordinal))
-            {
-                EditingEntry.VpnCredentialId = normalized;
-                OnPropertyChanged();
-                OnPropertyChanged(nameof(HasVpnCredentialSelected));
-            }
-        }
-    }
-
-    public bool HasVpnCredentialSelected => !string.IsNullOrWhiteSpace(EditingEntry.VpnCredentialId);
+    public bool HasSavedVpnPassword => !string.IsNullOrWhiteSpace(EditingEntry.VpnCredentialId) && !IsVpnPasswordMarkedForRemoval;
+    public bool HasPendingVpnPasswordChange => IsVpnPasswordMarkedForRemoval || ActiveEditSession?.VpnPasswordIntent == PasswordEditIntent.Replace;
+    public System.Windows.Media.Brush VpnPasswordStateBrush => HasPendingVpnPasswordChange ? System.Windows.Media.Brushes.DarkGoldenrod
+        : HasSavedVpnPassword ? System.Windows.Media.Brushes.SeaGreen : System.Windows.Media.Brushes.Gray;
+    public string SavedVpnPasswordBadgeText => IsVpnPasswordMarkedForRemoval ? L.Text("Remoção pendente — salvar")
+        : ActiveEditSession?.VpnPasswordIntent == PasswordEditIntent.Replace ? L.Text("Senha alterada — salvar")
+        : HasSavedVpnPassword ? L.Text("Senha salva na VPN") : L.Text("Opcional (usa a da VPN se vazio)");
+    public string VpnPasswordStatusIcon => IsVpnPasswordMarkedForRemoval ? "⊘"
+        : ActiveEditSession?.VpnPasswordIntent == PasswordEditIntent.Replace ? "●"
+        : HasSavedVpnPassword ? "✓" : "○";
+    public string VpnPasswordFieldLabel => HasSavedVpnPassword
+        ? L.Text("Alterar senha da VPN (opcional)")
+        : L.Text("Senha da VPN (opcional)");
 
     public string PasswordStatusText => SavedPasswordBadgeText;
 
@@ -458,6 +490,7 @@ public partial class MainViewModel : ObservableObject
             {
                 OnPropertyChanged(nameof(IsLocked));
                 NotifyPasswordStatusProperties();
+                NotifyVpnPasswordStatusProperties();
             }
             if (_uiDispatcher != null && !_uiDispatcher.CheckAccess()) _uiDispatcher.InvokeAsync(RefreshVaultState);
             else RefreshVaultState();
@@ -522,8 +555,7 @@ public partial class MainViewModel : ObservableObject
             }
             finally { _suppressSelectionGuard = previous; }
             ApplyFilterAndSort(editorGeneration == EditorGeneration ? selectConnectionId : null);
-            OnPropertyChanged(nameof(SelectedVpnCredentialId));
-            OnPropertyChanged(nameof(HasVpnCredentialSelected));
+            NotifyVpnPasswordStatusProperties();
         }
         catch (Exception ex)
         {
@@ -675,11 +707,20 @@ public partial class MainViewModel : ObservableObject
         }
         NotifyPasswordStatusProperties();
     }
+    partial void OnIsVpnPasswordMarkedForRemovalChanged(bool value)
+    {
+        if (!_suppressSelectionGuard && ActiveEditSession != null)
+        {
+            ActiveEditSession.SetVpnPasswordRemovalIntent(value, InlineVpnPasswordInput.Length > 0);
+        }
+        NotifyVpnPasswordStatusProperties();
+    }
     partial void OnIsEditingChanged(bool value)
     {
         OnPropertyChanged(nameof(HasSelectedOrNew));
         OnPropertyChanged(nameof(IsViewMode));
         NotifyPasswordStatusProperties();
+        NotifyVpnPasswordStatusProperties();
     }
 
     partial void OnSelectedNavigationNodeChanged(NavigationNodeViewModel? oldValue, NavigationNodeViewModel? newValue)
@@ -720,6 +761,7 @@ public partial class MainViewModel : ObservableObject
         {
             EditingEntry.PropertyChanged -= EditingEntryChanged;
             HideRevealedPassword();
+            HideRevealedVpnPassword();
             _workspace.Activate(session);
             DiagnosticResultTitle = string.Empty;
             DiagnosticResultDetails = string.Empty;
@@ -729,6 +771,8 @@ public partial class MainViewModel : ObservableObject
             InlinePasswordInput = session?.Password ?? string.Empty;
             InlineCredentialName = session?.CredentialName ?? string.Empty;
             IsPasswordMarkedForRemoval = session?.PasswordIntent == PasswordEditIntent.Remove;
+            InlineVpnPasswordInput = session?.VpnPassword ?? string.Empty;
+            IsVpnPasswordMarkedForRemoval = session?.VpnPasswordIntent == PasswordEditIntent.Remove;
             SelectedNewDraft = IsNewRecord ? EditingEntry : null;
             SelectedConnectionType = EnumDisplayExtensions.FromProtocolAndSsh(EditingEntry.Protocol, EditingEntry.SshClient);
             InlineHostAndPort = session?.HostText ?? string.Empty;
@@ -738,6 +782,7 @@ public partial class MainViewModel : ObservableObject
         finally { _suppressSelectionGuard = previous; }
         NotifyProtocolDependentProperties();
         NotifyPasswordStatusProperties();
+        NotifyVpnPasswordStatusProperties();
         NotifySelectedSummaryProperties();
         NotifyEditState();
     }
@@ -766,9 +811,9 @@ public partial class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(ShowCopyPasswordOption));
         OnPropertyChanged(nameof(CanCopyVpnName));
         OnPropertyChanged(nameof(CanCopyVpnServer));
+        OnPropertyChanged(nameof(CanCopyVpnUsername));
+        OnPropertyChanged(nameof(CanCopyVpnPassword));
         OnPropertyChanged(nameof(CanOpenVpnClient));
-        OnPropertyChanged(nameof(SelectedVpnCredentialId));
-        OnPropertyChanged(nameof(HasVpnCredentialSelected));
     }
 
     public void NotifyProtocolChanged(ConnectionProtocol oldProtocol, ConnectionProtocol newProtocol)
@@ -806,6 +851,18 @@ public partial class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(HasPendingPasswordChange));
         OnPropertyChanged(nameof(HasSavedPasswordOrRemoval));
         OnPropertyChanged(nameof(CanCopySelectedPassword));
+        NotifyEditState();
+    }
+
+    public void NotifyVpnPasswordStatusProperties()
+    {
+        OnPropertyChanged(nameof(HasSavedVpnPassword));
+        OnPropertyChanged(nameof(HasPendingVpnPasswordChange));
+        OnPropertyChanged(nameof(VpnPasswordFieldLabel));
+        OnPropertyChanged(nameof(SavedVpnPasswordBadgeText));
+        OnPropertyChanged(nameof(VpnPasswordStatusIcon));
+        OnPropertyChanged(nameof(VpnPasswordStateBrush));
+        OnPropertyChanged(nameof(CanCopyVpnPassword));
         NotifyEditState();
     }
 
@@ -1033,6 +1090,23 @@ public partial class MainViewModel : ObservableObject
     }
 
     [RelayCommand]
+    public void MarkVpnPasswordForRemoval()
+    {
+        if (ActiveEditSession == null) return;
+        var previous = _suppressSelectionGuard;
+        _suppressSelectionGuard = true;
+        try
+        {
+            InlineVpnPasswordInput = string.Empty;
+            ActiveEditSession.RequestVpnPasswordRemoval();
+            IsVpnPasswordMarkedForRemoval = ActiveEditSession.VpnPasswordIntent == PasswordEditIntent.Remove;
+            HideRevealedVpnPassword();
+        }
+        finally { _suppressSelectionGuard = previous; }
+        NotifyVpnPasswordStatusProperties();
+    }
+
+    [RelayCommand]
     public async Task<bool> SaveConnectionAsync()
     {
         var dispatcher = _uiDispatcher;
@@ -1047,7 +1121,9 @@ public partial class MainViewModel : ObservableObject
         var password = submitted.Password;
         var intent = submitted.Intent;
         var credentialName = submitted.CredentialName;
-        using var redaction = _logger.Redact([password]);
+        var vpnPassword = submitted.VpnPassword;
+        var vpnIntent = submitted.VpnIntent;
+        using var redaction = _logger.Redact([password, vpnPassword]);
         IsSaving = true;
         try
         {
@@ -1063,9 +1139,10 @@ public partial class MainViewModel : ObservableObject
             snapshot.VpnName = snapshot.VpnName.Trim();
             snapshot.VpnApp = snapshot.VpnApp.Trim();
             snapshot.VpnServer = snapshot.VpnServer.Trim();
+            snapshot.VpnUsername = snapshot.VpnUsername.Trim();
             var errors = ConnectionValidator.ValidateConnection(snapshot);
             if (errors.Count > 0) { StatusMessage = L.Format("Corrija os campos: {0}", (L.AsMessage(errors[0]))); return false; }
-            var result = await _persistence.SaveAsync(snapshot, intent, password, credentialName);
+            var result = await _persistence.SaveAsync(snapshot, intent, password, credentialName, vpnIntent, vpnPassword);
             snapshot = result.Entry;
             _dataRevision++;
             CaptureSession();
@@ -1097,7 +1174,7 @@ public partial class MainViewModel : ObservableObject
             StatusMessage = L.Text("Não foi possível salvar. Suas alterações foram mantidas; tente novamente.");
             return false;
         }
-        finally { IsSaving = false; NotifyPasswordStatusProperties(); }
+        finally { IsSaving = false; NotifyPasswordStatusProperties(); NotifyVpnPasswordStatusProperties(); }
     }
 
     private void ReplacePersistedEntry(ConnectionEntry entry)
@@ -1263,14 +1340,33 @@ public partial class MainViewModel : ObservableObject
             return new VpnLaunchOutcome(false, false, string.Empty, msg);
         }
 
+        CaptureSession();
         var snapshot = source.Clone();
-        var current = ActiveEditSession?.Entry.Id == snapshot.Id ? CaptureEditorGuard() : () => true;
+        var isActiveEditorEntry = ActiveEditSession?.Entry.Id == snapshot.Id;
+        var sessionVpnIntent = isActiveEditorEntry ? ActiveEditSession!.VpnPasswordIntent : PasswordEditIntent.Keep;
+        var sessionVpnPassword = isActiveEditorEntry ? ActiveEditSession!.VpnPassword : string.Empty;
+        var current = isActiveEditorEntry ? CaptureVpnEditorGuard() : () => true;
 
-        VpnLoginCredential? vpnLogin = null;
-        SavedCredential? vpnCredentialMeta = null;
+        var rawVpnUser = (snapshot.VpnUsername ?? string.Empty).Trim();
+        var vpnUser = string.Empty;
+        var vpnDomain = string.Empty;
+        if (!string.IsNullOrWhiteSpace(rawVpnUser))
+        {
+            var norm = UserIdentityFormatter.Normalize(rawVpnUser, null);
+            vpnUser = norm.IsUpn ? norm.RawUsername : norm.CleanUsername;
+            vpnDomain = norm.IsUpn ? string.Empty : norm.Domain;
+        }
+
         string? vpnSecret = null;
-
-        if (!string.IsNullOrWhiteSpace(snapshot.VpnCredentialId))
+        if (sessionVpnIntent == PasswordEditIntent.Remove)
+        {
+            vpnSecret = string.Empty;
+        }
+        else if (sessionVpnIntent == PasswordEditIntent.Replace || !string.IsNullOrEmpty(sessionVpnPassword))
+        {
+            vpnSecret = sessionVpnPassword;
+        }
+        else if (!string.IsNullOrWhiteSpace(snapshot.VpnCredentialId))
         {
             var read = await _credentials.ReadAsync(snapshot.VpnCredentialId, current);
             if (!current())
@@ -1278,25 +1374,35 @@ public partial class MainViewModel : ObservableObject
 
             if (read.Status == CredentialReadStatus.Available && read.Credential is not null)
             {
-                vpnCredentialMeta = read.Credential;
                 vpnSecret = read.Secret ?? string.Empty;
-                vpnLogin = new VpnLoginCredential(read.Credential.Username, read.Credential.Domain, vpnSecret);
+                if (string.IsNullOrWhiteSpace(vpnUser) && !string.IsNullOrWhiteSpace(read.Credential.Username))
+                {
+                    vpnUser = read.Credential.Username;
+                    vpnDomain = read.Credential.Domain;
+                }
             }
         }
 
+        var candidateLogin = new VpnLoginCredential(vpnUser, vpnDomain, vpnSecret ?? string.Empty);
+        // Regra de não interferência: se Usuário da VPN e Senha da VPN estiverem em branco, vpnLogin é null e nada toca em credenciais ou área de transferência
+        VpnLoginCredential? vpnLogin = candidateLogin.HasAnyValue ? candidateLogin : null;
+
         using var redaction = !string.IsNullOrEmpty(vpnSecret) ? _logger.Redact([vpnSecret]) : null;
-        var outcome = _vpnLauncherService.Launch(snapshot, vpnLogin);
+        var outcome = await _vpnLauncherService.LaunchAsync(snapshot, vpnLogin);
 
         if (outcome.Started)
         {
             var status = outcome.StatusMessage;
-            if (vpnCredentialMeta is not null && !outcome.PassedCredentialsDirectly && !string.IsNullOrEmpty(vpnSecret))
+            if (vpnLogin is not null &&
+                !outcome.PassedCredentialsDirectly &&
+                !outcome.UiAutomationHandled &&
+                !string.IsNullOrEmpty(vpnSecret))
             {
                 var clearSec = _settingsService.Current.ClipboardClearSeconds > 0 ? _settingsService.Current.ClipboardClearSeconds : 30;
                 var copied = await _credentials.CopyPasswordAsync(vpnSecret, current, clearSec);
                 if (copied && current())
                 {
-                    var userDisplay = vpnCredentialMeta.EffectiveUserDisplay;
+                    var userDisplay = vpnLogin.FormattedUsername;
                     status = !string.IsNullOrWhiteSpace(userDisplay)
                         ? L.Format("{0} | Usuário VPN: {1} (senha copiada para Ctrl+V)", status, userDisplay)
                         : L.Format("{0} | Senha da VPN copiada para Ctrl+V", status);
@@ -1340,7 +1446,7 @@ public partial class MainViewModel : ObservableObject
         var target = await _repository.GetConnectionByIdAsync(id);
         if (target == null || target.IsDeleted) return;
 
-        var vpnSource = target.HasVpnConfigured ? target : draftVpnSnapshot;
+        var vpnSource = draftVpnSnapshot ?? (target.HasVpnConfigured ? target : null);
         if (_settingsService.Current.CheckVpnBeforeConnect &&
             vpnSource is { HasVpnConfigured: true } &&
             PromptUnreachableVpnCallback != null)
@@ -1508,21 +1614,13 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     public async Task CopyVpnUsernameAsync()
     {
-        var vpnCredId = !string.IsNullOrWhiteSpace(EditingEntry?.VpnCredentialId)
-            ? EditingEntry.VpnCredentialId
-            : SelectedConnection?.VpnCredentialId;
+        var userText = !string.IsNullOrWhiteSpace(EditingEntry?.VpnUsername)
+            ? EditingEntry.VpnUsername.Trim()
+            : SelectedConnection?.VpnUsername?.Trim();
 
-        if (string.IsNullOrWhiteSpace(vpnCredId))
-        {
-            StatusMessage = L.Text("Nenhuma credencial de VPN selecionada.");
-            return;
-        }
-
-        var cred = await _repository.GetCredentialByIdAsync(vpnCredId);
-        var userText = cred?.EffectiveUserDisplay ?? string.Empty;
         if (string.IsNullOrWhiteSpace(userText))
         {
-            StatusMessage = L.Text("A credencial da VPN não possui usuário informado.");
+            StatusMessage = L.Text("Nenhum usuário de VPN informado.");
             return;
         }
 
@@ -1533,30 +1631,38 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     public async Task CopyVpnPasswordAsync()
     {
-        var current = CaptureEditorGuard();
-        if (!current())
+        var current = ActiveEditSession != null ? CaptureVpnEditorGuard() : () => true;
+        if (!current() || IsVpnPasswordMarkedForRemoval)
             return;
 
+        var clearSec = _settingsService.Current.ClipboardClearSeconds > 0 ? _settingsService.Current.ClipboardClearSeconds : 30;
+        var secret = InlineVpnPasswordInput;
         var vpnCredId = !string.IsNullOrWhiteSpace(EditingEntry?.VpnCredentialId)
             ? EditingEntry.VpnCredentialId
             : SelectedConnection?.VpnCredentialId;
 
-        if (string.IsNullOrWhiteSpace(vpnCredId))
+        if (string.IsNullOrEmpty(secret))
         {
-            StatusMessage = L.Text("Nenhuma credencial de VPN selecionada.");
-            return;
+            if (string.IsNullOrWhiteSpace(vpnCredId))
+            {
+                StatusMessage = L.Text("Nenhuma senha de VPN cadastrada.");
+                return;
+            }
+
+            var read = await _credentials.ReadAsync(vpnCredId, current);
+            if (!current() || read.Status != CredentialReadStatus.Available || string.IsNullOrEmpty(read.Secret))
+            {
+                if (current())
+                    StatusMessage = L.Text("Não foi possível recuperar a senha da VPN.");
+                return;
+            }
+            secret = read.Secret;
         }
 
-        var read = await _credentials.ReadAsync(vpnCredId, current);
-        if (!current() || read.Status != CredentialReadStatus.Available || string.IsNullOrEmpty(read.Secret))
-        {
-            if (current())
-                StatusMessage = L.Text("Não foi possível recuperar a senha da VPN.");
+        if (!current() || string.IsNullOrEmpty(secret))
             return;
-        }
 
-        var clearSec = _settingsService.Current.ClipboardClearSeconds > 0 ? _settingsService.Current.ClipboardClearSeconds : 30;
-        if (await _credentials.CopyPasswordAsync(read.Secret, current, clearSec) && current())
+        if (await _credentials.CopyPasswordAsync(secret, current, clearSec) && current())
             StatusMessage = L.Text("Senha da VPN copiada");
     }
 
@@ -1565,6 +1671,14 @@ public partial class MainViewModel : ObservableObject
         var guard = new EditorOperationGuard(() => new EditorOperationState(
             ActiveEditSession, EditingEntry.Id, EditingEntry.CredentialId, EditorGeneration,
             ActiveEditSession?.Revision ?? 0, ActiveEditSession?.PasswordRevision ?? 0));
+        return guard.IsCurrent;
+    }
+
+    private Func<bool> CaptureVpnEditorGuard()
+    {
+        var guard = new EditorOperationGuard(() => new EditorOperationState(
+            ActiveEditSession, EditingEntry.Id, EditingEntry.VpnCredentialId, EditorGeneration,
+            ActiveEditSession?.Revision ?? 0, ActiveEditSession?.VpnPasswordRevision ?? 0));
         return guard.IsCurrent;
     }
 
@@ -1669,6 +1783,71 @@ public partial class MainViewModel : ObservableObject
         _passwordReveal.Cancel();
         RevealedPasswordText = string.Empty;
         IsPasswordRevealed = false;
+    }
+
+    [RelayCommand]
+    public async Task ToggleVpnPasswordVisibilityAsync()
+    {
+        if (IsVpnPasswordRevealed)
+        {
+            HideRevealedVpnPassword();
+            return;
+        }
+
+        if (!string.IsNullOrEmpty(InlineVpnPasswordInput))
+        {
+            RevealedVpnPasswordText = InlineVpnPasswordInput;
+            IsVpnPasswordRevealed = true;
+            return;
+        }
+
+        if (IsVpnPasswordMarkedForRemoval)
+            return;
+
+        var guardBase = ActiveEditSession != null ? CaptureVpnEditorGuard() : () => true;
+        var current = _vpnPasswordReveal.BeginRequest(guardBase);
+        var session = ActiveEditSession;
+        var vpnCredId = EditingEntry?.VpnCredentialId;
+        if (string.IsNullOrWhiteSpace(vpnCredId))
+        {
+            StatusMessage = L.Text("Nenhuma senha de VPN cadastrada.");
+            return;
+        }
+
+        var read = await _credentials.ReadAsync(vpnCredId, current);
+        if (!current() || read.Status != CredentialReadStatus.Available || string.IsNullOrEmpty(read.Secret))
+        {
+            if (current())
+                StatusMessage = L.Text("Não foi possível recuperar a senha da VPN.");
+            return;
+        }
+
+        if (session != null)
+            session.LoadedVpnPassword = read.Secret;
+
+        RevealedVpnPasswordText = read.Secret;
+        IsVpnPasswordRevealed = true;
+        var seconds = Math.Max(5, _settingsService.Current.PasswordRevealSeconds);
+        StatusMessage = L.Format("Senha da VPN exibida temporariamente por {0} segundos.", seconds);
+
+        _ = _vpnPasswordReveal.ScheduleAutoHideAsync(TimeSpan.FromSeconds(seconds), async token =>
+        {
+            void HideIfCurrent()
+            {
+                if (token.IsCancellationRequested) return;
+                HideRevealedVpnPassword();
+                StatusMessage = L.Text("Senha da VPN ocultada novamente.");
+            }
+            if (_uiDispatcher != null && !_uiDispatcher.CheckAccess()) await _uiDispatcher.InvokeAsync(HideIfCurrent);
+            else HideIfCurrent();
+        });
+    }
+
+    public void HideRevealedVpnPassword()
+    {
+        _vpnPasswordReveal.Cancel();
+        RevealedVpnPasswordText = string.Empty;
+        IsVpnPasswordRevealed = false;
     }
 
     // =========================================================================

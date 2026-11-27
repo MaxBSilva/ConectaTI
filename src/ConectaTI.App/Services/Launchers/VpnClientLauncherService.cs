@@ -2,6 +2,8 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Text;
+using System.Text.Json;
+using System.Xml.Linq;
 using ConectaTI.App.Models;
 using Microsoft.Win32;
 
@@ -15,11 +17,17 @@ public enum VpnUnreachableDecision
 }
 
 /// <summary>
-/// Credencial transitória em memória para acionamento de VPNs com suporte a autenticação via CLI.
+/// Credencial manual transitória em memória para acionamento de VPNs.
 /// ToString omite intencionalmente a senha para nunca vazar em logs ou diagnósticos.
 /// </summary>
 public sealed record VpnLoginCredential(string Username, string Domain, string Password)
 {
+    public string FormattedUsername => string.IsNullOrWhiteSpace(Domain)
+        ? (Username ?? string.Empty).Trim()
+        : $"{Domain.Trim()}\\{(Username ?? string.Empty).Trim()}";
+
+    public bool HasAnyValue => !string.IsNullOrWhiteSpace(FormattedUsername) || !string.IsNullOrEmpty(Password);
+
     public override string ToString() => $"VpnLoginCredential(User={Username}, Domain={Domain})";
 }
 
@@ -43,7 +51,13 @@ public sealed record VpnLaunchResolution(
     bool IsWindowsNativeFallback,
     string? HintMessage = null,
     bool PassedCredentialsDirectly = false,
-    string? MatchedProfileName = null);
+    string? MatchedProfileName = null,
+    VpnAutomationVendorKind AutomationVendor = VpnAutomationVendorKind.None,
+    string? StandardInputPayload = null)
+{
+    // Sobrescreve ToString para garantir que StandardInputPayload e senhas em Arguments nunca apareçam em logs
+    public override string ToString() => $"VpnLaunchResolution(Found={Found}, Client={DisplayClientName}, Profile={MatchedProfileName})";
+}
 
 public sealed record VpnLaunchOutcome(
     bool Started,
@@ -52,13 +66,12 @@ public sealed record VpnLaunchOutcome(
     string StatusMessage,
     string? ErrorMessage = null,
     bool PassedCredentialsDirectly = false,
-    string? MatchedProfileName = null);
+    string? MatchedProfileName = null,
+    bool UiAutomationHandled = false);
 
 /// <summary>
-/// Localiza, descobre perfis locais e aciona clientes de VPN heterogêneos (FortiClient, OpenVPN GUI/Connect,
-/// OpenConnect GUI, Radmin VPN, Cisco Secure Client/AnyConnect, SonicWall NetExtender, GlobalProtect,
-/// WireGuard, Tailscale, ZeroTier, Hamachi, Sophos, WatchGuard, SoftEther, Pritunl, VPN nativa do Windows
-/// ou executáveis/perfis .ovpn personalizados).
+/// Localiza, descobre perfis locais, restaura janelas minimizadas na bandeja e aciona cada família de VPN
+/// conforme sua mecânica real no Windows (CLI nativa, pipe stdin, IPC .ovpn ou Windows UI Automation).
 /// </summary>
 public sealed class VpnClientLauncherService
 {
@@ -91,61 +104,68 @@ public sealed class VpnClientLauncherService
     private sealed record KnownVpnVendor(
         string DisplayName,
         string[] Keywords,
-        string[] ProcessNames,
+        string[] WindowProcessNames,
         string[] RelativeCandidatePaths,
-        string[] StartMenuPatterns);
+        string[] StartMenuPatterns,
+        VpnAutomationVendorKind AutomationKind = VpnAutomationVendorKind.None);
 
     private static readonly KnownVpnVendor[] KnownVendors =
     [
         new(
             DisplayName: "FortiClient",
             Keywords: ["forticlient", "fortcliente", "fortclient", "fortinet", "fortivpn", "fortitray", "forti"],
-            ProcessNames: ["FortiClient", "FortiClientConsole", "FortiTray"],
+            // Nunca incluir FortiTray aqui: FortiTray.exe é apenas o controlador da bandeja e não abre a janela!
+            WindowProcessNames: ["FortiClientConsole"],
             RelativeCandidatePaths:
             [
-                @"Fortinet\FortiClient\FortiClient.exe",
-                @"Fortinet\FortiClient\FortiClientConsole.exe"
+                @"Fortinet\FortiClient\FortiClientConsole.exe",
+                @"Fortinet\FortiClient\FortiClient.exe"
             ],
-            StartMenuPatterns: ["FortiClient"]),
+            StartMenuPatterns: ["FortiClient"],
+            AutomationKind: VpnAutomationVendorKind.FortiClient),
 
         new(
             DisplayName: "OpenConnect GUI",
             Keywords: ["openconnect", "openconect", "openconnectgui"],
-            ProcessNames: ["openconnect-gui"],
+            WindowProcessNames: ["openconnect-gui"],
             RelativeCandidatePaths:
             [
                 @"OpenConnect-GUI\openconnect-gui.exe",
                 @"OpenConnect\openconnect-gui.exe"
             ],
-            StartMenuPatterns: ["OpenConnect"]),
+            StartMenuPatterns: ["OpenConnect"],
+            AutomationKind: VpnAutomationVendorKind.OpenConnectGui),
 
         new(
             DisplayName: "OpenVPN Connect",
             Keywords: ["openvpnconnect"],
-            ProcessNames: ["OpenVPNConnect"],
+            WindowProcessNames: ["OpenVPNConnect"],
             RelativeCandidatePaths:
             [
                 @"OpenVPN Connect\OpenVPNConnect.exe",
                 @"OpenVPN Technologies\OpenVPN Connect\OpenVPNConnect.exe"
             ],
-            StartMenuPatterns: ["OpenVPN Connect"]),
+            StartMenuPatterns: ["OpenVPN Connect"],
+            AutomationKind: VpnAutomationVendorKind.GenericGui),
 
         new(
             DisplayName: "OpenVPN GUI",
             Keywords: ["openvpngui", "opengui", "openvpn", "ovpn"],
-            ProcessNames: ["openvpn-gui", "OpenVPNConnect"],
+            WindowProcessNames: ["openvpn-gui", "OpenVPNConnect"],
             RelativeCandidatePaths:
             [
                 @"OpenVPN\bin\openvpn-gui.exe",
                 @"OpenVPN Connect\OpenVPNConnect.exe",
                 @"OpenConnect-GUI\openconnect-gui.exe"
             ],
-            StartMenuPatterns: ["OpenVPN", "OpenConnect"]),
+            StartMenuPatterns: ["OpenVPN", "OpenConnect"],
+            AutomationKind: VpnAutomationVendorKind.OpenVpnGuiAuthDialog),
 
         new(
             DisplayName: "Radmin VPN",
             Keywords: ["radminvpn", "radmin", "rvrvpngui", "famatech"],
-            ProcessNames: ["RvRvpnGui"],
+            // Nunca incluir RvControlSvc (serviço Windows); apenas a interface RvRvpnGui
+            WindowProcessNames: ["RvRvpnGui"],
             RelativeCandidatePaths:
             [
                 @"Radmin VPN\RvRvpnGui.exe",
@@ -158,39 +178,42 @@ public sealed class VpnClientLauncherService
         new(
             DisplayName: "Cisco Secure Client / AnyConnect",
             Keywords: ["anyconnect", "ciscosecure", "ciscovpn", "vpnui", "cscui", "cisco"],
-            ProcessNames: ["csc_ui", "vpnui"],
+            WindowProcessNames: ["csc_ui", "vpnui"],
             RelativeCandidatePaths:
             [
                 @"Cisco\Cisco Secure Client\UI\csc_ui.exe",
                 @"Cisco\Cisco AnyConnect Secure Mobility Client\vpnui.exe"
             ],
-            StartMenuPatterns: ["Cisco Secure Client", "AnyConnect"]),
+            StartMenuPatterns: ["Cisco Secure Client", "AnyConnect"],
+            AutomationKind: VpnAutomationVendorKind.GenericGui),
 
         new(
             DisplayName: "SonicWall NetExtender",
             Keywords: ["netextender", "sonicwall", "negui", "mobileconnect"],
-            ProcessNames: ["NEGui", "NetExtender"],
+            WindowProcessNames: ["NEGui", "NetExtender"],
             RelativeCandidatePaths:
             [
                 @"SonicWall\SSL-VPN\NetExtender\NEGui.exe",
                 @"SonicWALL\SSL-VPN\NetExtender\NEGui.exe"
             ],
-            StartMenuPatterns: ["NetExtender", "SonicWall"]),
+            StartMenuPatterns: ["NetExtender", "SonicWall"],
+            AutomationKind: VpnAutomationVendorKind.GenericGui),
 
         new(
             DisplayName: "Palo Alto GlobalProtect",
             Keywords: ["globalprotect", "paloalto", "pangpa"],
-            ProcessNames: ["PanGPA"],
+            WindowProcessNames: ["PanGPA"],
             RelativeCandidatePaths:
             [
                 @"Palo Alto Networks\GlobalProtect\PanGPA.exe"
             ],
-            StartMenuPatterns: ["GlobalProtect"]),
+            StartMenuPatterns: ["GlobalProtect"],
+            AutomationKind: VpnAutomationVendorKind.GenericGui),
 
         new(
             DisplayName: "WireGuard",
             Keywords: ["wireguard"],
-            ProcessNames: ["wireguard"],
+            WindowProcessNames: ["wireguard"],
             RelativeCandidatePaths:
             [
                 @"WireGuard\wireguard.exe"
@@ -200,7 +223,7 @@ public sealed class VpnClientLauncherService
         new(
             DisplayName: "Tailscale",
             Keywords: ["tailscale"],
-            ProcessNames: ["tailscale-ipn"],
+            WindowProcessNames: ["tailscale-ipn"],
             RelativeCandidatePaths:
             [
                 @"Tailscale\tailscale-ipn.exe"
@@ -210,7 +233,7 @@ public sealed class VpnClientLauncherService
         new(
             DisplayName: "ZeroTier",
             Keywords: ["zerotier"],
-            ProcessNames: ["zerotier_desktop_ui"],
+            WindowProcessNames: ["zerotier_desktop_ui"],
             RelativeCandidatePaths:
             [
                 @"ZeroTier\One\zerotier_desktop_ui.exe"
@@ -220,7 +243,7 @@ public sealed class VpnClientLauncherService
         new(
             DisplayName: "LogMeIn Hamachi",
             Keywords: ["hamachi", "logmeinhamachi"],
-            ProcessNames: ["hamachi-2-ui"],
+            WindowProcessNames: ["hamachi-2-ui"],
             RelativeCandidatePaths:
             [
                 @"LogMeIn Hamachi\hamachi-2-ui.exe",
@@ -231,51 +254,55 @@ public sealed class VpnClientLauncherService
         new(
             DisplayName: "Sophos Connect",
             Keywords: ["sophos", "scgui"],
-            ProcessNames: ["scgui"],
+            WindowProcessNames: ["scgui"],
             RelativeCandidatePaths:
             [
                 @"Sophos\Connect\GUI\scgui.exe",
                 @"Sophos\Sophos SSL VPN Client\bin\openvpn-gui.exe"
             ],
-            StartMenuPatterns: ["Sophos Connect", "Sophos SSL VPN"]),
+            StartMenuPatterns: ["Sophos Connect", "Sophos SSL VPN"],
+            AutomationKind: VpnAutomationVendorKind.GenericGui),
 
         new(
             DisplayName: "WatchGuard Mobile VPN",
             Keywords: ["watchguard", "wgsslvpnc"],
-            ProcessNames: ["wgsslvpnc"],
+            WindowProcessNames: ["wgsslvpnc"],
             RelativeCandidatePaths:
             [
                 @"WatchGuard\WatchGuard Mobile VPN with SSL\wgsslvpnc.exe"
             ],
-            StartMenuPatterns: ["WatchGuard"]),
+            StartMenuPatterns: ["WatchGuard"],
+            AutomationKind: VpnAutomationVendorKind.GenericGui),
 
         new(
             DisplayName: "Check Point Endpoint VPN",
             Keywords: ["checkpoint", "capsulevpn", "trgui", "endpointconnect"],
-            ProcessNames: ["TrGUI"],
+            WindowProcessNames: ["TrGUI"],
             RelativeCandidatePaths:
             [
                 @"CheckPoint\Endpoint Connect\TrGUI.exe",
                 @"CheckPoint\Endpoint Security\Endpoint Connect\TrGUI.exe"
             ],
-            StartMenuPatterns: ["Endpoint Connect", "Check Point"]),
+            StartMenuPatterns: ["Endpoint Connect", "Check Point"],
+            AutomationKind: VpnAutomationVendorKind.GenericGui),
 
         new(
             DisplayName: "Ivanti / Pulse Secure",
             Keywords: ["pulsesecure", "ivanti", "pulseui", "isac"],
-            ProcessNames: ["Pulse", "PulseUI", "Ivanti"],
+            WindowProcessNames: ["Pulse", "PulseUI", "Ivanti"],
             RelativeCandidatePaths:
             [
                 @"Common Files\Pulse Secure\JamUI\Pulse.exe",
                 @"Pulse Secure\Pulse\Pulse.exe",
                 @"Ivanti\Ivanti Secure Access Client\Pulse.exe"
             ],
-            StartMenuPatterns: ["Pulse Secure", "Ivanti Secure"]),
+            StartMenuPatterns: ["Pulse Secure", "Ivanti Secure"],
+            AutomationKind: VpnAutomationVendorKind.GenericGui),
 
         new(
             DisplayName: "SoftEther VPN",
             Keywords: ["softether", "vpncmgr"],
-            ProcessNames: ["vpncmgr", "vpncmgr_x64"],
+            WindowProcessNames: ["vpncmgr", "vpncmgr_x64"],
             RelativeCandidatePaths:
             [
                 @"SoftEther VPN Client\vpncmgr_x64.exe",
@@ -286,17 +313,18 @@ public sealed class VpnClientLauncherService
         new(
             DisplayName: "Pritunl",
             Keywords: ["pritunl"],
-            ProcessNames: ["pritunl", "Pritunl"],
+            WindowProcessNames: ["pritunl", "Pritunl"],
             RelativeCandidatePaths:
             [
                 @"Pritunl\pritunl.exe"
             ],
-            StartMenuPatterns: ["Pritunl"]),
+            StartMenuPatterns: ["Pritunl"],
+            AutomationKind: VpnAutomationVendorKind.GenericGui),
 
         new(
             DisplayName: "Cloudflare WARP",
             Keywords: ["cloudflarewarp", "cloudflare", "warp"],
-            ProcessNames: ["Cloudflare WARP"],
+            WindowProcessNames: ["Cloudflare WARP"],
             RelativeCandidatePaths:
             [
                 @"Cloudflare\Cloudflare WARP\Cloudflare WARP.exe"
@@ -318,11 +346,13 @@ public sealed class VpnClientLauncherService
 
     private readonly AppLogger? _logger;
     private readonly Func<ProcessStartInfo, bool>? _customStarter;
+    private readonly Action<string>? _customStdinObserver;
     private readonly IReadOnlyList<string>? _customProgramRoots;
     private readonly IReadOnlyList<string>? _customStartMenuRoots;
     private readonly IReadOnlyList<string>? _customOpenVpnConfigRoots;
     private readonly IReadOnlyList<string>? _customRasPhonebookFiles;
     private readonly Func<string, bool>? _customIsProcessRunning;
+    private readonly VpnWindowAutomator _windowAutomator;
 
     public VpnClientLauncherService(
         AppLogger? logger = null,
@@ -331,7 +361,8 @@ public sealed class VpnClientLauncherService
         IReadOnlyList<string>? customStartMenuRoots = null,
         IReadOnlyList<string>? customOpenVpnConfigRoots = null,
         IReadOnlyList<string>? customRasPhonebookFiles = null,
-        Func<string, bool>? customIsProcessRunning = null)
+        Func<string, bool>? customIsProcessRunning = null,
+        Action<string>? customStdinObserver = null)
     {
         _logger = logger;
         _customStarter = customStarter;
@@ -340,6 +371,8 @@ public sealed class VpnClientLauncherService
         _customOpenVpnConfigRoots = customOpenVpnConfigRoots;
         _customRasPhonebookFiles = customRasPhonebookFiles;
         _customIsProcessRunning = customIsProcessRunning;
+        _customStdinObserver = customStdinObserver;
+        _windowAutomator = new VpnWindowAutomator(logger);
     }
 
     public static string CompactNormalize(string? value)
@@ -456,11 +489,13 @@ public sealed class VpnClientLauncherService
             AddProfile(new DiscoveredVpnProfile(entryName, "VPN do Windows", phoneNumber));
         }
 
-        // 3. Perfis do Registro (FortiClient e OpenConnect GUI) quando em execução normal no Windows
+        // 3. Perfis do Registro e clientes instalados no Windows (FortiClient SSL+IPsec, OpenConnect, Cisco, OpenVPN Connect)
         if (_customProgramRoots is null)
         {
             DiscoverFortiClientRegistryProfiles(AddProfile);
             DiscoverOpenConnectRegistryProfiles(AddProfile);
+            DiscoverCiscoXmlProfiles(AddProfile);
+            DiscoverOpenVpnConnectProfiles(AddProfile);
         }
 
         return discovered
@@ -481,7 +516,7 @@ public sealed class VpnClientLauncherService
         var explicitOvpnPath = TryResolveExplicitOvpnFilePath(rawApp) ?? TryResolveExplicitOvpnFilePath(rawName);
         if (!string.IsNullOrWhiteSpace(explicitOvpnPath))
         {
-            return BuildOpenVpnExplicitFileResolution(explicitOvpnPath);
+            return BuildOpenVpnExplicitFileResolution(explicitOvpnPath, credential);
         }
 
         // 1. Caminho explícito de executável/atalho informado em VpnApp
@@ -491,11 +526,13 @@ public sealed class VpnClientLauncherService
             if (File.Exists(expanded))
             {
                 var display = Path.GetFileNameWithoutExtension(expanded);
+                var inferredVendor = FindVendorByText(CompactNormalize(display));
                 return BuildExecutableResolution(
                     locatedPath: expanded,
-                    displayName: string.IsNullOrWhiteSpace(display) ? rawApp : display,
+                    displayName: inferredVendor?.DisplayName ?? (string.IsNullOrWhiteSpace(display) ? rawApp : display),
                     entry: entry,
-                    credential: credential);
+                    credential: credential,
+                    vendor: inferredVendor);
             }
         }
 
@@ -519,7 +556,8 @@ public sealed class VpnClientLauncherService
                     locatedPath: located,
                     displayName: matchedVendor.DisplayName,
                     entry: entry,
-                    credential: credential);
+                    credential: credential,
+                    vendor: matchedVendor);
             }
 
             return new VpnLaunchResolution(
@@ -541,7 +579,8 @@ public sealed class VpnClientLauncherService
                     locatedPath: genericMatch,
                     displayName: rawApp,
                     entry: entry,
-                    credential: credential);
+                    credential: credential,
+                    vendor: null);
             }
 
             return new VpnLaunchResolution(
@@ -562,7 +601,7 @@ public sealed class VpnClientLauncherService
             var matchedOvpn = TryMatchOpenVpnProfileFile(openVpnExe, entry);
             if (!string.IsNullOrWhiteSpace(matchedOvpn))
             {
-                return BuildOpenVpnGuiProfileResolution(openVpnExe, matchedOvpn);
+                return BuildOpenVpnGuiProfileResolution(openVpnExe, matchedOvpn, credential);
             }
         }
 
@@ -573,18 +612,57 @@ public sealed class VpnClientLauncherService
     {
         var resolution = Resolve(entry, credential);
         if (!resolution.Found)
-        {
-            return new VpnLaunchOutcome(
-                Started: false,
-                UsedWindowsFallback: false,
-                ClientDisplayName: resolution.DisplayClientName,
-                StatusMessage: L.Format("Cliente VPN '{0}' não localizado automaticamente.", resolution.DisplayClientName),
-                ErrorMessage: L.Format(
-                    "Não foi possível localizar o cliente VPN '{0}' neste computador.\n\nDica: no bloco 'VPN do cliente', use o botão '...' ao lado de Aplicativo para indicar o executável (ou arquivo .ovpn) ou abra as Configurações de VPN do Windows.",
-                    resolution.DisplayClientName));
-        }
+            return BuildNotFoundOutcome(resolution);
 
         return ExecuteResolution(resolution);
+    }
+
+    public async Task<VpnLaunchOutcome> LaunchAsync(
+        ConnectionEntry entry,
+        VpnLoginCredential? credential = null,
+        CancellationToken cancellationToken = default)
+    {
+        var resolution = Resolve(entry, credential);
+        if (!resolution.Found)
+            return BuildNotFoundOutcome(resolution);
+
+        var outcome = ExecuteResolution(resolution);
+        if (!outcome.Started || _customStarter is not null || resolution.AutomationVendor == VpnAutomationVendorKind.None)
+            return outcome;
+
+        // Caso seja VPN do Windows sem senha informada e rasdial tenha sido acionado, fallback automático para rasphone se falhar
+        var profileTarget = !string.IsNullOrWhiteSpace(resolution.MatchedProfileName)
+            ? resolution.MatchedProfileName
+            : (!string.IsNullOrWhiteSpace(entry.VpnName) ? entry.VpnName.Trim() : null);
+
+        var uia = await _windowAutomator.AutomateAsync(
+            resolution.AutomationVendor,
+            profileTarget,
+            credential,
+            cancellationToken);
+
+        if (uia.AlreadyConnected && !string.IsNullOrWhiteSpace(uia.DetailMessage))
+        {
+            return outcome with { StatusMessage = uia.DetailMessage!, UiAutomationHandled = true };
+        }
+
+        if (uia.ConnectInvoked)
+        {
+            var connectedMsg = !string.IsNullOrWhiteSpace(profileTarget)
+                ? L.Format("Conectando '{0}' em {1}...", profileTarget, resolution.DisplayClientName)
+                : L.Format("Conexão acionada em {0}...", resolution.DisplayClientName);
+            return outcome with { StatusMessage = connectedMsg, UiAutomationHandled = true };
+        }
+
+        if (uia.ProfileSelected || uia.CredentialsFilled)
+        {
+            var preppedMsg = !string.IsNullOrWhiteSpace(profileTarget)
+                ? L.Format("{0} aberto com perfil '{1}' selecionado.", resolution.DisplayClientName, profileTarget)
+                : outcome.StatusMessage;
+            return outcome with { StatusMessage = preppedMsg, UiAutomationHandled = true };
+        }
+
+        return outcome;
     }
 
     public VpnLaunchOutcome LaunchWindowsVpnSettingsFallback()
@@ -599,21 +677,36 @@ public sealed class VpnClientLauncherService
         return ExecuteResolution(fallback);
     }
 
+    private static VpnLaunchOutcome BuildNotFoundOutcome(VpnLaunchResolution resolution)
+    {
+        return new VpnLaunchOutcome(
+            Started: false,
+            UsedWindowsFallback: false,
+            ClientDisplayName: resolution.DisplayClientName,
+            StatusMessage: L.Format("Cliente VPN '{0}' não localizado automaticamente.", resolution.DisplayClientName),
+            ErrorMessage: L.Format(
+                "Não foi possível localizar o cliente VPN '{0}' neste computador.\n\nDica: no bloco 'VPN do cliente', use o botão '...' ao lado de Aplicativo para indicar o executável (ou arquivo .ovpn) ou abra as Configurações de VPN do Windows.",
+                resolution.DisplayClientName));
+    }
+
     private VpnLaunchResolution BuildExecutableResolution(
         string locatedPath,
         string displayName,
         ConnectionEntry entry,
-        VpnLoginCredential? credential)
+        VpnLoginCredential? credential,
+        KnownVpnVendor? vendor)
     {
         var exeFileName = Path.GetFileName(locatedPath);
+        var rawVpnName = (entry.VpnName ?? string.Empty).Trim();
+        var rawVpnServer = (entry.VpnServer ?? string.Empty).Trim();
 
-        // OpenVPN GUI: aciona diretamente o perfil .ovpn correspondente (--command connect quando aberto, --connect quando fechado)
+        // 1. OpenVPN GUI: aciona perfil .ovpn direto (--command connect quando aberto na bandeja, --connect quando fechado)
         if (exeFileName.Equals("openvpn-gui.exe", StringComparison.OrdinalIgnoreCase))
         {
             var matchedOvpn = TryMatchOpenVpnProfileFile(locatedPath, entry);
             if (!string.IsNullOrWhiteSpace(matchedOvpn))
             {
-                return BuildOpenVpnGuiProfileResolution(locatedPath, matchedOvpn);
+                return BuildOpenVpnGuiProfileResolution(locatedPath, matchedOvpn, credential);
             }
 
             var trayHint = IsProcessCurrentlyRunning("openvpn-gui")
@@ -630,12 +723,113 @@ public sealed class VpnClientLauncherService
                 HintMessage: trayHint);
         }
 
-        // SonicWall NetExtender: se houver credencial e NECLI.exe ao lado do NEGui.exe + Servidor VPN preenchido, conecta via CLI
+        // 2. OpenVPN Connect v3: suporta --list-profiles e --connect-shortcut=<profile_id>
+        if (exeFileName.Equals("OpenVPNConnect.exe", StringComparison.OrdinalIgnoreCase) &&
+            !string.IsNullOrWhiteSpace(rawVpnName) &&
+            _customProgramRoots is null)
+        {
+            var profileId = TryResolveOpenVpnConnectProfileId(locatedPath, rawVpnName);
+            if (!string.IsNullOrWhiteSpace(profileId))
+            {
+                return new VpnLaunchResolution(
+                    Found: true,
+                    DisplayClientName: $"OpenVPN Connect ({rawVpnName})",
+                    TargetPathOrUri: locatedPath,
+                    Arguments: [$"--connect-shortcut={profileId}"],
+                    UseShellExecute: false,
+                    IsWindowsNativeFallback: false,
+                    HintMessage: L.Format("Conectando perfil '{0}' no OpenVPN Connect...", rawVpnName),
+                    MatchedProfileName: rawVpnName,
+                    AutomationVendor: credential is { HasAnyValue: true } ? VpnAutomationVendorKind.GenericGui : VpnAutomationVendorKind.None);
+            }
+        }
+
+        // 3. FortiClient Console (7.x / 8.x): abre sempre o FortiClientConsole.exe com acessibilidade habilitada e automatiza via UIA
+        if (exeFileName.Equals("FortiClientConsole.exe", StringComparison.OrdinalIgnoreCase) ||
+            exeFileName.Equals("FortiClient.exe", StringComparison.OrdinalIgnoreCase))
+        {
+            // Se existir FortiClientConsole.exe na mesma pasta que FortiClient.exe, prefere sempre FortiClientConsole.exe
+            var targetForti = locatedPath;
+            if (exeFileName.Equals("FortiClient.exe", StringComparison.OrdinalIgnoreCase))
+            {
+                var dir = Path.GetDirectoryName(locatedPath);
+                var consoleSibling = !string.IsNullOrWhiteSpace(dir) ? Path.Combine(dir, "FortiClientConsole.exe") : null;
+                if (!string.IsNullOrWhiteSpace(consoleSibling) && File.Exists(consoleSibling))
+                    targetForti = consoleSibling;
+            }
+
+            return new VpnLaunchResolution(
+                Found: true,
+                DisplayClientName: "FortiClient",
+                TargetPathOrUri: targetForti,
+                Arguments: ["--force-renderer-accessibility"],
+                UseShellExecute: false,
+                IsWindowsNativeFallback: false,
+                HintMessage: !string.IsNullOrWhiteSpace(rawVpnName)
+                    ? L.Format("Abrindo FortiClient para o perfil '{0}'...", rawVpnName)
+                    : L.Text("Abrindo console do FortiClient..."),
+                MatchedProfileName: string.IsNullOrWhiteSpace(rawVpnName) ? null : rawVpnName,
+                AutomationVendor: VpnAutomationVendorKind.FortiClient);
+        }
+
+        // 4. Utilitário CLI oficial FortiSSLVPNclient.exe (quando apontado explicitamente pelo analista)
+        if (exeFileName.Equals("FortiSSLVPNclient.exe", StringComparison.OrdinalIgnoreCase) &&
+            !string.IsNullOrWhiteSpace(rawVpnName))
+        {
+            var args = new List<string> { "connect", "-s", rawVpnName };
+            var passedCreds = false;
+            if (credential is not null && !string.IsNullOrWhiteSpace(credential.FormattedUsername) && !string.IsNullOrEmpty(credential.Password))
+            {
+                args.Add("-u");
+                args.Add($"{credential.FormattedUsername}:{credential.Password}");
+                passedCreds = true;
+            }
+
+            return new VpnLaunchResolution(
+                Found: true,
+                DisplayClientName: $"FortiClient CLI ({rawVpnName})",
+                TargetPathOrUri: locatedPath,
+                Arguments: args,
+                UseShellExecute: false,
+                IsWindowsNativeFallback: false,
+                HintMessage: L.Format("Conectando '{0}' via FortiSSLVPNclient...", rawVpnName),
+                PassedCredentialsDirectly: passedCreds,
+                MatchedProfileName: rawVpnName);
+        }
+
+        // 5. Cisco Secure Client / AnyConnect: quando há Usuário + Senha manuais e vpncli.exe disponível, autentica via pipe StandardInput (-s)
+        if ((exeFileName.Equals("csc_ui.exe", StringComparison.OrdinalIgnoreCase) ||
+             exeFileName.Equals("vpnui.exe", StringComparison.OrdinalIgnoreCase) ||
+             exeFileName.Equals("vpncli.exe", StringComparison.OrdinalIgnoreCase)) &&
+            credential is not null &&
+            !string.IsNullOrWhiteSpace(credential.FormattedUsername) &&
+            !string.IsNullOrEmpty(credential.Password))
+        {
+            var ciscoTarget = !string.IsNullOrWhiteSpace(rawVpnServer) ? rawVpnServer : rawVpnName;
+            var vpnCliPath = TryFindCiscoVpnCli(locatedPath);
+            if (!string.IsNullOrWhiteSpace(ciscoTarget) && !string.IsNullOrWhiteSpace(vpnCliPath))
+            {
+                var stdinPayload = $"connect {ciscoTarget}\n{credential.FormattedUsername}\n{credential.Password}\ny\n";
+                return new VpnLaunchResolution(
+                    Found: true,
+                    DisplayClientName: $"{displayName} ({ciscoTarget})",
+                    TargetPathOrUri: vpnCliPath,
+                    Arguments: ["-s"],
+                    UseShellExecute: false,
+                    IsWindowsNativeFallback: false,
+                    HintMessage: L.Format("Conectando Cisco VPN em '{0}'...", ciscoTarget),
+                    PassedCredentialsDirectly: true,
+                    MatchedProfileName: ciscoTarget,
+                    StandardInputPayload: stdinPayload);
+            }
+        }
+
+        // 6. SonicWall NetExtender: quando há Servidor + Usuário + Senha manuais e NECLI.exe ao lado do NEGui.exe, conecta via CLI
         if (exeFileName.Equals("NEGui.exe", StringComparison.OrdinalIgnoreCase) &&
             credential is not null &&
             !string.IsNullOrWhiteSpace(credential.Username) &&
             !string.IsNullOrEmpty(credential.Password) &&
-            !string.IsNullOrWhiteSpace(entry.VpnServer))
+            !string.IsNullOrWhiteSpace(rawVpnServer))
         {
             var dir = Path.GetDirectoryName(locatedPath);
             var neCli = !string.IsNullOrWhiteSpace(dir) ? Path.Combine(dir, "NECLI.exe") : null;
@@ -644,7 +838,7 @@ public sealed class VpnClientLauncherService
                 var cliArgs = new List<string>
                 {
                     "connect",
-                    "-s", entry.VpnServer.Trim(),
+                    "-s", rawVpnServer,
                     "-u", credential.Username.Trim(),
                     "-p", credential.Password
                 };
@@ -661,27 +855,58 @@ public sealed class VpnClientLauncherService
                     Arguments: cliArgs,
                     UseShellExecute: false,
                     IsWindowsNativeFallback: false,
-                    HintMessage: L.Format("Conectando SonicWall NetExtender em {0}...", entry.VpnServer.Trim()),
+                    HintMessage: L.Format("Conectando SonicWall NetExtender em {0}...", rawVpnServer),
                     PassedCredentialsDirectly: true);
             }
         }
 
         var useShell = !locatedPath.EndsWith(".exe", StringComparison.OrdinalIgnoreCase);
+        var automationKind = vendor?.AutomationKind ?? VpnAutomationVendorKind.None;
+        if (automationKind == VpnAutomationVendorKind.GenericGui && credential is not { HasAnyValue: true })
+            automationKind = VpnAutomationVendorKind.None;
+
         return new VpnLaunchResolution(
             Found: true,
             DisplayClientName: displayName,
             TargetPathOrUri: locatedPath,
             Arguments: Array.Empty<string>(),
             UseShellExecute: useShell,
-            IsWindowsNativeFallback: false);
+            IsWindowsNativeFallback: false,
+            MatchedProfileName: string.IsNullOrWhiteSpace(rawVpnName) ? null : rawVpnName,
+            AutomationVendor: automationKind);
     }
 
-    private VpnLaunchResolution BuildOpenVpnExplicitFileResolution(string ovpnFilePath)
+    private static string? TryFindCiscoVpnCli(string locatedCiscoPath)
+    {
+        if (Path.GetFileName(locatedCiscoPath).Equals("vpncli.exe", StringComparison.OrdinalIgnoreCase))
+            return locatedCiscoPath;
+
+        var dir = Path.GetDirectoryName(locatedCiscoPath);
+        if (string.IsNullOrWhiteSpace(dir))
+            return null;
+
+        // Em Cisco AnyConnect: mesma pasta do vpnui.exe. Em Cisco Secure Client: pasta pai de UI\csc_ui.exe
+        var directSibling = Path.Combine(dir, "vpncli.exe");
+        if (File.Exists(directSibling))
+            return directSibling;
+
+        var parentDir = Directory.GetParent(dir)?.FullName;
+        if (!string.IsNullOrWhiteSpace(parentDir))
+        {
+            var parentCli = Path.Combine(parentDir, "vpncli.exe");
+            if (File.Exists(parentCli))
+                return parentCli;
+        }
+
+        return null;
+    }
+
+    private VpnLaunchResolution BuildOpenVpnExplicitFileResolution(string ovpnFilePath, VpnLoginCredential? credential)
     {
         var openVpnGuiExe = FindSpecificExecutableAmongVendors("openvpn-gui.exe");
         if (!string.IsNullOrWhiteSpace(openVpnGuiExe))
         {
-            return BuildOpenVpnGuiProfileResolution(openVpnGuiExe, ovpnFilePath);
+            return BuildOpenVpnGuiProfileResolution(openVpnGuiExe, ovpnFilePath, credential);
         }
 
         var baseName = Path.GetFileNameWithoutExtension(ovpnFilePath);
@@ -696,15 +921,15 @@ public sealed class VpnClientLauncherService
             MatchedProfileName: baseName);
     }
 
-    private VpnLaunchResolution BuildOpenVpnGuiProfileResolution(string openVpnGuiExePath, string ovpnFilePath)
+    private VpnLaunchResolution BuildOpenVpnGuiProfileResolution(
+        string openVpnGuiExePath,
+        string ovpnFilePath,
+        VpnLoginCredential? credential)
     {
         var baseName = Path.GetFileNameWithoutExtension(ovpnFilePath);
         var fileName = Path.GetFileName(ovpnFilePath);
         var alreadyRunning = IsProcessCurrentlyRunning("openvpn-gui");
 
-        // OpenVPN GUI aceita:
-        // - Quando já está aberto na bandeja: --command connect <nome_sem_extensao>
-        // - Quando está fechado: --connect <arquivo.ovpn>
         IReadOnlyList<string> args = alreadyRunning
             ? ["--command", "connect", baseName]
             : ["--connect", fileName];
@@ -712,6 +937,12 @@ public sealed class VpnClientLauncherService
         var hint = alreadyRunning
             ? L.Format("Conectando perfil '{0}' no OpenVPN GUI...", baseName)
             : L.Format("Iniciando OpenVPN GUI e conectando perfil '{0}'...", baseName);
+
+        // Regra de não interferência: se não há usuário/senha manuais cadastrados no ConectaTI (ex.: Polividros.ovpn),
+        // AutomationVendor permanece None e o OpenVPN GUI conecta sozinho com o login salvo nele.
+        var automation = credential is { HasAnyValue: true }
+            ? VpnAutomationVendorKind.OpenVpnGuiAuthDialog
+            : VpnAutomationVendorKind.None;
 
         return new VpnLaunchResolution(
             Found: true,
@@ -721,35 +952,71 @@ public sealed class VpnClientLauncherService
             UseShellExecute: false,
             IsWindowsNativeFallback: false,
             HintMessage: hint,
-            MatchedProfileName: baseName);
+            MatchedProfileName: baseName,
+            AutomationVendor: automation);
     }
 
     private VpnLaunchOutcome ExecuteResolution(VpnLaunchResolution resolution)
     {
         try
         {
-            if (_customStarter is null && resolution.TargetPathOrUri.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+            // Se o processo gráfico já tiver janela aberta, minimizada ou oculta na bandeja (exceto openvpn-gui IPC), restaura primeiro
+            if (_customStarter is null &&
+                resolution.TargetPathOrUri.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) &&
+                !Path.GetFileName(resolution.TargetPathOrUri).Equals("openvpn-gui.exe", StringComparison.OrdinalIgnoreCase) &&
+                string.IsNullOrEmpty(resolution.StandardInputPayload))
             {
-                TryFocusExistingProcessWindow(Path.GetFileNameWithoutExtension(resolution.TargetPathOrUri));
+                var procName = Path.GetFileNameWithoutExtension(resolution.TargetPathOrUri);
+                var restoredExisting = VpnWindowAutomator.TryRestoreProcessWindow([procName], [resolution.DisplayClientName, procName]);
+
+                // Para apps que escondem janela única na bandeja (OpenConnect GUI, Radmin VPN), se já restauramos a janela existente,
+                // não precisamos disparar segunda instância que apenas exibiria aviso de instância única
+                if (restoredExisting &&
+                    (procName.Equals("openconnect-gui", StringComparison.OrdinalIgnoreCase) ||
+                     procName.Equals("RvRvpnGui", StringComparison.OrdinalIgnoreCase)))
+                {
+                    var restoredStatus = !string.IsNullOrWhiteSpace(resolution.HintMessage)
+                        ? resolution.HintMessage!
+                        : L.Format("Cliente VPN restaurado da bandeja: {0}", resolution.DisplayClientName);
+
+                    _logger?.Info("VPN", $"Janela do cliente VPN restaurada da bandeja: {resolution.DisplayClientName}");
+                    return new VpnLaunchOutcome(
+                        Started: true,
+                        UsedWindowsFallback: false,
+                        ClientDisplayName: resolution.DisplayClientName,
+                        StatusMessage: restoredStatus,
+                        PassedCredentialsDirectly: resolution.PassedCredentialsDirectly,
+                        MatchedProfileName: resolution.MatchedProfileName);
+                }
             }
 
+            var hasStdin = !string.IsNullOrEmpty(resolution.StandardInputPayload);
             var psi = new ProcessStartInfo
             {
                 FileName = resolution.TargetPathOrUri,
-                UseShellExecute = resolution.UseShellExecute
+                UseShellExecute = !hasStdin && resolution.UseShellExecute
             };
 
-            if (!resolution.UseShellExecute)
+            if (!psi.UseShellExecute)
             {
                 foreach (var arg in resolution.Arguments)
                     psi.ArgumentList.Add(arg);
                 var dir = Path.GetDirectoryName(resolution.TargetPathOrUri);
                 if (!string.IsNullOrWhiteSpace(dir) && Directory.Exists(dir))
                     psi.WorkingDirectory = dir;
+
+                if (hasStdin)
+                {
+                    psi.RedirectStandardInput = true;
+                    psi.CreateNoWindow = true;
+                }
             }
 
             if (_customStarter is not null)
             {
+                if (hasStdin)
+                    _customStdinObserver?.Invoke(resolution.StandardInputPayload!);
+
                 var ok = _customStarter(psi);
                 if (!ok)
                 {
@@ -763,14 +1030,32 @@ public sealed class VpnClientLauncherService
             }
             else
             {
-                Process.Start(psi);
+                var proc = Process.Start(psi);
+                if (proc is not null && hasStdin)
+                {
+                    try
+                    {
+                        proc.StandardInput.Write(resolution.StandardInputPayload);
+                        proc.StandardInput.Flush();
+                        proc.StandardInput.Close();
+                    }
+                    catch { }
+                    finally
+                    {
+                        proc.Dispose();
+                    }
+                }
+                else
+                {
+                    proc?.Dispose();
+                }
             }
 
             var status = !string.IsNullOrWhiteSpace(resolution.HintMessage)
                 ? resolution.HintMessage!
                 : L.Format("Cliente VPN aberto: {0}", resolution.DisplayClientName);
 
-            // Nunca registra argumentos no log para preservar segredos em chamadas CLI
+            // Nunca registra argumentos nem payloads stdin no log para preservar segredos
             _logger?.Info("VPN", $"Cliente VPN acionado: {resolution.DisplayClientName}");
             return new VpnLaunchOutcome(
                 Started: true,
@@ -800,18 +1085,14 @@ public sealed class VpnClientLauncherService
             var rasdial = FindSystemOrRootExecutable("rasdial.exe");
             if (!string.IsNullOrWhiteSpace(rasdial) &&
                 credential is not null &&
-                !string.IsNullOrWhiteSpace(credential.Username) &&
+                !string.IsNullOrWhiteSpace(credential.FormattedUsername) &&
                 !string.IsNullOrEmpty(credential.Password))
             {
-                var formattedUser = string.IsNullOrWhiteSpace(credential.Domain)
-                    ? credential.Username.Trim()
-                    : $"{credential.Domain.Trim()}\\{credential.Username.Trim()}";
-
                 return new VpnLaunchResolution(
                     Found: true,
                     DisplayClientName: $"VPN do Windows ({cleanName})",
                     TargetPathOrUri: rasdial,
-                    Arguments: [cleanName, formattedUser, credential.Password],
+                    Arguments: [cleanName, credential.FormattedUsername, credential.Password],
                     UseShellExecute: false,
                     IsWindowsNativeFallback: true,
                     HintMessage: L.Format("Conectando VPN do Windows '{0}'...", cleanName),
@@ -925,13 +1206,11 @@ public sealed class VpnClientLauncherService
                 ? rawVpnName[..^5].Trim()
                 : rawVpnName;
 
-            // 1. Correspondência exata pelo nome base do arquivo .ovpn
             var exact = files.FirstOrDefault(f =>
                 Path.GetFileNameWithoutExtension(f).Equals(withoutExt, StringComparison.OrdinalIgnoreCase));
             if (!string.IsNullOrWhiteSpace(exact))
                 return exact;
 
-            // 2. Correspondência normalizada compacta exata
             var normTarget = CompactNormalize(withoutExt);
             if (!string.IsNullOrEmpty(normTarget))
             {
@@ -941,13 +1220,11 @@ public sealed class VpnClientLauncherService
                     return compactExact;
             }
 
-            // 3. Correspondência por radical limpo (ex.: "Polividros OpenGui" -> "polividros" -> "Polividros.ovpn")
             var stemMatch = TryMatchUniqueByStem(files, rawVpnName);
             if (!string.IsNullOrWhiteSpace(stemMatch))
                 return stemMatch;
         }
 
-        // 4. Caso Nome da VPN esteja vazio ou genérico ("OpenGui"), tenta pelo Cliente ou Nome da conexão se unívoco
         foreach (var fallbackCandidate in new[] { entry.ClientName, entry.Name })
         {
             if (string.IsNullOrWhiteSpace(fallbackCandidate))
@@ -1031,7 +1308,6 @@ public sealed class VpnClientLauncherService
             return dirs;
         }
 
-        // Diretório ../config relativo ao openvpn-gui.exe localizado (cobre instalações customizadas e testes)
         if (!string.IsNullOrWhiteSpace(openVpnExePath))
         {
             try
@@ -1151,10 +1427,13 @@ public sealed class VpnClientLauncherService
 
     private static void DiscoverFortiClientRegistryProfiles(Action<DiscoveredVpnProfile> addProfile)
     {
+        // Cobre tanto SSL-VPN quanto IPsec, em HKCU ("VPNs Pessoais" do FortiClient 7.x) e HKLM (túneis globais)
         var subKeys = new[]
         {
-            @"SOFTWARE\Fortinet\FortiClient\Sslvpn\Tunnels",
-            @"SOFTWARE\WOW6432Node\Fortinet\FortiClient\Sslvpn\Tunnels"
+            @"Software\Fortinet\FortiClient\Sslvpn\Tunnels",
+            @"Software\Fortinet\FortiClient\IPSec\Tunnels",
+            @"SOFTWARE\WOW6432Node\Fortinet\FortiClient\Sslvpn\Tunnels",
+            @"SOFTWARE\WOW6432Node\Fortinet\FortiClient\IPSec\Tunnels"
         };
 
         foreach (var hive in new[] { Registry.CurrentUser, Registry.LocalMachine })
@@ -1202,6 +1481,116 @@ public sealed class VpnClientLauncherService
         }
     }
 
+    private static void DiscoverCiscoXmlProfiles(Action<DiscoveredVpnProfile> addProfile)
+    {
+        var commonAppData = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
+        if (string.IsNullOrWhiteSpace(commonAppData))
+            return;
+
+        var dirs = new[]
+        {
+            Path.Combine(commonAppData, @"Cisco\Cisco Secure Client\VPN\Profile"),
+            Path.Combine(commonAppData, @"Cisco\Cisco AnyConnect Secure Mobility Client\Profile")
+        };
+
+        foreach (var dir in dirs)
+        {
+            if (!Directory.Exists(dir)) continue;
+            foreach (var xmlFile in EnumerateFilesBounded(dir, "*.xml", maxDepth: 1))
+            {
+                try
+                {
+                    var doc = XDocument.Load(xmlFile);
+                    foreach (var hostEntry in doc.Descendants().Where(e => e.Name.LocalName == "HostEntry"))
+                    {
+                        var hostName = hostEntry.Elements().FirstOrDefault(e => e.Name.LocalName == "HostName")?.Value?.Trim();
+                        var hostAddr = hostEntry.Elements().FirstOrDefault(e => e.Name.LocalName == "HostAddress")?.Value?.Trim();
+                        var profileName = !string.IsNullOrWhiteSpace(hostName) ? hostName : hostAddr;
+                        if (!string.IsNullOrWhiteSpace(profileName))
+                            addProfile(new DiscoveredVpnProfile(profileName, "Cisco Secure Client (AnyConnect)", hostAddr, xmlFile));
+                    }
+                }
+                catch { }
+            }
+        }
+    }
+
+    private void DiscoverOpenVpnConnectProfiles(Action<DiscoveredVpnProfile> addProfile)
+    {
+        var vendor = KnownVendors.FirstOrDefault(v => v.DisplayName == "OpenVPN Connect");
+        var exe = vendor is not null ? TryLocateVendorExecutableOrShortcut(vendor) : null;
+        if (string.IsNullOrWhiteSpace(exe) || !exe.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+            return;
+
+        foreach (var (id, name, host) in QueryOpenVpnConnectProfiles(exe))
+        {
+            var label = !string.IsNullOrWhiteSpace(name) ? name : id;
+            addProfile(new DiscoveredVpnProfile(label, "OpenVPN Connect", host, id));
+        }
+    }
+
+    private static string? TryResolveOpenVpnConnectProfileId(string openVpnConnectExe, string targetName)
+    {
+        var profiles = QueryOpenVpnConnectProfiles(openVpnConnectExe);
+        if (profiles.Count == 0)
+            return null;
+
+        var normTarget = CompactNormalize(targetName);
+        foreach (var (id, name, host) in profiles)
+        {
+            if (id.Equals(targetName, StringComparison.OrdinalIgnoreCase) ||
+                name.Equals(targetName, StringComparison.OrdinalIgnoreCase) ||
+                CompactNormalize(name).Equals(normTarget, StringComparison.Ordinal) ||
+                (!string.IsNullOrWhiteSpace(host) && host.Equals(targetName, StringComparison.OrdinalIgnoreCase)))
+            {
+                return id;
+            }
+        }
+
+        return null;
+    }
+
+    private static IReadOnlyList<(string Id, string Name, string? Host)> QueryOpenVpnConnectProfiles(string openVpnConnectExe)
+    {
+        var list = new List<(string, string, string?)>();
+        try
+        {
+            var psi = new ProcessStartInfo
+            {
+                FileName = openVpnConnectExe,
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                CreateNoWindow = true
+            };
+            psi.ArgumentList.Add("--list-profiles");
+
+            using var proc = Process.Start(psi);
+            if (proc is null)
+                return list;
+
+            var output = proc.StandardOutput.ReadToEnd();
+            proc.WaitForExit(1500);
+            if (string.IsNullOrWhiteSpace(output))
+                return list;
+
+            using var doc = JsonDocument.Parse(output);
+            if (doc.RootElement.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var item in doc.RootElement.EnumerateArray())
+                {
+                    var id = item.TryGetProperty("id", out var idProp) ? idProp.GetString() : null;
+                    var name = item.TryGetProperty("name", out var nameProp) ? nameProp.GetString() : null;
+                    var host = item.TryGetProperty("host", out var hostProp) ? hostProp.GetString() : null;
+                    if (!string.IsNullOrWhiteSpace(id))
+                        list.Add((id!, name ?? id!, host));
+                }
+            }
+        }
+        catch { }
+
+        return list;
+    }
+
     private static KnownVpnVendor? FindVendorByText(string compactNormalizedText)
     {
         if (string.IsNullOrEmpty(compactNormalizedText))
@@ -1221,16 +1610,7 @@ public sealed class VpnClientLauncherService
 
     private string? TryLocateVendorExecutableOrShortcut(KnownVpnVendor vendor)
     {
-        if (_customProgramRoots is null)
-        {
-            foreach (var procName in vendor.ProcessNames)
-            {
-                var runningPath = TryGetRunningProcessPath(procName);
-                if (!string.IsNullOrWhiteSpace(runningPath) && File.Exists(runningPath))
-                    return runningPath;
-            }
-        }
-
+        // 1. Verifica primeiro os caminhos padrão de instalação (garante pegar sempre o Console/GUI real e nunca um daemon de bandeja)
         foreach (var root in GetProgramRoots())
         {
             foreach (var rel in vendor.RelativeCandidatePaths)
@@ -1242,8 +1622,16 @@ public sealed class VpnClientLauncherService
             }
         }
 
+        // 2. Se estiver em pasta customizada fora de Program Files, consulta somente os processos gráficos reais (WindowProcessNames)
         if (_customProgramRoots is null)
         {
+            foreach (var procName in vendor.WindowProcessNames)
+            {
+                var runningPath = TryGetRunningProcessPath(procName);
+                if (!string.IsNullOrWhiteSpace(runningPath) && File.Exists(runningPath))
+                    return runningPath;
+            }
+
             foreach (var rel in vendor.RelativeCandidatePaths)
             {
                 var exeName = Path.GetFileName(rel.Replace('\\', Path.DirectorySeparatorChar));
@@ -1253,6 +1641,7 @@ public sealed class VpnClientLauncherService
             }
         }
 
+        // 3. Atalhos (.lnk) no Menu Iniciar
         foreach (var pattern in vendor.StartMenuPatterns)
         {
             var shortcut = FindStartMenuShortcut(pattern);
@@ -1463,27 +1852,5 @@ public sealed class VpnClientLauncherService
         catch { }
 
         return null;
-    }
-
-    private static void TryFocusExistingProcessWindow(string processName)
-    {
-        try
-        {
-            foreach (var proc in Process.GetProcessesByName(processName))
-            {
-                try
-                {
-                    if (!proc.HasExited && proc.MainWindowHandle != IntPtr.Zero)
-                    {
-                        HotKeyNative.ShowWindow(proc.MainWindowHandle, HotKeyNative.SW_RESTORE);
-                        HotKeyNative.SetForegroundWindow(proc.MainWindowHandle);
-                        break;
-                    }
-                }
-                catch { }
-                finally { proc.Dispose(); }
-            }
-        }
-        catch { }
     }
 }

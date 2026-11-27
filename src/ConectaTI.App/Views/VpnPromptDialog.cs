@@ -122,6 +122,7 @@ public sealed class VpnPromptDialog : Window
                 : $"{entry.VpnApp.Trim()} ({resolvedClientDisplayName})");
         AddInfoRow(L.Text("Aplicativo VPN"), appDisplay);
         AddInfoRow(L.Text("Servidor VPN"), entry.VpnServer, entry.VpnServer);
+        AddInfoRow(L.Text("Usuário VPN"), entry.VpnUsername, entry.VpnUsername);
         AddInfoRow(L.Text("Observações VPN"), entry.VpnNotes);
         cardStack.Children.Add(copyFeedback);
 

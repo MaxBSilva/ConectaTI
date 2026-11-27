@@ -15,6 +15,7 @@ public partial class MainViewModel
         var host = InlineHostAndPort;
         var user = InlineUserWithDomain;
         var password = session.PasswordIntent == PasswordEditIntent.Remove ? "" : session.Password;
+        var vpnPassword = session.VpnPasswordIntent == PasswordEditIntent.Remove ? "" : session.VpnPassword;
         try
         {
             if (string.IsNullOrEmpty(password) && session.PasswordIntent == PasswordEditIntent.Keep && !string.IsNullOrWhiteSpace(entry.CredentialId))
@@ -24,10 +25,17 @@ public partial class MainViewModel
                 if (read.Status != Security.CredentialReadStatus.Available) throw new InvalidOperationException();
                 password = read.Secret;
             }
+            if (string.IsNullOrEmpty(vpnPassword) && session.VpnPasswordIntent == PasswordEditIntent.Keep && !string.IsNullOrWhiteSpace(entry.VpnCredentialId))
+            {
+                var readVpn = await _credentials.ReadAsync(entry.VpnCredentialId, current);
+                if (!current()) return;
+                if (readVpn.Status == Security.CredentialReadStatus.Available)
+                    vpnPassword = readVpn.Secret;
+            }
             // A delayed secret read must never copy data from a previous selection or revision.
             if (!current()) return;
             var clearSeconds = _settingsService.Current.ClipboardClearSeconds > 0 ? _settingsService.Current.ClipboardClearSeconds : 30;
-            if (await _credentials.CopyConnectionAsync(entry, host, user, password, current, clearSeconds))
+            if (await _credentials.CopyConnectionAsync(entry, host, user, password, current, clearSeconds, vpnPassword))
             {
                 if (current()) StatusMessage = L.Text("Dados do acesso copiados");
             }

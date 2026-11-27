@@ -2540,4 +2540,82 @@ Dica: no bloco 'VPN do cliente', use o botão '...' ao lado de Aplicativo para i
   <data name="Text1B5F23435CD3" xml:space="preserve">
     <value>{0} | Usuário VPN: {1} (senha copiada para Ctrl+V)</value>
   </data>
+  <data name="TextA9428D95E85A" xml:space="preserve">
+    <value>Usuário da VPN (opcional — preenche só se a VPN pedir)</value>
+  </data>
+  <data name="TextE912424FC627" xml:space="preserve">
+    <value>Copiar usuário da VPN</value>
+  </data>
+  <data name="Text5097945A2524" xml:space="preserve">
+    <value>Senha da VPN (opcional)</value>
+  </data>
+  <data name="Text70F5CD2B88ED" xml:space="preserve">
+    <value>Alterar senha da VPN (opcional)</value>
+  </data>
+  <data name="TextAEA32E14CAD0" xml:space="preserve">
+    <value>Remover senha salva da VPN (efetivado ao salvar)</value>
+  </data>
+  <data name="Text7806256BFFFE" xml:space="preserve">
+    <value>Mostrar / ocultar senha da VPN</value>
+  </data>
+  <data name="Text719170742EB5" xml:space="preserve">
+    <value>Copiar senha da VPN</value>
+  </data>
+  <data name="Text0CD35E21E6C5" xml:space="preserve">
+    <value>Senha salva na VPN</value>
+  </data>
+  <data name="TextFDED122AC0D1" xml:space="preserve">
+    <value>Opcional (usa a da VPN se vazio)</value>
+  </data>
+  <data name="Text15EA90A2724E" xml:space="preserve">
+    <value>Nenhuma senha de VPN cadastrada.</value>
+  </data>
+  <data name="Text27E9C6D1901C" xml:space="preserve">
+    <value>Nenhum usuário de VPN informado.</value>
+  </data>
+  <data name="TextB9D5F657C6CD" xml:space="preserve">
+    <value>Senha da VPN exibida temporariamente por {0} segundos.</value>
+  </data>
+  <data name="Text1F8AB3343101" xml:space="preserve">
+    <value>Senha da VPN ocultada novamente.</value>
+  </data>
+  <data name="Text89450DFA40AF" xml:space="preserve">
+    <value>A nova senha da VPN está vazia.</value>
+  </data>
+  <data name="Text0F0D282F49B3" xml:space="preserve">
+    <value>Usuário VPN</value>
+  </data>
+  <data name="Text22FF0F2AE978" xml:space="preserve">
+    <value>Conexão acionada em {0}...</value>
+  </data>
+  <data name="Text3E4EF082E891" xml:space="preserve">
+    <value>Conectando '{0}' em {1}...</value>
+  </data>
+  <data name="Text7159BA8F6F87" xml:space="preserve">
+    <value>{0} aberto com perfil '{1}' selecionado.</value>
+  </data>
+  <data name="Text281F6AC5607D" xml:space="preserve">
+    <value>Cliente VPN restaurado da bandeja: {0}</value>
+  </data>
+  <data name="Text8040EB5BCC07" xml:space="preserve">
+    <value>Abrindo console do FortiClient...</value>
+  </data>
+  <data name="Text921110C1EDA4" xml:space="preserve">
+    <value>Abrindo FortiClient para o perfil '{0}'...</value>
+  </data>
+  <data name="Text584CDCFFE842" xml:space="preserve">
+    <value>Conectando '{0}' via FortiSSLVPNclient...</value>
+  </data>
+  <data name="Text7E49A6B4C444" xml:space="preserve">
+    <value>Conectando Cisco VPN em '{0}'...</value>
+  </data>
+  <data name="TextACE06B115D24" xml:space="preserve">
+    <value>Conectando perfil '{0}' no OpenVPN Connect...</value>
+  </data>
+  <data name="TextF9EAD1F544AF" xml:space="preserve">
+    <value>O FortiClient já possui uma VPN conectada.</value>
+  </data>
+  <data name="Text65AC03F1729E" xml:space="preserve">
+    <value>O OpenConnect GUI já está conectado.</value>
+  </data>
 </root>

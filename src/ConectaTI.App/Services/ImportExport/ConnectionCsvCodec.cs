@@ -13,7 +13,7 @@ internal static class ConnectionCsvCodec
             {
                 "Nome", "Cliente", "Grupo", "Ambiente", "Protocolo",
                 "Host", "Porta", "Usuario", "Dominio", "ChavePrivada",
-                "VpnNome", "VpnAplicativo", "VpnServidor", "VpnObservacoes",
+                "VpnNome", "VpnAplicativo", "VpnServidor", "VpnUsuario", "VpnObservacoes",
                 "Tags", "Observacoes", "Favorito", "ConfiguracaoRdp", "Ativo", "SshClient", "SshUseAgent", "VncParameters"
             };
             sb.AppendLine(string.Join(";", headers.Select(CsvRecordCodec.Escape)));
@@ -35,6 +35,7 @@ internal static class ConnectionCsvCodec
                     c.VpnName,
                     c.VpnApp,
                     c.VpnServer,
+                    c.VpnUsername,
                     c.VpnNotes,
                     c.Tags,
                     c.Notes,
@@ -120,6 +121,9 @@ internal static class ConnectionCsvCodec
                 case "vpnservidor" or "vpnserver" or "servidorvpn" or "vpnhost" or "vpnip" or "servidorip":
                     if (map.VpnServerColumnIndex < 0) map.VpnServerColumnIndex = i;
                     break;
+                case "vpnusuario" or "vpnusername" or "vpnuser" or "usuariovpn" or "usuariodavpn":
+                    if (map.VpnUsernameColumnIndex < 0) map.VpnUsernameColumnIndex = i;
+                    break;
                 case "vpnobservacoes" or "vpnnotes" or "observacoesvpn" or "vpnobs" or "observacoesdavpn":
                     if (map.VpnNotesColumnIndex < 0) map.VpnNotesColumnIndex = i;
                     break;
@@ -193,6 +197,7 @@ internal static class ConnectionCsvCodec
                 VpnName = GetCell(row, mapping.VpnNameColumnIndex),
                 VpnApp = GetCell(row, mapping.VpnAppColumnIndex),
                 VpnServer = GetCell(row, mapping.VpnServerColumnIndex),
+                VpnUsername = GetCell(row, mapping.VpnUsernameColumnIndex),
                 VpnNotes = GetCell(row, mapping.VpnNotesColumnIndex),
                 Tags = GetCell(row, mapping.TagsColumnIndex),
                 Notes = GetCell(row, mapping.NotesColumnIndex),

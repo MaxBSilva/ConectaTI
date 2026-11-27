@@ -15,16 +15,32 @@ internal sealed class ConnectionEditSession(ConnectionEntry entry, bool isNew = 
     public string? LoadedPassword { get; set; }
     public PasswordEditIntent PasswordIntent { get; set; }
     public string CredentialName { get; set; } = string.Empty;
+
+    // Estado em memória exclusivo da senha manual opcional da VPN
+    public string VpnPassword { get; set; } = string.Empty;
+    public string? LoadedVpnPassword { get; set; }
+    public PasswordEditIntent VpnPasswordIntent { get; set; }
+    public long VpnPasswordRevision { get; private set; }
+
     public string HostText { get; set; } = Helpers.HostPortParser.FormatDisplay(entry.Host, entry.Port, entry.Protocol);
     public string UserText { get; set; } = Helpers.UserIdentityFormatter.FormatDisplay(entry.Username, entry.Domain);
     public long Revision { get; private set; }
     public long PasswordRevision { get; private set; }
-    public bool IsDirty => !Entry.HasSameEditableValues(Baseline) || PasswordIntent != PasswordEditIntent.Keep;
+    public bool IsDirty =>
+        !Entry.HasSameEditableValues(Baseline) ||
+        PasswordIntent != PasswordEditIntent.Keep ||
+        VpnPasswordIntent != PasswordEditIntent.Keep;
 
     public void RecordFieldEdit() => Revision++;
 
-    public void CaptureForm(string host, string user, string password, string credentialName)
-    { HostText = host; UserText = user; Password = password; CredentialName = credentialName; }
+    public void CaptureForm(string host, string user, string password, string credentialName, string vpnPassword = "")
+    {
+        HostText = host;
+        UserText = user;
+        Password = password;
+        CredentialName = credentialName;
+        VpnPassword = vpnPassword;
+    }
 
     public void UpdatePassword(string value)
     {
@@ -48,6 +64,28 @@ internal sealed class ConnectionEditSession(ConnectionEntry entry, bool isNew = 
         Revision++; PasswordRevision++;
     }
 
+    public void UpdateVpnPassword(string value)
+    {
+        VpnPassword = value; VpnPasswordRevision++; Revision++;
+        VpnPasswordIntent = value.Length > 0
+            ? value == LoadedVpnPassword ? PasswordEditIntent.Keep : PasswordEditIntent.Replace
+            : LoadedVpnPassword != null && !string.IsNullOrEmpty(Entry.VpnCredentialId)
+                ? PasswordEditIntent.Remove : PasswordEditIntent.Keep;
+    }
+
+    public void SetVpnPasswordRemovalIntent(bool remove, bool hasInlineVpnPassword)
+    {
+        VpnPasswordIntent = remove ? PasswordEditIntent.Remove : hasInlineVpnPassword ? PasswordEditIntent.Replace : PasswordEditIntent.Keep;
+        Revision++; VpnPasswordRevision++;
+    }
+
+    public void RequestVpnPasswordRemoval()
+    {
+        VpnPassword = string.Empty;
+        VpnPasswordIntent = string.IsNullOrEmpty(Entry.VpnCredentialId) ? PasswordEditIntent.Keep : PasswordEditIntent.Remove;
+        Revision++; VpnPasswordRevision++;
+    }
+
     public ConnectionSaveSubmission CaptureSave() => new(this);
 
     public void AcceptSave(ConnectionSaveSubmission submitted, ConnectionEntry persisted)
@@ -57,7 +95,12 @@ internal sealed class ConnectionEditSession(ConnectionEntry entry, bool isNew = 
         Baseline = persisted.Clone(); IsNew = false;
         var unchanged = Revision == submitted.Revision;
         if (unchanged) Entry = persisted.Clone();
-        else { Entry.CredentialId = persisted.CredentialId; Entry.UpdatedAtUtc = persisted.UpdatedAtUtc; }
+        else
+        {
+            Entry.CredentialId = persisted.CredentialId;
+            Entry.VpnCredentialId = persisted.VpnCredentialId;
+            Entry.UpdatedAtUtc = persisted.UpdatedAtUtc;
+        }
         if (PasswordRevision == submitted.PasswordRevision)
         {
             if (submitted.Intent is PasswordEditIntent.Replace or PasswordEditIntent.Remove)
@@ -71,6 +114,18 @@ internal sealed class ConnectionEditSession(ConnectionEntry entry, bool isNew = 
             PasswordIntent = Password.Length == 0
                 ? persisted.CredentialId == null ? PasswordEditIntent.Keep : PasswordEditIntent.Remove
                 : Password == LoadedPassword ? PasswordEditIntent.Keep : PasswordEditIntent.Replace;
+        }
+        if (VpnPasswordRevision == submitted.VpnPasswordRevision)
+        {
+            VpnPassword = string.Empty; LoadedVpnPassword = null; VpnPasswordIntent = PasswordEditIntent.Keep;
+        }
+        else
+        {
+            if (submitted.VpnIntent == PasswordEditIntent.Replace) LoadedVpnPassword = submitted.VpnPassword;
+            else if (submitted.VpnIntent == PasswordEditIntent.Remove) LoadedVpnPassword = null;
+            VpnPasswordIntent = VpnPassword.Length == 0
+                ? persisted.VpnCredentialId == null ? PasswordEditIntent.Keep : PasswordEditIntent.Remove
+                : VpnPassword == LoadedVpnPassword ? PasswordEditIntent.Keep : PasswordEditIntent.Replace;
         }
         if (unchanged)
         {
@@ -90,4 +145,7 @@ internal sealed class ConnectionSaveSubmission(ConnectionEditSession session)
     public string Password { get; } = session.Password;
     public PasswordEditIntent Intent { get; } = session.PasswordIntent;
     public string CredentialName { get; } = session.CredentialName;
+    public long VpnPasswordRevision { get; } = session.VpnPasswordRevision;
+    public string VpnPassword { get; } = session.VpnPassword;
+    public PasswordEditIntent VpnIntent { get; } = session.VpnPasswordIntent;
 }

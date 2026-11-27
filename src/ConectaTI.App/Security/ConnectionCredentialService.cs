@@ -42,7 +42,7 @@ internal sealed class ConnectionCredentialService(ICredentialLookup lookup, ICre
     public Task<bool> CopyPasswordAsync(string secret, Func<bool> current, int clearSeconds)
         => !current() ? Task.FromResult(false) : clipboard.CopyTextWithRetryAsync(secret, isSecret: true, autoClearSeconds: clearSeconds, canCopy: current);
 
-    public Task<bool> CopyConnectionAsync(ConnectionEntry snapshot, string host, string user, string? secret, Func<bool> current, int clearSeconds)
-        => !current() ? Task.FromResult(false) : clipboard.CopyTextWithRetryAsync(ConnectionCopyFormatter.Format(snapshot, host, user, secret),
+    public Task<bool> CopyConnectionAsync(ConnectionEntry snapshot, string host, string user, string? secret, Func<bool> current, int clearSeconds, string? vpnSecret = null)
+        => !current() ? Task.FromResult(false) : clipboard.CopyTextWithRetryAsync(ConnectionCopyFormatter.Format(snapshot, host, user, secret, vpnSecret),
             isSecret: true, autoClearSeconds: clearSeconds, canCopy: current);
 }

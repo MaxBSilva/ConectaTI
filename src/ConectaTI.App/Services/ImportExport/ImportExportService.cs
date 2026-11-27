@@ -469,6 +469,7 @@ public partial class ImportExportService
                 var vpnName = ConnectionXmlCodec.GetValue(node, "VpnName", "VPNName", "Vpn");
                 var vpnApp = ConnectionXmlCodec.GetValue(node, "VpnApp", "VPNApp", "VpnClient");
                 var vpnServer = ConnectionXmlCodec.GetValue(node, "VpnServer", "VPNServer", "VpnHost");
+                var vpnUser = ConnectionXmlCodec.GetValue(node, "VpnUsername", "VPNUsername", "VpnUser");
                 var vpnNotes = ConnectionXmlCodec.GetValue(node, "VpnNotes", "VPNNotes");
 
                 candidates.Add(new ConnectionEntry
@@ -487,6 +488,7 @@ public partial class ImportExportService
                     VpnName = vpnName,
                     VpnApp = vpnApp,
                     VpnServer = vpnServer,
+                    VpnUsername = vpnUser,
                     VpnNotes = vpnNotes,
                     Notes = string.Empty
                 });

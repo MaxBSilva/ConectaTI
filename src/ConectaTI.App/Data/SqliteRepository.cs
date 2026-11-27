@@ -68,7 +68,7 @@ public partial class SqliteRepository : ICredentialLookup
                        SshClient, SshUseAgent, VncParameters,
                        VpnName, VpnApp, VpnServer, VpnNotes,
                        CreatedAtUtc, UpdatedAtUtc, LastOpenedAtUtc,
-                       IsDeleted, DeletedAtUtc, RdpOptionsJson, IsActive, VpnCredentialId
+                       IsDeleted, DeletedAtUtc, RdpOptionsJson, IsActive, VpnCredentialId, VpnUsername
                 FROM Connections
                 {(includeDeleted ? string.Empty : "WHERE IsDeleted = 0")}
                 ORDER BY ClientName COLLATE NOCASE ASC, Name COLLATE NOCASE ASC;
@@ -97,7 +97,7 @@ public partial class SqliteRepository : ICredentialLookup
                        SshClient, SshUseAgent, VncParameters,
                        VpnName, VpnApp, VpnServer, VpnNotes,
                        CreatedAtUtc, UpdatedAtUtc, LastOpenedAtUtc,
-                       IsDeleted, DeletedAtUtc, RdpOptionsJson, IsActive, VpnCredentialId
+                       IsDeleted, DeletedAtUtc, RdpOptionsJson, IsActive, VpnCredentialId, VpnUsername
                 FROM Connections
                 WHERE IsDeleted = 1
                 ORDER BY DeletedAtUtc DESC, Name COLLATE NOCASE ASC;
@@ -125,7 +125,7 @@ public partial class SqliteRepository : ICredentialLookup
                        SshClient, SshUseAgent, VncParameters,
                        VpnName, VpnApp, VpnServer, VpnNotes,
                        CreatedAtUtc, UpdatedAtUtc, LastOpenedAtUtc,
-                       IsDeleted, DeletedAtUtc, RdpOptionsJson, IsActive, VpnCredentialId
+                       IsDeleted, DeletedAtUtc, RdpOptionsJson, IsActive, VpnCredentialId, VpnUsername
                 FROM Connections
                 WHERE Id = $id;
                 """;
@@ -370,7 +370,7 @@ public partial class SqliteRepository : ICredentialLookup
                 SshClient, SshUseAgent, VncParameters,
                 VpnName, VpnApp, VpnServer, VpnNotes,
                 CreatedAtUtc, UpdatedAtUtc, LastOpenedAtUtc,
-                IsDeleted, DeletedAtUtc, RdpOptionsJson, IsActive, VpnCredentialId
+                IsDeleted, DeletedAtUtc, RdpOptionsJson, IsActive, VpnCredentialId, VpnUsername
             ) VALUES (
                 $id, $name, $client, $group, $env, $proto, $host, $port,
                 $user, $domain, $credId, $keyPath, $notes, $tags, $fav,
@@ -378,7 +378,7 @@ public partial class SqliteRepository : ICredentialLookup
                 $sshClient, $sshAgent, $vncParams,
                 $vpnName, $vpnApp, $vpnServer, $vpnNotes,
                 $created, $updated, $lastOpened,
-                $isDel, $delAt, $rdpOptions, $isActive, $vpnCredId
+                $isDel, $delAt, $rdpOptions, $isActive, $vpnCredId, $vpnUser
             )
             ON CONFLICT(Id) DO UPDATE SET
                 Name = excluded.Name,
@@ -413,7 +413,8 @@ public partial class SqliteRepository : ICredentialLookup
                 DeletedAtUtc = excluded.DeletedAtUtc,
                 RdpOptionsJson = excluded.RdpOptionsJson,
                 IsActive = excluded.IsActive,
-                VpnCredentialId = excluded.VpnCredentialId;
+                VpnCredentialId = excluded.VpnCredentialId,
+                VpnUsername = excluded.VpnUsername;
             """;
 
         cmd.Parameters.AddWithValue("$id", entry.Id);
@@ -428,6 +429,7 @@ public partial class SqliteRepository : ICredentialLookup
         cmd.Parameters.AddWithValue("$domain", entry.Domain?.Trim() ?? string.Empty);
         cmd.Parameters.AddWithValue("$credId", string.IsNullOrWhiteSpace(entry.CredentialId) ? DBNull.Value : entry.CredentialId);
         cmd.Parameters.AddWithValue("$vpnCredId", string.IsNullOrWhiteSpace(entry.VpnCredentialId) ? DBNull.Value : entry.VpnCredentialId);
+        cmd.Parameters.AddWithValue("$vpnUser", entry.VpnUsername?.Trim() ?? string.Empty);
         cmd.Parameters.AddWithValue("$keyPath", entry.PrivateKeyPath?.Trim() ?? string.Empty);
         cmd.Parameters.AddWithValue("$notes", entry.Notes ?? string.Empty);
         cmd.Parameters.AddWithValue("$tags", entry.Tags?.Trim() ?? string.Empty);
@@ -497,7 +499,8 @@ public partial class SqliteRepository : ICredentialLookup
             LastOpenedAtUtc = reader.IsDBNull(29) ? null : ParseDateTimeUtc(reader.GetString(29)),
             IsDeleted = reader.FieldCount > 30 && reader.GetInt32(30) != 0,
             DeletedAtUtc = reader.FieldCount > 31 && !reader.IsDBNull(31) ? ParseDateTimeUtc(reader.GetString(31)) : null,
-            VpnCredentialId = reader.FieldCount > 34 && !reader.IsDBNull(34) ? reader.GetString(34) : null
+            VpnCredentialId = reader.FieldCount > 34 && !reader.IsDBNull(34) ? reader.GetString(34) : null,
+            VpnUsername = reader.FieldCount > 35 && !reader.IsDBNull(35) ? reader.GetString(35) : string.Empty
         };
     }
 
@@ -636,15 +639,36 @@ public partial class SqliteRepository : ICredentialLookup
 
     // All SQL changes to a connection and its credential are one unit.
     public virtual Task SaveConnectionWithCredentialAsync(ConnectionEntry entry, SavedCredential? credential)
+        => SaveConnectionWithCredentialsCoreAsync(entry, credential, null);
+
+    public virtual async Task SaveConnectionWithCredentialsAsync(
+        ConnectionEntry entry,
+        SavedCredential? credential,
+        SavedCredential? vpnCredential)
+    {
+        if (vpnCredential is null)
+        {
+            await SaveConnectionWithCredentialAsync(entry, credential);
+            return;
+        }
+
+        await SaveConnectionWithCredentialsCoreAsync(entry, credential, vpnCredential);
+    }
+
+    private Task SaveConnectionWithCredentialsCoreAsync(
+        ConnectionEntry entry,
+        SavedCredential? credential,
+        SavedCredential? vpnCredential)
         => Task.Run(() =>
         {
             using var conn = CreateConnection();
             using var tx = conn.BeginTransaction();
             using var old = conn.CreateCommand();
             old.Transaction = tx;
-            old.CommandText = "SELECT CredentialId, LastOpenedAtUtc, IsDeleted, DeletedAtUtc FROM Connections WHERE Id = $id;";
+            old.CommandText = "SELECT CredentialId, LastOpenedAtUtc, IsDeleted, DeletedAtUtc, VpnCredentialId FROM Connections WHERE Id = $id;";
             old.Parameters.AddWithValue("$id", entry.Id);
             string? oldCredentialId = null;
+            string? oldVpnCredentialId = null;
             using (var reader = old.ExecuteReader())
             {
                 if (reader.Read())
@@ -653,21 +677,26 @@ public partial class SqliteRepository : ICredentialLookup
                     entry.LastOpenedAtUtc = reader.IsDBNull(1) ? null : ParseDateTimeUtc(reader.GetString(1));
                     entry.IsDeleted = reader.GetInt32(2) != 0;
                     entry.DeletedAtUtc = reader.IsDBNull(3) ? null : ParseDateTimeUtc(reader.GetString(3));
+                    oldVpnCredentialId = reader.FieldCount > 4 && !reader.IsDBNull(4) ? reader.GetString(4) : null;
                 }
             }
             if (credential != null) UpsertCredentialCommand(conn, tx, credential);
+            if (vpnCredential != null) UpsertCredentialCommand(conn, tx, vpnCredential);
             entry.UpdatedAtUtc = DateTime.UtcNow;
             UpsertConnectionCommand(conn, tx, entry);
-            if (credential != null)
+            foreach (var stagedCred in new[] { credential, vpnCredential })
             {
+                if (stagedCred == null) continue;
                 using var staged = conn.CreateCommand();
                 staged.Transaction = tx;
                 staged.CommandText = "DELETE FROM PendingVaultCleanup WHERE CredentialId = $id;";
-                staged.Parameters.AddWithValue("$id", credential.Id);
+                staged.Parameters.AddWithValue("$id", stagedCred.Id);
                 staged.ExecuteNonQuery();
             }
-            if (!string.IsNullOrEmpty(oldCredentialId) && oldCredentialId != entry.CredentialId)
+
+            void RetireIfUnreferenced(string? oldId, string? currentId)
             {
+                if (string.IsNullOrEmpty(oldId) || oldId == currentId) return;
                 using var cleanup = conn.CreateCommand();
                 cleanup.Transaction = tx;
                 // Include trash references. Never unlink any other access.
@@ -675,9 +704,12 @@ public partial class SqliteRepository : ICredentialLookup
                     DELETE FROM Credentials WHERE Id = $id
                     AND NOT EXISTS (SELECT 1 FROM Connections WHERE CredentialId = $id OR VpnCredentialId = $id);
                     """;
-                cleanup.Parameters.AddWithValue("$id", oldCredentialId);
+                cleanup.Parameters.AddWithValue("$id", oldId);
                 cleanup.ExecuteNonQuery();
             }
+
+            RetireIfUnreferenced(oldCredentialId, entry.CredentialId);
+            RetireIfUnreferenced(oldVpnCredentialId, entry.VpnCredentialId);
             tx.Commit();
         });
 

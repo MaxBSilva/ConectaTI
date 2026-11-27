@@ -49,7 +49,7 @@ public partial class SqliteRepository
                 var entry = entries[i];
                 using var old = connection.CreateCommand();
                 old.Transaction = transaction;
-                old.CommandText = "SELECT CredentialId, CreatedAtUtc, LastOpenedAtUtc, IsDeleted, DeletedAtUtc FROM Connections WHERE Id=$id";
+                old.CommandText = "SELECT CredentialId, CreatedAtUtc, LastOpenedAtUtc, IsDeleted, DeletedAtUtc, VpnCredentialId FROM Connections WHERE Id=$id";
                 old.Parameters.AddWithValue("$id", entry.Id);
                 using (var reader = old.ExecuteReader())
                 {
@@ -60,6 +60,7 @@ public partial class SqliteRepository
                         entry.LastOpenedAtUtc = reader.IsDBNull(2) ? null : ParseDateTimeUtc(reader.GetString(2));
                         entry.IsDeleted = reader.GetInt32(3) != 0;
                         entry.DeletedAtUtc = reader.IsDBNull(4) ? null : ParseDateTimeUtc(reader.GetString(4));
+                        if (reader.FieldCount > 5 && !reader.IsDBNull(5) && reader.GetString(5) != entry.VpnCredentialId) retired.Add(reader.GetString(5));
                     }
                 }
                 stage = "UpsertConnection";

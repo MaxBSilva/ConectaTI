@@ -23,6 +23,7 @@ public partial class MainWindow : Window
     private readonly DispatcherTimer _quickTextsSaveDebounceTimer;
     private string _incrementalSearchBuffer = string.Empty;
     private bool _isUpdatingPasswordInternally;
+    private bool _isUpdatingVpnPasswordInternally;
     private bool _isUpdatingQuickTextsInternally;
     private IInputElement? _elementFocusedBeforeQuickTexts;
     private EventWaitHandle? _updateRequestSignal;
@@ -175,6 +176,8 @@ public partial class MainWindow : Window
             _vm.NotifySelectedSummaryProperties();
             SyncPasswordControls();
             UpdatePasswordPlaceholderVisibility();
+            SyncVpnPasswordControls();
+            UpdateVpnPasswordPlaceholderVisibility();
             InitializeQuickTextsPanelState();
             UpdateAdaptiveHeaderAndPaneBounds(RootLayoutGrid.ActualWidth > 0 ? RootLayoutGrid.ActualWidth : Width);
             SearchTextBox.Focus();
@@ -187,8 +190,17 @@ public partial class MainWindow : Window
                 or nameof(MainViewModel.RevealedPasswordText)
                 or nameof(MainViewModel.IsPasswordRevealed)
                 or nameof(MainViewModel.HasSavedPassword)
+                or nameof(MainViewModel.IsPasswordMarkedForRemoval)
                 or nameof(MainViewModel.IsLocked))
                 SyncPasswordControls();
+
+            if (args.PropertyName is nameof(MainViewModel.InlineVpnPasswordInput)
+                or nameof(MainViewModel.RevealedVpnPasswordText)
+                or nameof(MainViewModel.IsVpnPasswordRevealed)
+                or nameof(MainViewModel.HasSavedVpnPassword)
+                or nameof(MainViewModel.IsVpnPasswordMarkedForRemoval)
+                or nameof(MainViewModel.IsLocked))
+                SyncVpnPasswordControls();
         };
 
         _vm.FilteredListUpdated += SyncListSelectionAndScroll;
@@ -360,6 +372,39 @@ public partial class MainWindow : Window
         PasswordBulletsPlaceholder.Visibility = showBullets ? Visibility.Visible : Visibility.Collapsed;
     }
 
+    private void SyncVpnPasswordControls()
+    {
+        if (InlineVpnPasswordBox == null || RevealedVpnPasswordTextBox == null || _vm == null)
+            return;
+
+        var previous = _isUpdatingVpnPasswordInternally;
+        _isUpdatingVpnPasswordInternally = true;
+        try
+        {
+            var editorVpnPassword = _vm.InlineVpnPasswordInput;
+            InlineVpnPasswordBox.IsEnabled = true;
+            if (InlineVpnPasswordBox.Password != editorVpnPassword)
+                InlineVpnPasswordBox.Password = editorVpnPassword;
+            var visible = _vm.IsVpnPasswordRevealed ? _vm.RevealedVpnPasswordText : string.Empty;
+            if (RevealedVpnPasswordTextBox.Text != visible)
+                RevealedVpnPasswordTextBox.Text = visible;
+        }
+        finally { _isUpdatingVpnPasswordInternally = previous; }
+        UpdateVpnPasswordPlaceholderVisibility();
+    }
+
+    private void UpdateVpnPasswordPlaceholderVisibility()
+    {
+        if (VpnPasswordBulletsPlaceholder == null || InlineVpnPasswordBox == null || _vm == null)
+            return;
+
+        bool showBullets = _vm.HasSavedVpnPassword &&
+                           !_vm.IsVpnPasswordMarkedForRemoval &&
+                           string.IsNullOrEmpty(InlineVpnPasswordBox.Password);
+
+        VpnPasswordBulletsPlaceholder.Visibility = showBullets ? Visibility.Visible : Visibility.Collapsed;
+    }
+
     private void RestoreWindowGeometry()
     {
         var s = _vm.SettingsService.Current;
@@ -432,6 +477,7 @@ public partial class MainWindow : Window
                     e.Handled = true;
                     await _vm.SaveConnectionAsync();
                     SyncPasswordControls();
+                    SyncVpnPasswordControls();
                     return;
 
                 case KeyboardShortcutsCatalog.ActionNewConnection:
@@ -503,6 +549,13 @@ public partial class MainWindow : Window
                 _vm.HideRevealedPassword();
                 SyncPasswordControls();
                 InlinePasswordBox.Focus();
+            }
+            else if (RevealedVpnPasswordTextBox.IsKeyboardFocusWithin && _vm.IsVpnPasswordRevealed)
+            {
+                e.Handled = true;
+                _vm.HideRevealedVpnPassword();
+                SyncVpnPasswordControls();
+                InlineVpnPasswordBox.Focus();
             }
         }
     }
@@ -634,6 +687,7 @@ public partial class MainWindow : Window
     {
         _vm.NewConnection();
         SyncPasswordControls();
+        SyncVpnPasswordControls();
         ConnectionNameTextBox.Focus();
         ConnectionNameTextBox.SelectAll();
     }
@@ -642,6 +696,7 @@ public partial class MainWindow : Window
     {
         await _vm.SaveConnectionAsync();
         SyncPasswordControls();
+        SyncVpnPasswordControls();
     }
 
     private void RemovePasswordButton_Click(object sender, RoutedEventArgs e)
@@ -675,6 +730,39 @@ public partial class MainWindow : Window
         var value = RevealedPasswordTextBox.Text;
         _vm.RevealedPasswordText = value;
         _vm.UpdatePasswordFromUser(value);
+    }
+
+    private void RemoveVpnPasswordButton_Click(object sender, RoutedEventArgs e)
+    {
+        _vm.MarkVpnPasswordForRemoval();
+        SyncVpnPasswordControls();
+    }
+
+    private async void ToggleVpnPasswordRevealButton_Click(object sender, RoutedEventArgs e)
+    {
+        await _vm.ToggleVpnPasswordVisibilityAsync();
+        SyncVpnPasswordControls();
+        if (_vm.IsVpnPasswordRevealed)
+        {
+            RevealedVpnPasswordTextBox.Focus();
+            RevealedVpnPasswordTextBox.SelectAll();
+        }
+        else InlineVpnPasswordBox.Focus();
+    }
+
+    private void InlineVpnPasswordBox_PasswordChanged(object sender, RoutedEventArgs e)
+    {
+        if (_isUpdatingVpnPasswordInternally || _vm == null || !InlineVpnPasswordBox.IsKeyboardFocusWithin) return;
+        _vm.UpdateVpnPasswordFromUser(InlineVpnPasswordBox.Password);
+        UpdateVpnPasswordPlaceholderVisibility();
+    }
+
+    private void RevealedVpnPasswordTextBox_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        if (_isUpdatingVpnPasswordInternally || _vm == null || !_vm.IsVpnPasswordRevealed || !RevealedVpnPasswordTextBox.IsKeyboardFocusWithin) return;
+        var value = RevealedVpnPasswordTextBox.Text;
+        _vm.RevealedVpnPasswordText = value;
+        _vm.UpdateVpnPasswordFromUser(value);
     }
 
     private void BrowsePrivateKey_Click(object sender, RoutedEventArgs e)

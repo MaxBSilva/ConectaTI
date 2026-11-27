@@ -32,6 +32,7 @@ internal static class ConnectionXmlCodec
                             new XElement("VpnName", c.VpnName),
                             new XElement("VpnApp", c.VpnApp),
                             new XElement("VpnServer", c.VpnServer),
+                            new XElement("VpnUsername", c.VpnUsername),
                             new XElement("VpnNotes", c.VpnNotes),
                             new XElement("Tags", c.Tags),
                             new XElement("Notes", c.Notes),
@@ -69,6 +70,7 @@ internal static class ConnectionXmlCodec
                     var vpnName = GetValue(node, "VpnName", "VPNName", "Vpn");
                     var vpnApp = GetValue(node, "VpnApp", "VPNApp", "VpnApplication", "AplicativoVpn");
                     var vpnServer = GetValue(node, "VpnServer", "VPNServer", "VpnHost", "ServidorVpn");
+                    var vpnUser = GetValue(node, "VpnUsername", "VPNUsername", "VpnUser", "UsuarioVpn");
                     var vpnNotes = GetValue(node, "VpnNotes", "VPNNotes", "ObservacoesVpn");
                     var tags = GetValue(node, "Tags");
                     var notes = GetValue(node, "Notes");
@@ -96,6 +98,7 @@ internal static class ConnectionXmlCodec
                         VpnName = vpnName,
                         VpnApp = vpnApp,
                         VpnServer = vpnServer,
+                        VpnUsername = vpnUser,
                         VpnNotes = vpnNotes,
                         Tags = tags,
                         Notes = notes,

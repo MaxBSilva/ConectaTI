@@ -227,6 +227,20 @@ public class ConnectionEntry : ObservableObject
         }
     }
 
+    private string _vpnUsername = string.Empty;
+    public string VpnUsername
+    {
+        get => _vpnUsername;
+        set
+        {
+            if (SetProperty(ref _vpnUsername, value))
+            {
+                OnPropertyChanged(nameof(HasVpnConfigured));
+                OnPropertyChanged(nameof(VpnStatusBadge));
+            }
+        }
+    }
+
     private string? _vpnCredentialId;
     public string? VpnCredentialId
     {
@@ -247,6 +261,7 @@ public class ConnectionEntry : ObservableObject
         !string.IsNullOrWhiteSpace(VpnApp) ||
         !string.IsNullOrWhiteSpace(VpnServer) ||
         !string.IsNullOrWhiteSpace(VpnNotes) ||
+        !string.IsNullOrWhiteSpace(VpnUsername) ||
         !string.IsNullOrWhiteSpace(VpnCredentialId);
 
     [JsonIgnore]
@@ -360,6 +375,7 @@ public class ConnectionEntry : ObservableObject
             VpnApp = VpnApp,
             VpnServer = VpnServer,
             VpnNotes = VpnNotes,
+            VpnUsername = VpnUsername,
             VpnCredentialId = VpnCredentialId,
             IsDeleted = IsDeleted,
             DeletedAtUtc = DeletedAtUtc,
@@ -411,6 +427,7 @@ public class ConnectionEntry : ObservableObject
                string.Equals(VpnApp, other.VpnApp, StringComparison.Ordinal) &&
                string.Equals(VpnServer, other.VpnServer, StringComparison.Ordinal) &&
                string.Equals(VpnNotes, other.VpnNotes, StringComparison.Ordinal) &&
+               string.Equals(VpnUsername, other.VpnUsername, StringComparison.Ordinal) &&
                string.Equals(VpnCredentialId ?? string.Empty, other.VpnCredentialId ?? string.Empty, StringComparison.Ordinal);
     }
 }

@@ -90,7 +90,7 @@ try {
         framework             = "net10.0-windows"
         selfContained         = $true
         singleFile            = $true
-        schemaVersion         = 11
+        schemaVersion         = 12
         publishedAtUtc        = [DateTime]::UtcNow.ToString("o")
         executableName        = "ConectaTI.exe"
         executableLength      = $conectaExe.Length

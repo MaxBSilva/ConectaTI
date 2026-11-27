@@ -1203,41 +1203,114 @@
                                                 Cursor="Hand"/>
                                     </Grid>
 
-                                    <!-- Credencial da VPN (opcional — login / senha) -->
-                                    <TextBlock TextWrapping="Wrap" Text="{loc:Loc TextB10B969DDC8C}" FontSize="{DynamicResource Font11}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,2"/>
+                                    <!-- Usuário da VPN (manual e opcional — preenche apenas se a VPN pedir) -->
+                                    <TextBlock TextWrapping="Wrap" Text="{loc:Loc TextA9428D95E85A}" FontSize="{DynamicResource Font11}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,2"/>
+                                    <Grid Margin="0,0,0,8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBox x:Name="VpnUsernameTextBox"
+                                                 Grid.Column="0"
+                                                 Text="{Binding EditingEntry.VpnUsername, UpdateSourceTrigger=PropertyChanged}"
+                                                 FontSize="{DynamicResource Font12}"
+                                                 Padding="5,3"/>
+                                        <Button Grid.Column="1"
+                                                Content="📋"
+                                                Command="{Binding CopyVpnUsernameCommand}"
+                                                IsEnabled="{Binding CanCopyVpnUsername}"
+                                                Padding="6,3"
+                                                Margin="4,0,0,0"
+                                                Cursor="Hand"
+                                                ToolTip="{loc:Loc TextE912424FC627}"/>
+                                    </Grid>
+
+                                    <!-- Senha da VPN (manual e opcional — criptografada no cofre ao salvar) -->
+                                    <WrapPanel Margin="0,0,0,3">
+                                        <TextBlock TextWrapping="Wrap"
+                                                   Text="{Binding VpnPasswordFieldLabel}"
+                                                   FontSize="{DynamicResource Font11}"
+                                                   Foreground="{DynamicResource SecondaryTextBrush}"
+                                                   Margin="0,0,8,0"
+                                                   VerticalAlignment="Center"/>
+                                        <Border CornerRadius="3"
+                                                Padding="5,1"
+                                                Background="{DynamicResource SurfaceAltBrush}"
+                                                BorderBrush="{DynamicResource BorderBrush}"
+                                                BorderThickness="1"
+                                                VerticalAlignment="Center">
+                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding VpnPasswordStatusIcon}"
+                                                           FontSize="{DynamicResource Font10_5}"
+                                                           FontWeight="Bold"
+                                                           Foreground="{Binding VpnPasswordStateBrush}"
+                                                           VerticalAlignment="Center"
+                                                           Margin="0,0,4,0"/>
+                                                <TextBlock Text="{Binding SavedVpnPasswordBadgeText}"
+                                                           TextWrapping="Wrap"
+                                                           FontSize="{DynamicResource Font10_5}"
+                                                           FontWeight="SemiBold"
+                                                           Foreground="{Binding VpnPasswordStateBrush}"
+                                                           VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </Border>
+                                        <Button Content="{loc:Loc TextA3037DC71A43}"
+                                                Click="RemoveVpnPasswordButton_Click"
+                                                Visibility="{Binding HasSavedVpnPassword, Converter={StaticResource BoolToVis}}"
+                                                Padding="6,1"
+                                                FontSize="{DynamicResource Font10_5}"
+                                                Margin="6,0,0,0"
+                                                ToolTip="{loc:Loc TextAEA32E14CAD0}"/>
+                                    </WrapPanel>
+
                                     <Grid Margin="0,0,0,8">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="Auto"/>
                                             <ColumnDefinition Width="Auto"/>
-                                            <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
-                                        <ComboBox Grid.Column="0"
-                                                  ItemsSource="{Binding AvailableCredentials}"
-                                                  DisplayMemberPath="DisplayTitle"
-                                                  SelectedValuePath="Id"
-                                                  SelectedValue="{Binding SelectedVpnCredentialId, Mode=TwoWay}"
-                                                  FontSize="{DynamicResource Font12}"/>
+
+                                        <!-- Campo Mascarado (PasswordBox da VPN) -->
+                                        <Grid Grid.Column="0" Visibility="{Binding IsVpnPasswordRevealed, Converter={StaticResource InverseBoolToVis}}">
+                                            <PasswordBox x:Name="InlineVpnPasswordBox"
+                                                         PasswordChanged="InlineVpnPasswordBox_PasswordChanged"
+                                                         FontSize="{DynamicResource Font12}"/>
+                                            <TextBlock x:Name="VpnPasswordBulletsPlaceholder"
+                                                       Text="••••••••••••"
+                                                       IsHitTestVisible="False"
+                                                       VerticalAlignment="Center"
+                                                       Margin="9,0,0,0"
+                                                       FontSize="{DynamicResource Font12_5}"
+                                                       Foreground="{DynamicResource MutedTextBrush}"/>
+                                        </Grid>
+
+                                        <!-- Campo Revelado em Texto Puro (quando acionado o botão de olho da VPN) -->
+                                        <TextBox x:Name="RevealedVpnPasswordTextBox"
+                                                 Grid.Column="0"
+                                                 TextChanged="RevealedVpnPasswordTextBox_TextChanged"
+                                                 Visibility="{Binding IsVpnPasswordRevealed, Converter={StaticResource BoolToVis}}"
+                                                 FontSize="{DynamicResource Font12}"/>
+
+                                        <!-- Botão Mostrar / Ocultar Senha da VPN -->
                                         <Button Grid.Column="1"
-                                                Content="⚙"
-                                                Click="OpenCredentialsFromHeader_Click"
-                                                Padding="7,3"
+                                                Click="ToggleVpnPasswordRevealButton_Click"
+                                                Style="{DynamicResource IconCopyButtonStyle}"
                                                 Margin="4,0,0,0"
-                                                ToolTip="{loc:Loc Text6831E844611E}"/>
+                                                VerticalAlignment="Center"
+                                                ToolTip="{loc:Loc Text7806256BFFFE}">
+                                            <TextBlock Text="👁" FontSize="{DynamicResource Font12}"/>
+                                        </Button>
+
+                                        <!-- Botão Copiar Senha da VPN -->
                                         <Button Grid.Column="2"
-                                                Content="👤"
-                                                Command="{Binding CopyVpnUsernameCommand}"
-                                                IsEnabled="{Binding HasVpnCredentialSelected}"
-                                                Padding="6,3"
-                                                Margin="4,0,0,0"
-                                                ToolTip="{loc:Loc Text64931DDBCBCC}"/>
-                                        <Button Grid.Column="3"
-                                                Content="🔑"
                                                 Command="{Binding CopyVpnPasswordCommand}"
-                                                IsEnabled="{Binding HasVpnCredentialSelected}"
-                                                Padding="6,3"
-                                                Margin="4,0,0,0"
-                                                ToolTip="{loc:Loc Text72897DBA86CD}"/>
+                                                IsEnabled="{Binding CanCopyVpnPassword}"
+                                                Style="{DynamicResource IconCopyButtonStyle}"
+                                                Margin="2,0,0,0"
+                                                VerticalAlignment="Center"
+                                                ToolTip="{loc:Loc Text719170742EB5}">
+                                            <TextBlock Text="📋" FontSize="{DynamicResource Font11}"/>
+                                        </Button>
                                     </Grid>
 
                                     <!-- Observações -->
